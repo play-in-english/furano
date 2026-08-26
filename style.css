@@ -477,14 +477,11 @@ button:focus-visible {
    the final question.
 */
 
-.question-content,
-.results-content {
-  grid-area: 1 / 1;
+.question-content {
   width: 100%;
   text-align: center;
   transform-origin: center center;
   will-change: transform, opacity, filter;
-
   transition:
     opacity var(--transition) cubic-bezier(.2,.8,.2,1),
     transform var(--transition) cubic-bezier(.15,.85,.2,1),
