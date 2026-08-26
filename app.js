@@ -5,19 +5,31 @@
 const QUESTIONS_PER_GAME = 7;
 const STAR_COUNT = 110;
 
-/* Start Mission hyperspace */
+/* ------------------------------------------------------------
+   START MISSION HYPERSPACE
+   ------------------------------------------------------------ */
+
 const WARP_STAR_COUNT = 240;
 const WARP_ACCEL_MS = 1500;
 const WARP_HOLD_MS = 260;
 const WARP_EXIT_MS = 700;
 
-/* Question-to-question hyperspace */
+/* ------------------------------------------------------------
+   QUESTION-TO-QUESTION HYPERSPACE
+   ------------------------------------------------------------ */
+
 const QUESTION_WARP_STAR_COUNT = 110;
 const QUESTION_WARP_ACCEL_MS = 520;
 const QUESTION_TRANSITION_MS = 650;
 
 const prefersReducedMotion =
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.matchMedia(
+    '(prefers-reduced-motion: reduce)'
+  ).matches;
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
 
 const state = {
   roundQuestions: [],
@@ -28,14 +40,21 @@ const state = {
   transitioning: false
 };
 
+/* ============================================================
+   DOM ELEMENTS
+   ============================================================ */
+
 const screens = {
   start: document.getElementById('startScreen'),
   game: document.getElementById('gameScreen'),
   results: document.getElementById('resultsScreen')
 };
 
-const startBtn = document.getElementById('startBtn');
-const playAgainBtn = document.getElementById('playAgainBtn');
+const startBtn =
+  document.getElementById('startBtn');
+
+const playAgainBtn =
+  document.getElementById('playAgainBtn');
 
 const playAudioBtn =
   document.getElementById('playAudioBtn');
@@ -82,22 +101,17 @@ const warpCanvas =
 const galaxyFlash =
   document.getElementById('galaxyFlash');
 
-const resultsContent =
-  document.getElementById('resultsContent');
-
 let warpCtx = null;
 let warpStars = [];
 let warpRAF = null;
 let warpAnimStart = 0;
 let warpAccelMsActive = WARP_ACCEL_MS;
 
-
 /* ============================================================
-   SCREEN CONTROL
+   SCREEN MANAGEMENT
    ============================================================ */
 
 function showScreen(name) {
-
   Object.values(screens).forEach(screen => {
     screen.classList.remove('active');
   });
@@ -105,18 +119,16 @@ function showScreen(name) {
   screens[name].classList.add('active');
 }
 
-
 /* ============================================================
    BACKGROUND STARS
    ============================================================ */
 
 function createBackgroundStars() {
-
   starField.innerHTML = '';
 
   for (let i = 0; i < STAR_COUNT; i++) {
-
-    const star = document.createElement('span');
+    const star =
+      document.createElement('span');
 
     star.className = 'star';
 
@@ -148,13 +160,11 @@ function createBackgroundStars() {
   }
 }
 
-
 /* ============================================================
    HYPERSPACE CANVAS
    ============================================================ */
 
 function setupWarpCanvas() {
-
   warpCtx =
     warpCanvas.getContext('2d');
 
@@ -166,9 +176,7 @@ function setupWarpCanvas() {
   );
 }
 
-
 function resizeWarpCanvas() {
-
   if (!warpCtx) return;
 
   const dpr =
@@ -203,9 +211,7 @@ function resizeWarpCanvas() {
   );
 }
 
-
 function initWarpStars(count) {
-
   const cx =
     window.innerWidth / 2;
 
@@ -221,7 +227,6 @@ function initWarpStars(count) {
   warpStars = [];
 
   for (let i = 0; i < count; i++) {
-
     const angle =
       Math.random() * Math.PI * 2;
 
@@ -233,10 +238,12 @@ function initWarpStars(count) {
 
     warpStars.push({
       x:
-        cx + Math.cos(angle) * radius,
+        cx +
+        Math.cos(angle) * radius,
 
       y:
-        cy + Math.sin(angle) * radius,
+        cy +
+        Math.sin(angle) * radius,
 
       z:
         Math.random() * maxDepth + 20,
@@ -250,18 +257,13 @@ function initWarpStars(count) {
   }
 }
 
-
 function stopWarpAnimation() {
-
   if (warpRAF) {
-
     cancelAnimationFrame(warpRAF);
-
     warpRAF = null;
   }
 
   if (warpCtx) {
-
     warpCtx.clearRect(
       0,
       0,
@@ -271,9 +273,7 @@ function stopWarpAnimation() {
   }
 }
 
-
 function warpFrame(now) {
-
   if (!warpCtx) return;
 
   const elapsed =
@@ -311,20 +311,18 @@ function warpFrame(now) {
   );
 
   for (const star of warpStars) {
-
     star.pz = star.z;
 
     /*
       Smaller z = closer to viewer.
-      Moving z toward zero makes the
-      star fly toward the viewer.
+      Moving z toward zero makes the star
+      fly toward the viewer.
     */
 
     star.z -=
       10 + 85 * acceleration;
 
     if (star.z < 1) {
-
       const angle =
         Math.random() * Math.PI * 2;
 
@@ -335,10 +333,12 @@ function warpFrame(now) {
         ) * maxDepth;
 
       star.x =
-        cx + Math.cos(angle) * radius;
+        cx +
+        Math.cos(angle) * radius;
 
       star.y =
-        cy + Math.sin(angle) * radius;
+        cy +
+        Math.sin(angle) * radius;
 
       star.z =
         maxDepth;
@@ -374,7 +374,8 @@ function warpFrame(now) {
     const brightness =
       Math.min(
         1,
-        .25 + acceleration * 1.1
+        .25 +
+        acceleration * 1.1
       );
 
     const lineWidth =
@@ -384,7 +385,6 @@ function warpFrame(now) {
     warpCtx.beginPath();
 
     warpCtx.moveTo(px, py);
-
     warpCtx.lineTo(sx, sy);
 
     warpCtx.strokeStyle =
@@ -400,13 +400,11 @@ function warpFrame(now) {
     requestAnimationFrame(warpFrame);
 }
 
-
 function playWarp(
   count,
   accelerationMs,
   visibleMs
 ) {
-
   if (
     !warpCtx ||
     prefersReducedMotion
@@ -414,7 +412,9 @@ function playWarp(
     return;
   }
 
-  document.body.classList.add('warping');
+  document.body.classList.add(
+    'warping'
+  );
 
   warpAccelMsActive =
     accelerationMs;
@@ -427,46 +427,41 @@ function playWarp(
   stopWarpAnimation();
 
   warpRAF =
-    requestAnimationFrame(warpFrame);
+    requestAnimationFrame(
+      warpFrame
+    );
 
-  warpCanvas.classList.add('active');
+  warpCanvas.classList.add(
+    'active'
+  );
 
   setTimeout(() => {
-
     warpCanvas.classList.remove(
       'active'
     );
-
   }, visibleMs);
 
   setTimeout(() => {
-
     stopWarpAnimation();
 
     document.body.classList.remove(
       'warping'
     );
-
   }, visibleMs + 650);
 }
-
 
 /* ============================================================
    GALAXY ENTRANCE
    ============================================================ */
 
 function beginGalaxyEntrance() {
-
-  if (state.transitioning) {
-    return;
-  }
+  if (state.transitioning) return;
 
   state.transitioning = true;
 
   startBtn.disabled = true;
 
   if (prefersReducedMotion) {
-
     startGame();
 
     state.transitioning = false;
@@ -489,13 +484,10 @@ function beginGalaxyEntrance() {
   );
 
   setTimeout(() => {
-
     startGame();
-
   }, WARP_ACCEL_MS + WARP_HOLD_MS);
 
   setTimeout(() => {
-
     appShell.classList.remove(
       'transition-hide'
     );
@@ -509,56 +501,28 @@ function beginGalaxyEntrance() {
     galaxyFlash.classList.add(
       'active'
     );
-
-  }, WARP_ACCEL_MS +
-     WARP_HOLD_MS +
-     80);
+  }, WARP_ACCEL_MS + WARP_HOLD_MS + 80);
 
   setTimeout(() => {
-
     state.transitioning = false;
 
     startBtn.disabled = false;
-
   }, WARP_ACCEL_MS +
-     WARP_HOLD_MS +
-     WARP_EXIT_MS +
-     100);
+      WARP_HOLD_MS +
+      WARP_EXIT_MS +
+      100);
 }
 
-
 /* ============================================================
-   QUESTION / RESULTS GALAXY TRANSITION
+   QUESTION-TO-QUESTION GALAXY TRAVEL
    ============================================================ */
 
-/*
-   This function can now animate TWO elements:
-
-   exitElement:
-      The thing currently on screen.
-
-   enterElement:
-      The thing arriving from deep space.
-
-   This is important for:
-
-      Question 7
-          ↓
-      Mission Complete
-
-   because the results screen is a different DOM element.
-*/
-
 function playGalaxyZoomTransition(
-  exitElement,
-  enterElement,
+  element,
   onSwap
 ) {
-
   if (prefersReducedMotion) {
-
     onSwap();
-
     return;
   }
 
@@ -568,88 +532,66 @@ function playGalaxyZoomTransition(
     QUESTION_TRANSITION_MS * 2 - 50
   );
 
-  /* ----------------------------------------------------------
-     CURRENT ELEMENT FLIES AWAY
-     ---------------------------------------------------------- */
+  /*
+    Current question flies away.
+  */
 
-  exitElement.classList.remove(
+  element.classList.remove(
     'q-enter',
     'question-landed'
   );
 
-  exitElement.classList.add(
+  element.classList.add(
     'q-exit'
   );
 
-  /* ----------------------------------------------------------
-     WAIT UNTIL THE OLD ELEMENT HAS TRAVELLED AWAY
-     ---------------------------------------------------------- */
-
   setTimeout(() => {
-
     /*
-      Prepare the new element.
+      Change the content while the old question
+      is deep in space.
     */
 
     onSwap();
 
-    enterElement.classList.remove(
-      'q-exit',
-      'question-landed'
+    /*
+      New question starts deep in space.
+    */
+
+    element.classList.remove(
+      'q-exit'
     );
 
-    enterElement.classList.add(
+    element.classList.add(
       'q-enter'
     );
 
-    /*
-      Force browser to recognize the
-      starting position.
-    */
-
-    void enterElement.offsetWidth;
+    void element.offsetWidth;
 
     requestAnimationFrame(() => {
-
-      /*
-        Remove q-enter.
-
-        CSS transition now makes the
-        element fly toward the viewer.
-      */
-
-      enterElement.classList.remove(
+      element.classList.remove(
         'q-enter'
       );
 
       setTimeout(() => {
-
-        enterElement.classList.add(
+        element.classList.add(
           'question-landed'
         );
 
         setTimeout(() => {
-
-          enterElement.classList.remove(
+          element.classList.remove(
             'question-landed'
           );
-
         }, 400);
-
       }, QUESTION_TRANSITION_MS);
-
     });
-
   }, QUESTION_TRANSITION_MS);
 }
-
 
 /* ============================================================
    RANDOM QUESTION SELECTION
    ============================================================ */
 
 function shuffle(array) {
-
   const arr =
     array.slice();
 
@@ -658,7 +600,6 @@ function shuffle(array) {
     i > 0;
     i--
   ) {
-
     const j =
       Math.floor(
         Math.random() * (i + 1)
@@ -667,7 +608,8 @@ function shuffle(array) {
     [
       arr[i],
       arr[j]
-    ] = [
+    ] =
+    [
       arr[j],
       arr[i]
     ];
@@ -676,15 +618,12 @@ function shuffle(array) {
   return arr;
 }
 
-
 function pickRoundQuestions() {
-
   if (
     !Array.isArray(QUESTION_BANK) ||
     QUESTION_BANK.length <
       QUESTIONS_PER_GAME
   ) {
-
     throw new Error(
       `QUESTION_BANK must contain at least ${QUESTIONS_PER_GAME} questions.`
     );
@@ -698,13 +637,11 @@ function pickRoundQuestions() {
   );
 }
 
-
 /* ============================================================
    CONSTELLATION
    ============================================================ */
 
 function renderConstellation() {
-
   const total =
     state.roundQuestions.length;
 
@@ -729,9 +666,9 @@ function renderConstellation() {
     i < total;
     i++
   ) {
-
     const x =
-      padding + step * i;
+      padding +
+      step * i;
 
     pathD +=
       ` L ${x} ${y}`;
@@ -744,18 +681,16 @@ function renderConstellation() {
     i < total;
     i++
   ) {
-
     const x =
-      padding + step * i;
+      padding +
+      step * i;
 
     let cls =
       'constellation-node';
 
     if (
-      i <
-      state.results.length
+      i < state.results.length
     ) {
-
       cls +=
         state.results[i]
           ? ' done'
@@ -764,9 +699,7 @@ function renderConstellation() {
     } else if (
       i === state.currentIndex
     ) {
-
-      cls +=
-        ' current';
+      cls += ' current';
     }
 
     const radius =
@@ -775,14 +708,13 @@ function renderConstellation() {
         ? 8
         : 6;
 
-    nodesSvg += `
-      <circle
+    nodesSvg +=
+      `<circle
         class="${cls}"
         cx="${x}"
         cy="${y}"
         r="${radius}">
-      </circle>
-    `;
+      </circle>`;
   }
 
   constellationEl.innerHTML = `
@@ -812,7 +744,8 @@ function renderConstellation() {
           (
             padding +
             step * progressIndex
-          ) / width
+          ) /
+          width
         ) * 100
       : 50;
 
@@ -847,27 +780,11 @@ function renderConstellation() {
   );
 }
 
-
 /* ============================================================
    GAME FLOW
    ============================================================ */
 
 function startGame() {
-
-  /*
-    Make absolutely sure the results overlay
-    is cleared when starting a new game.
-  */
-
-  screens.results.classList.remove(
-    'final-overlay'
-  );
-
-  resultsContent.classList.remove(
-    'q-enter',
-    'question-landed'
-  );
-
   state.roundQuestions =
     pickRoundQuestions();
 
@@ -877,14 +794,19 @@ function startGame() {
 
   state.results = [];
 
+  state.answeredCurrent = false;
+
+  /*
+    Make absolutely sure the Game Screen
+    is the only active screen.
+  */
+
   showScreen('game');
 
   renderQuestion();
 }
 
-
 function renderQuestion() {
-
   state.answeredCurrent =
     false;
 
@@ -896,13 +818,35 @@ function renderQuestion() {
       state.currentIndex
     ];
 
+  /*
+    Question counter
+  */
+
   questionCounter.textContent =
-    `Question ${state.currentIndex + 1} / ${total}`;
+    `Question ${
+      state.currentIndex + 1
+    } / ${total}`;
+
+  /*
+    Score counter
+  */
 
   scoreCounter.textContent =
-    `Score: ${state.score} / ${state.currentIndex}`;
+    `Score: ${
+      state.score
+    } / ${
+      state.currentIndex
+    }`;
+
+  /*
+    Constellation
+  */
 
   renderConstellation();
+
+  /*
+    Reset audio
+  */
 
   letterAudio.pause();
 
@@ -915,11 +859,18 @@ function renderQuestion() {
     'playing'
   );
 
-  feedbackEl.textContent =
-    '';
+  /*
+    Reset feedback
+  */
+
+  feedbackEl.textContent = '';
 
   feedbackEl.className =
     'feedback';
+
+  /*
+    Hide Next until answered.
+  */
 
   nextBtn.style.display =
     'none';
@@ -927,12 +878,12 @@ function renderQuestion() {
   nextBtn.disabled =
     false;
 
-  optionsGrid.innerHTML =
-    '';
-
   /*
-    Create the answer buttons.
+    IMPORTANT:
+    Clear and rebuild the answer options.
   */
+
+  optionsGrid.innerHTML = '';
 
   shuffle(q.options).forEach(
     letter => {
@@ -959,13 +910,11 @@ function renderQuestion() {
       btn.addEventListener(
         'click',
         () => {
-
           handleAnswer(
             letter,
             btn,
             q.correctAnswer
           );
-
         }
       );
 
@@ -975,16 +924,18 @@ function renderQuestion() {
     }
   );
 
+  /*
+    Automatically play the sound.
+  */
+
   playCurrentAudio();
 }
-
 
 /* ============================================================
    AUDIO
    ============================================================ */
 
 function playCurrentAudio() {
-
   playAudioBtn.classList.add(
     'playing'
   );
@@ -996,36 +947,29 @@ function playCurrentAudio() {
     playPromise &&
     playPromise.catch
   ) {
-
     playPromise.catch(() => {
-
       playAudioBtn.classList.remove(
         'playing'
       );
-
     });
   }
 
   letterAudio.onended =
     () => {
-
       playAudioBtn.classList.remove(
         'playing'
       );
     };
 }
 
-
 playAudioBtn.addEventListener(
   'click',
   () => {
-
     letterAudio.currentTime = 0;
 
     playCurrentAudio();
   }
 );
-
 
 /* ============================================================
    ANSWERS
@@ -1036,7 +980,6 @@ function handleAnswer(
   btnEl,
   correctLetter
 ) {
-
   if (
     state.answeredCurrent ||
     state.transitioning
@@ -1054,17 +997,18 @@ function handleAnswer(
       )
     ];
 
-  buttons.forEach(
-    btn => {
-      btn.disabled = true;
-    }
-  );
+  buttons.forEach(btn => {
+    btn.disabled = true;
+  });
+
+  /*
+    CORRECT
+  */
 
   if (
     selectedLetter ===
     correctLetter
   ) {
-
     state.score++;
 
     state.results.push(
@@ -1080,6 +1024,10 @@ function handleAnswer(
 
     feedbackEl.className =
       'feedback correct';
+
+  /*
+    WRONG
+  */
 
   } else {
 
@@ -1099,7 +1047,6 @@ function handleAnswer(
       );
 
     if (correctBtn) {
-
       correctBtn.classList.add(
         'correct'
       );
@@ -1112,32 +1059,39 @@ function handleAnswer(
       'feedback wrong';
   }
 
+  /*
+    Update score.
+  */
+
   scoreCounter.textContent =
-    `Score: ${state.score} / ${state.currentIndex + 1}`;
+    `Score: ${
+      state.score
+    } / ${
+      state.currentIndex + 1
+    }`;
+
+  /*
+    Update constellation.
+  */
 
   renderConstellation();
 
   /*
-    THIS IS IMPORTANT.
-
-    The Next button is still displayed
-    exactly as before.
-
-    Therefore Question 7 also requires
-    the user to press Next.
+    NOW show Next.
   */
 
   nextBtn.style.display =
     'inline-flex';
-}
 
+  nextBtn.disabled =
+    false;
+}
 
 /* ============================================================
    NEXT QUESTION
    ============================================================ */
 
 function goToNextQuestion() {
-
   if (
     !state.answeredCurrent ||
     state.transitioning
@@ -1156,132 +1110,103 @@ function goToNextQuestion() {
       'questionContent'
     );
 
-  const isLastQuestion =
-    state.currentIndex >=
-    state.roundQuestions.length - 1;
+  /*
+    ------------------------------------------------------------
+    THERE ARE MORE QUESTIONS
+    ------------------------------------------------------------
+  */
 
-
-  /* ==========================================================
-     NORMAL QUESTION → NEXT QUESTION
-     ========================================================== */
-
-  if (!isLastQuestion) {
+  if (
+    state.currentIndex <
+    state.roundQuestions.length - 1
+  ) {
 
     state.currentIndex++;
 
     playGalaxyZoomTransition(
       questionContent,
-      questionContent,
       () => {
-
         renderQuestion();
-
       }
     );
 
     setTimeout(() => {
-
       state.transitioning =
         false;
 
       nextBtn.disabled =
         false;
-
     }, QUESTION_TRANSITION_MS + 100);
 
-    return;
-  }
-
-
-  /* ==========================================================
-     QUESTION 7 → MISSION COMPLETE
-     ========================================================== */
-
   /*
-    We DON'T immediately call showScreen('results').
-
-    If we did, Question 7 would disappear immediately.
-
-    Instead:
-
-      1. Question 7 flies away.
-      2. Results screen is temporarily placed
-         over the game screen.
-      3. Mission Complete starts deep in space.
-      4. Mission Complete flies toward us.
-      5. Only after the animation finishes do
-         we officially switch to the results screen.
+    ------------------------------------------------------------
+    QUESTION 7 IS COMPLETE
+    ------------------------------------------------------------
   */
 
-  playGalaxyZoomTransition(
-    questionContent,
-    resultsContent,
-    () => {
+  } else {
 
-      /*
-        Fill in the results first.
-      */
+    /*
+      The last question flies away first.
 
-      populateResults();
+      Once it has disappeared,
+      showResults() activates the Results Screen.
 
-      /*
-        Keep the game screen active for
-        the transition, but temporarily
-        place the results screen over it.
-      */
+      Because of the CSS rule:
 
-      screens.results.classList.add(
-        'active'
-      );
+      .screen.game-screen.active
 
-      screens.results.classList.add(
-        'final-overlay'
-      );
-    }
-  );
+      the Game Screen is now completely hidden.
+    */
 
-  /*
-    Once the results have fully arrived,
-    officially switch to the results screen.
-  */
-
-  setTimeout(() => {
-
-    showScreen('results');
-
-    screens.results.classList.remove(
-      'final-overlay'
+    playGalaxyZoomTransition(
+      questionContent,
+      () => {
+        showResults();
+      }
     );
 
-    state.transitioning =
-      false;
+    setTimeout(() => {
+      state.transitioning =
+        false;
 
-    nextBtn.disabled =
-      false;
-
-  }, QUESTION_TRANSITION_MS * 2 + 100);
+      nextBtn.disabled =
+        false;
+    }, QUESTION_TRANSITION_MS + 100);
+  }
 }
 
+nextBtn.addEventListener(
+  'click',
+  goToNextQuestion
+);
 
 /* ============================================================
-   RESULTS
+   RESULTS — MISSION COMPLETE
    ============================================================ */
 
-/*
-   Populate results WITHOUT switching screens.
-
-   This allows the results to be animated
-   while Question 7 is still technically
-   on the game screen.
-*/
-
-function populateResults() {
-
+function showResults() {
   const total =
     state.roundQuestions.length;
 
+  /*
+    IMPORTANT:
+    This removes .active from the Game Screen
+    and adds it ONLY to Results Screen.
+  */
+
+  showScreen('results');
+
+  /*
+    Update final score.
+  */
+
   resultsScore.textContent =
     `${state.score} / ${total} Correct!`;
+
+  /*
+    Results message.
+  */
 
   if (
     state.score === total
@@ -1312,39 +1237,34 @@ function populateResults() {
       '🌙 Good try! Fly again and listen carefully!';
   }
 
+  /*
+    Results stars.
+  */
+
   resultsStars.textContent =
     state.results
       .map(
         correct =>
-          correct ? '⭐' : '☆'
+          correct
+            ? '⭐'
+            : '☆'
       )
       .join(' ');
 }
-
-
-/*
-   This function is kept as a separate
-   public results function in case the
-   game needs to call it elsewhere.
-*/
-
-function showResults() {
-
-  populateResults();
-
-  showScreen('results');
-}
-
 
 /* ============================================================
    PLAY AGAIN
    ============================================================ */
 
 function playAgain() {
-
   if (state.transitioning) {
     return;
   }
+
+  const resultsContent =
+    document.getElementById(
+      'resultsContent'
+    );
 
   state.transitioning =
     true;
@@ -1380,9 +1300,7 @@ function playAgain() {
     'scale(.7)';
 
   setTimeout(() => {
-
     startGame();
-
   }, WARP_ACCEL_MS + WARP_HOLD_MS);
 
   setTimeout(() => {
@@ -1400,10 +1318,9 @@ function playAgain() {
       false;
 
   }, WARP_ACCEL_MS +
-     WARP_HOLD_MS +
-     WARP_EXIT_MS);
+      WARP_HOLD_MS +
+      WARP_EXIT_MS);
 }
-
 
 /* ============================================================
    STARTUP
@@ -1417,11 +1334,6 @@ startBtn.addEventListener(
 playAgainBtn.addEventListener(
   'click',
   playAgain
-);
-
-nextBtn.addEventListener(
-  'click',
-  goToNextQuestion
 );
 
 createBackgroundStars();
