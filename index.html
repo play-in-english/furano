@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+  <title>Galaxy Alphabet Quiz</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Galaxy background -->
+  <div class="sky"></div>
+  <div class="nebula"></div>
+  <div class="stars" id="starField" aria-hidden="true"></div>
+
+  <!-- Hyperspace canvas used for Start Mission and question-to-question travel -->
+  <canvas id="warpCanvas" class="warp-canvas" aria-hidden="true"></canvas>
+  <div id="galaxyFlash" class="galaxy-flash" aria-hidden="true"></div>
+
+  <main class="app" id="appShell">
+
+    <!-- START SCREEN -->
+    <section id="startScreen" class="screen active start-screen" aria-labelledby="mainTitle">
+      <div class="brand">
+        <div class="brand-emoji" aria-hidden="true">🚀</div>
+        <h1 class="title" id="mainTitle">Galaxy Alphabet Quiz</h1>
+      </div>
+
+      <p class="subtitle">
+        Blast off, listen carefully, and catch<br>
+        the letter sounds among the stars!
+      </p>
+
+      <div class="start-illustration" aria-hidden="true">
+        <span>⭐</span><span>🪐</span><span>✨</span>
+      </div>
+
+      <p class="mission-info">7 random missions from a bank of 50</p>
+
+      <button id="startBtn" class="btn btn-primary btn-lg" type="button">
+        🚀 Start Mission
+      </button>
+    </section>
+
+    <!-- GAME SCREEN -->
+    <section id="gameScreen" class="screen game-screen" aria-live="polite">
+
+      <header class="game-header">
+        <span class="pill" id="questionCounter">Question 1 / 7</span>
+        <span class="pill score-pill" id="scoreCounter">Score: 0 / 0</span>
+      </header>
+
+      <!-- Small constellation route showing the 7 destinations -->
+      <div class="constellation" id="constellation" aria-hidden="true"></div>
+
+      <!-- Only the current question travels through space -->
+      <div class="question-stage" id="questionStage">
+        <div class="question-content" id="questionContent">
+          <p class="prompt">Which letter did you hear?</p>
+
+          <button id="playAudioBtn" class="audio-btn" type="button"
+                  aria-label="Play the letter sound">
+            <span class="speaker-icon" aria-hidden="true">🔊</span>
+            <span>Play Sound</span>
+          </button>
+
+          <audio id="letterAudio" preload="none"></audio>
+
+          <div class="options-grid" id="optionsGrid"
+               role="group" aria-label="Answer choices"></div>
+
+          <p class="feedback" id="feedback" role="status"></p>
+        </div>
+      </div>
+
+      <div class="next-wrap">
+        <button id="nextBtn" class="btn btn-secondary" type="button" style="display:none;">
+          Next →
+        </button>
+      </div>
+    </section>
+
+    <!-- RESULTS SCREEN -->
+    <section id="resultsScreen" class="screen results-screen" aria-live="polite">
+      <div class="results-content" id="resultsContent">
+        <div class="results-emoji" aria-hidden="true">🎉</div>
+        <h2>Mission Complete!</h2>
+        <p class="results-score" id="resultsScore">0 / 7 Correct!</p>
+        <p class="results-msg" id="resultsMsg"></p>
+        <div class="results-stars" id="resultsStars" aria-hidden="true"></div>
+
+        <button id="playAgainBtn" class="btn btn-primary btn-lg" type="button">
+          🔄 Fly Again
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- IMPORTANT:
+       Put your 50 questions in this file. -->
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
