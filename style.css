@@ -1,0 +1,709 @@
+/* ============================================================
+   ALPHABET LISTENING QUIZ — STYLES
+   ============================================================
+   Galaxy / night-sky theme. Structure:
+   1. Tokens (colors, fonts, spacing)
+   2. Background (sky, stars, nebula)
+   3. Layout & shell
+   4. Screens (start / game / results)
+   5. Components (buttons, progress trail, feedback)
+   6. Responsive
+   7. Motion / accessibility
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap');
+
+/* ---------- 1. Tokens ---------- */
+:root {
+  --sky-deep: #05060f;
+  --sky-navy: #0b0e2b;
+  --sky-navy-2: #131947;
+  --nebula-violet: #7c5cff;
+  --nebula-pink: #ff6fb0;
+  --star-gold: #ffd966;
+  --comet-teal: #4fe3c1;
+  --ink-light: #f4f2ff;
+  --ink-soft: #c7c9ec;
+  --success: #4fe3c1;
+  --success-glow: rgba(79, 227, 193, 0.45);
+  --error: #ff6f91;
+  --error-glow: rgba(255, 111, 145, 0.45);
+  --card-bg: rgba(19, 25, 71, 0.72);
+  --card-border: rgba(255, 255, 255, 0.09);
+
+  --font-display: "Baloo 2", "Trebuchet MS", sans-serif;
+  --font-body: "Nunito", "Trebuchet MS", sans-serif;
+
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+
+  --shadow-soft: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  /* Fallbacks first, then modern dynamic-viewport units so the layout
+     fits the ACTUAL visible area on phones/tablets — accounting for
+     browser chrome (address bars, home indicator) and updating live
+     when a window is resized, rotated, or toggled to fullscreen. */
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  font-family: var(--font-body);
+  color: var(--ink-light);
+  background: var(--sky-deep);
+  overflow-x: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Keep content clear of iPhone notches / home indicator / Android
+     gesture bars in any orientation, while never going below 16px. */
+  padding: max(16px, env(safe-area-inset-top))
+           max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom))
+           max(16px, env(safe-area-inset-left));
+}
+
+/* ---------- 2. Background: sky, stars, nebula ---------- */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(124, 92, 255, 0.16), transparent 55%),
+    radial-gradient(ellipse at 82% 78%, rgba(255, 111, 176, 0.12), transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(79, 227, 193, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--sky-deep) 0%, var(--sky-navy) 55%, #0a0d2a 100%);
+}
+
+/* soft drifting nebula clouds, purely decorative */
+.nebula {
+  position: fixed;
+  inset: -10%;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(600px 400px at 15% 25%, rgba(124, 92, 255, 0.14), transparent 60%),
+    radial-gradient(500px 380px at 85% 20%, rgba(255, 111, 176, 0.10), transparent 60%),
+    radial-gradient(700px 500px at 60% 90%, rgba(79, 227, 193, 0.08), transparent 60%);
+  filter: blur(6px);
+  animation: driftNebula 50s ease-in-out infinite alternate;
+  transition: opacity .8s ease, filter .8s ease, transform .8s ease;
+}
+
+/* Nebula blooms brighter and more saturated during the galaxy-entry
+   transition, then settles back down once the quiz appears. */
+body.warping .nebula {
+  opacity: 1;
+  filter: blur(14px) saturate(1.6);
+  transform: scale(1.08);
+}
+
+@keyframes driftNebula {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-2%, 2%) scale(1.05); }
+}
+
+/* star field: layered dots via box-shadow, generated in JS onto this canvas-free layer */
+.stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity .5s ease;
+}
+
+/* While the hyperspace transition plays, fade the calm twinkling
+   field out — the warp canvas takes over the star show. */
+body.warping .stars {
+  opacity: 0;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.6;
+  animation: twinkle linear infinite;
+}
+
+.star.big {
+  box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: var(--min-o, 0.25); transform: scale(1); }
+  50%      { opacity: var(--max-o, 0.95); transform: scale(1.25); }
+}
+
+@keyframes floatY {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+/* ---------- 2b. Galaxy entrance transition ---------- */
+
+/* Full-screen canvas the JS draws the hyperspace star streak
+   animation onto. Sits above the calm background layers but below
+   the quiz card, and is fully transparent/inert until "active". */
+.warp-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .6s ease;
+}
+
+.warp-canvas.active {
+  opacity: 1;
+}
+
+/* Soft bright bloom that pulses once as the student "arrives" in
+   the galaxy, right after the hyperspace burst. */
+.galaxy-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.85) 0%,
+      rgba(255, 217, 102, 0.45) 22%,
+      rgba(124, 92, 255, 0.35) 45%,
+      rgba(5, 6, 15, 0) 72%);
+}
+
+.galaxy-flash.flash {
+  animation: galaxyFlashPulse 1100ms ease-out forwards;
+}
+
+@keyframes galaxyFlashPulse {
+  0%   { opacity: 0; }
+  35%  { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* The quiz shell fades/shrinks away as hyperspace begins, then
+   fades/grows back in once the galaxy-entry flash has passed. */
+.app {
+  position: relative;
+  z-index: 2;
+  transition: opacity .6s ease, transform .6s ease;
+}
+
+.app.transition-hide {
+  opacity: 0;
+  transform: scale(0.94);
+  pointer-events: none;
+}
+
+/* ---------- 3. Layout & shell ---------- */
+.app {
+  width: 100%;
+  max-width: 640px;
+  /* Never let the app shell exceed the visible viewport height,
+     whatever device or window size it's viewed at. */
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  /* The gameplay is intentionally NOT inside a conventional card.
+     Questions should feel like objects suspended in space. */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: clamp(16px, 3vw, 28px) clamp(12px, 3vw, 24px);
+  box-shadow: none;
+  animation: none;
+  max-height: min(900px, 96svh, 96dvh);
+  overflow: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* The opening and results screens retain a soft glass landing zone,
+   while the actual questions remain completely free-floating. */
+.start-screen,
+.results-screen {
+  background: linear-gradient(145deg, rgba(19,25,71,.72), rgba(5,6,15,.45));
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 30px;
+  padding: clamp(24px, 5vw, 42px);
+  box-shadow: 0 0 70px rgba(124,92,255,.16), inset 0 1px 0 rgba(255,255,255,.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.game-screen {
+  perspective: 1400px;
+  perspective-origin: 50% 45%;
+}
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  margin: 0;
+}
+
+/* ---------- 4. Start Screen ---------- */
+.start-screen {
+  text-align: center;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.brand-emoji {
+  font-size: 56px;
+  filter: drop-shadow(0 0 18px rgba(255, 217, 102, 0.5));
+  animation: floatY 4.5s ease-in-out infinite;
+}
+
+.title {
+  font-size: clamp(28px, 6vw, 38px);
+  font-weight: 800;
+  line-height: 1.15;
+  background: linear-gradient(90deg, var(--star-gold), var(--nebula-pink) 60%, var(--nebula-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.subtitle {
+  color: var(--ink-soft);
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.start-illustration {
+  margin: 22px 0;
+  font-size: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+.start-illustration span { animation: floatY 3.6s ease-in-out infinite; }
+.start-illustration span:nth-child(2) { animation-delay: .6s; }
+.start-illustration span:nth-child(3) { animation-delay: 1.2s; }
+
+/* ---------- 5. Buttons ---------- */
+.btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 16px 32px;
+  color: var(--sky-deep);
+  background: linear-gradient(135deg, var(--star-gold), #ffb84f);
+  box-shadow: 0 0 0 rgba(255, 217, 102, 0), 0 10px 24px rgba(255, 184, 79, 0.28);
+  transition: transform .15s ease, box-shadow .25s ease, filter .15s ease;
+  /* Removes the ~300ms tap delay and stops accidental double-tap
+     zoom on iOS/Android when kids tap quickly. */
+  touch-action: manipulation;
+}
+
+.btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+.btn:active { transform: translateY(0); }
+
+.btn:focus-visible {
+  outline: 3px solid var(--comet-teal);
+  outline-offset: 3px;
+}
+
+.btn-primary {
+  box-shadow: 0 0 24px rgba(255, 217, 102, 0.35), 0 12px 26px rgba(0, 0, 0, 0.35);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--nebula-violet), #5a3fd6);
+  color: #fff;
+  box-shadow: 0 0 24px rgba(124, 92, 255, 0.35), 0 12px 26px rgba(0, 0, 0, 0.35);
+}
+
+.btn-block { width: 100%; }
+
+.btn-lg {
+  font-size: 20px;
+  padding: 18px 36px;
+}
+
+/* Replay audio button */
+.audio-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 6px auto 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--sky-deep);
+  background: radial-gradient(circle at 30% 30%, #fff, var(--comet-teal) 70%);
+  border: none;
+  border-radius: 999px;
+  padding: 20px 34px;
+  cursor: pointer;
+  box-shadow: 0 0 0 6px rgba(79, 227, 193, 0.12), 0 14px 30px rgba(79, 227, 193, 0.3);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.audio-btn:hover { transform: scale(1.03); }
+.audio-btn:active { transform: scale(0.98); }
+.audio-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.audio-btn .speaker-icon {
+  font-size: 24px;
+  animation: pulseIcon 1.6s ease-in-out infinite;
+}
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.audio-btn.playing {
+  box-shadow: 0 0 0 10px rgba(79, 227, 193, 0.18), 0 14px 30px rgba(79, 227, 193, 0.45);
+}
+
+/* ---------- Game screen ---------- */
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-size: 14px;
+  letter-spacing: .02em;
+}
+
+.pill {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+
+.pill.score-pill { color: var(--star-gold); }
+
+/* Constellation progress trail — the signature element:
+   each answered question lights up a star on the trail the
+   rocket travels along toward the finish. */
+.constellation {
+  position: relative;
+  height: 54px;
+  margin: 4px 0 22px;
+}
+
+.constellation svg { width: 100%; height: 100%; display: block; }
+
+.constellation-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 2;
+  stroke-dasharray: 4 6;
+}
+
+.constellation-node {
+  fill: rgba(255, 255, 255, 0.2);
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1;
+  transition: fill .3s ease, stroke .3s ease, r .3s ease;
+}
+
+.constellation-node.done {
+  fill: var(--star-gold);
+  stroke: var(--star-gold);
+  filter: drop-shadow(0 0 6px rgba(255, 217, 102, 0.9));
+}
+
+.constellation-node.wrong-node {
+  fill: var(--error);
+  stroke: var(--error);
+  filter: drop-shadow(0 0 6px rgba(255, 111, 145, 0.9));
+}
+
+.constellation-node.current {
+  fill: var(--comet-teal);
+  stroke: var(--comet-teal);
+  filter: drop-shadow(0 0 8px rgba(79, 227, 193, 0.9));
+}
+
+.rocket {
+  position: absolute;
+  top: -6px;
+  font-size: 22px;
+  transform: translateX(-50%) rotate(90deg);
+  transition: left .5s cubic-bezier(.4,1.4,.5,1);
+  filter: drop-shadow(0 0 8px rgba(255, 217, 102, 0.7));
+}
+
+.prompt {
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(19px, 3vw, 24px);
+  color: rgba(244,242,255,.88);
+  margin: 4px 0 22px;
+  text-shadow: 0 0 18px rgba(124,92,255,.65);
+}
+
+/* ---------- CINEMATIC QUESTION TRAVEL ----------
+   The question is NOT a card. It is a glowing object floating in space.
+   q-exit sends the current question deep into the distance.
+   q-enter starts the next question deep in the distance; JS then removes
+   the class and the whole question flies toward the viewer. */
+.question-content {
+  position: relative;
+  z-index: 3;
+  transform-origin: 50% 50%;
+  transform-style: preserve-3d;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  transition:
+    transform 650ms cubic-bezier(.16,.84,.22,1),
+    opacity 650ms ease,
+    filter 650ms cubic-bezier(.16,.84,.22,1);
+}
+
+.question-content.q-exit {
+  opacity: 0;
+  transform: translate3d(0, 0, -1500px) scale(.035) rotateX(2deg);
+  filter: blur(14px) brightness(1.8) saturate(1.5);
+}
+
+.question-content.q-enter {
+  opacity: 0;
+  transform: translate3d(0, 0, -1500px) scale(.035) rotateX(-2deg);
+  filter: blur(14px) brightness(1.8) saturate(1.5);
+}
+
+/* A faint halo makes the question feel like a celestial object rather
+   than a panel placed on top of the background. */
+.question-content::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: min(520px, 90vw);
+  height: min(340px, 65vw);
+  left: 50%;
+  top: 48%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(124,92,255,.14), rgba(79,227,193,.045) 42%, transparent 72%);
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.option-btn {
+  position: relative;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(38px, 9vw, 56px);
+  color: var(--ink-light);
+  background: radial-gradient(circle at 35% 28%, rgba(255,255,255,.16), rgba(124,92,255,.08) 42%, rgba(5,6,15,.22) 78%);
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 24px;
+  padding: clamp(16px, 3vh, 25px) 14px;
+  min-height: 82px;
+  cursor: pointer;
+  text-shadow: 0 0 16px rgba(255,255,255,.65);
+  box-shadow: 0 0 0 1px rgba(124,92,255,.10), 0 0 28px rgba(124,92,255,.14), inset 0 0 28px rgba(255,255,255,.025);
+  transition: transform .2s ease, border-color .25s ease, background .25s ease, box-shadow .25s ease;
+  touch-action: manipulation;
+  overflow: hidden;
+}
+
+.option-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 115%, rgba(79,227,193,.18), transparent 55%);
+  pointer-events: none;
+}
+
+.option-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--comet-teal);
+  box-shadow: 0 0 20px rgba(79, 227, 193, 0.25);
+}
+
+.option-btn:focus-visible {
+  outline: 3px solid var(--comet-teal);
+  outline-offset: 3px;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-btn.correct {
+  background: linear-gradient(160deg, rgba(79, 227, 193, 0.35), rgba(79, 227, 193, 0.12));
+  border-color: var(--success);
+  box-shadow: 0 0 26px var(--success-glow);
+  animation: pop .35s ease;
+}
+
+.option-btn.incorrect {
+  background: linear-gradient(160deg, rgba(255, 111, 145, 0.35), rgba(255, 111, 145, 0.12));
+  border-color: var(--error);
+  box-shadow: 0 0 26px var(--error-glow);
+  animation: shake .4s ease;
+}
+
+.option-btn.dimmed { opacity: 0.45; }
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.feedback {
+  min-height: 34px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  margin: 10px 0 4px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .25s ease, transform .25s ease;
+}
+
+.feedback.show { opacity: 1; transform: translateY(0); }
+.feedback.correct-text { color: var(--success); }
+.feedback.incorrect-text { color: var(--error); }
+
+.next-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  min-height: 60px;
+}
+
+/* ---------- Results screen ---------- */
+.results-screen { text-align: center; }
+
+.results-emoji {
+  font-size: 60px;
+  margin-bottom: 6px;
+  animation: floatY 4s ease-in-out infinite;
+}
+
+.results-score {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(30px, 7vw, 40px);
+  margin: 6px 0 4px;
+  background: linear-gradient(90deg, var(--star-gold), var(--comet-teal));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.results-msg {
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin-bottom: 22px;
+}
+
+.results-stars {
+  font-size: 30px;
+  letter-spacing: 6px;
+  margin: 14px 0 24px;
+}
+
+/* ---------- 6. Responsive ---------- */
+
+/* Phones (portrait) — iPhone SE through Pro Max, small Android phones */
+@media (max-width: 480px) {
+  .card { padding-left: 8px; padding-right: 8px; }
+  .start-screen, .results-screen { border-radius: 24px; padding: 22px 18px; }
+  .options-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .audio-btn { padding: 14px 24px; font-size: 17px; }
+  .brand-emoji { font-size: 46px; }
+  .start-illustration { font-size: 32px; margin: 16px 0; }
+}
+
+/* Tablets — iPad portrait/landscape and similarly sized Android tablets */
+@media (min-width: 600px) and (max-width: 1024px) {
+  .app { max-width: 560px; }
+}
+
+/* Short viewports — phones in landscape, minimized/split-screen desktop
+   windows, or fullscreen on a small display. Trims vertical space so
+   everything fits without the card overflowing the screen. */
+@media (max-height: 560px) {
+  .card { animation: none; }
+  .start-screen, .results-screen { padding-top: 16px; padding-bottom: 16px; }
+  .brand-emoji { font-size: 36px; }
+  .title { font-size: clamp(22px, 5vw, 30px); }
+  .subtitle { font-size: 14px; margin-top: 4px; }
+  .start-illustration { display: none; }
+  .audio-btn { padding: 12px 22px; font-size: 16px; }
+  .option-btn { font-size: clamp(24px, 6vw, 34px); }
+  .constellation { height: 40px; margin-bottom: 14px; }
+  .results-emoji { font-size: 40px; }
+}
+
+/* Very short viewports — e.g. a small phone in landscape */
+@media (max-height: 400px) {
+  .card { padding-top: 8px; padding-bottom: 8px; }
+  .start-screen, .results-screen { padding-top: 12px; padding-bottom: 12px; }
+  .brand { gap: 4px; }
+  .prompt { margin: 2px 0 10px; font-size: 15px; }
+}
+
+/* ---------- 7. Motion & accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
