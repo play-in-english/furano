@@ -198,10 +198,14 @@ button:focus-visible {
   position: relative;
   z-index: 5;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
+
   display: grid;
   place-items: center;
+
   padding: 24px;
+
   transition:
     opacity 420ms ease,
     transform 420ms ease;
@@ -228,10 +232,14 @@ button:focus-visible {
 .start-screen {
   text-align: center;
   padding: 46px 28px;
+
   border: 1px solid var(--border);
   border-radius: 32px;
+
   background: rgba(8, 6, 28, .42);
+
   backdrop-filter: blur(12px);
+
   box-shadow:
     0 0 80px rgba(106, 74, 210, .18),
     inset 0 0 40px rgba(255,255,255,.025);
@@ -251,15 +259,21 @@ button:focus-visible {
 
 .title {
   margin: 0;
+
   font-size: clamp(2rem, 6vw, 4rem);
   line-height: 1.05;
+
   letter-spacing: .02em;
-  text-shadow: 0 0 24px rgba(180,150,255,.55);
+
+  text-shadow:
+    0 0 24px rgba(180,150,255,.55);
 }
 
 .subtitle {
   margin: 22px auto 0;
+
   color: var(--muted);
+
   font-size: clamp(1rem, 2.5vw, 1.25rem);
   line-height: 1.6;
 }
@@ -267,8 +281,11 @@ button:focus-visible {
 .start-illustration {
   display: flex;
   justify-content: center;
+
   gap: 32px;
+
   margin: 34px 0 18px;
+
   font-size: 2.5rem;
 }
 
@@ -307,6 +324,7 @@ button:focus-visible {
 .mission-info {
   color: #aaa5ca;
   font-size: .92rem;
+
   margin: 12px 0 24px;
 }
 
@@ -317,11 +335,18 @@ button:focus-visible {
 .btn {
   border: 1px solid rgba(255,255,255,.2);
   border-radius: 999px;
+
   padding: 13px 24px;
+
   color: white;
+
   cursor: pointer;
+
   background: rgba(70,55,150,.4);
-  box-shadow: 0 0 18px rgba(130,100,255,.15);
+
+  box-shadow:
+    0 0 18px rgba(130,100,255,.15);
+
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -330,7 +355,9 @@ button:focus-visible {
 
 .btn:hover {
   transform: translateY(-2px) scale(1.02);
-  box-shadow: 0 0 28px rgba(160,125,255,.35);
+
+  box-shadow:
+    0 0 28px rgba(160,125,255,.35);
 }
 
 .btn:active {
@@ -365,7 +392,9 @@ button:focus-visible {
 
 .game-screen {
   position: relative;
+
   min-height: 80vh;
+
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -373,24 +402,35 @@ button:focus-visible {
 
 .game-header {
   position: fixed;
+
   top: 24px;
   left: 24px;
   right: 24px;
+
   display: flex;
   justify-content: space-between;
+
   z-index: 10;
+
   pointer-events: none;
 }
 
 .pill {
   padding: 8px 14px;
+
   border: 1px solid rgba(255,255,255,.12);
   border-radius: 999px;
+
   background: rgba(7,5,25,.36);
+
   backdrop-filter: blur(8px);
+
   color: #dcd8f4;
+
   font-size: .85rem;
-  box-shadow: 0 0 15px rgba(100,80,200,.12);
+
+  box-shadow:
+    0 0 15px rgba(100,80,200,.12);
 }
 
 .score-pill {
@@ -404,7 +444,9 @@ button:focus-visible {
 .constellation {
   width: min(600px, 90vw);
   height: 54px;
+
   margin-top: 76px;
+
   opacity: .85;
 }
 
@@ -416,74 +458,92 @@ button:focus-visible {
 
 .constellation-line {
   fill: none;
+
   stroke: rgba(190,170,255,.28);
+
   stroke-width: 1.5;
+
   stroke-dasharray: 5 6;
 }
 
 .constellation-node {
   fill: rgba(120,105,180,.5);
+
   stroke: rgba(255,255,255,.35);
+
   stroke-width: 1;
+
   transition: all 350ms ease;
 }
 
 .constellation-node.current {
   fill: var(--cyan);
+
   stroke: white;
+
   filter: drop-shadow(0 0 8px var(--cyan));
 }
 
 .constellation-node.done {
   fill: var(--gold);
+
   stroke: white;
+
   filter: drop-shadow(0 0 7px var(--gold));
 }
 
 .constellation-node.wrong-node {
   fill: var(--pink);
+
   stroke: white;
+
   filter: drop-shadow(0 0 7px var(--pink));
 }
 
 .rocket {
   position: relative;
+
   width: fit-content;
+
   transform: translate(-50%, -50%);
+
   font-size: 1.35rem;
-  filter: drop-shadow(0 0 8px rgba(255,150,80,.8));
-  transition: left 500ms cubic-bezier(.2,.8,.2,1);
+
+  filter:
+    drop-shadow(0 0 8px rgba(255,150,80,.8));
+
+  transition:
+    left 500ms cubic-bezier(.2,.8,.2,1);
 }
 
 /* ------------------------------------------------------------
-   QUESTION / RESULTS STAGE
-   Both the question and MISSION COMPLETE occupy the
-   exact same physical space.
+   QUESTION
    ------------------------------------------------------------ */
 
 .question-stage {
   position: relative;
+
   width: min(800px, 94vw);
+
   min-height: 390px;
+
   display: grid;
   place-items: center;
+
   perspective: 1200px;
 }
 
-/*
-   IMPORTANT:
-   Question and results are placed in the SAME grid cell.
-   This prevents the results page from appearing underneath
-   the final question.
-*/
-
-.question-content,
-.results-content {
-  grid-area: 1 / 1;
+.question-content {
   width: 100%;
+
   text-align: center;
+
   transform-origin: center center;
-  will-change: transform, opacity, filter;
+
+  will-change:
+    transform,
+    opacity,
+    filter;
 
   transition:
     opacity var(--transition) cubic-bezier(.2,.8,.2,1),
@@ -491,14 +551,8 @@ button:focus-visible {
     filter var(--transition) ease;
 }
 
-/* ------------------------------------------------------------
-   QUESTION TRANSITION
-   ------------------------------------------------------------ */
-
-/* Current question leaves the galaxy */
-
-.question-content.q-exit,
-.results-content.q-exit {
+/* Current question flies away */
+.question-content.q-exit {
   opacity: 0;
 
   transform:
@@ -512,10 +566,8 @@ button:focus-visible {
     brightness(1.7);
 }
 
-/* New question / results begin extremely far away */
-
-.question-content.q-enter,
-.results-content.q-enter {
+/* Next question begins extremely far away */
+.question-content.q-enter {
   opacity: 0;
 
   transform:
@@ -529,11 +581,10 @@ button:focus-visible {
     brightness(1.7);
 }
 
-/* Subtle "stop" after arriving */
-
-.question-content.question-landed,
-.results-content.question-landed {
-  animation: questionLand 360ms ease-out;
+/* Subtle landing */
+.question-content.question-landed {
+  animation:
+    questionLand 360ms ease-out;
 }
 
 @keyframes questionLand {
@@ -551,33 +602,55 @@ button:focus-visible {
 }
 
 /* ------------------------------------------------------------
-   QUESTION CONTENT
+   QUESTION TEXT
    ------------------------------------------------------------ */
 
 .prompt {
   margin: 0 0 28px;
+
   color: rgba(245,241,255,.95);
+
   font-size: clamp(1.25rem, 3.5vw, 1.8rem);
+
   font-weight: 600;
+
   letter-spacing: .02em;
-  text-shadow: 0 0 18px rgba(170,140,255,.45);
+
+  text-shadow:
+    0 0 18px rgba(170,140,255,.45);
 }
+
+/* ------------------------------------------------------------
+   AUDIO BUTTON
+   ------------------------------------------------------------ */
 
 .audio-btn {
   display: inline-flex;
+
   align-items: center;
+
   gap: 9px;
+
   margin-bottom: 36px;
+
   border: 1px solid rgba(170,145,255,.32);
+
   border-radius: 999px;
+
   padding: 11px 20px;
+
   color: #f8f5ff;
+
   background: rgba(33,24,75,.38);
+
   backdrop-filter: blur(8px);
+
   cursor: pointer;
+
   box-shadow:
     0 0 20px rgba(125,95,255,.12),
     inset 0 0 15px rgba(255,255,255,.025);
+
   transition:
     transform 180ms ease,
     box-shadow 180ms ease;
@@ -585,38 +658,57 @@ button:focus-visible {
 
 .audio-btn:hover {
   transform: scale(1.04);
-  box-shadow: 0 0 28px rgba(145,110,255,.32);
+
+  box-shadow:
+    0 0 28px rgba(145,110,255,.32);
 }
 
 .audio-btn.playing {
-  animation: audioPulse 850ms ease-in-out infinite;
+  animation:
+    audioPulse 850ms ease-in-out infinite;
 }
 
 @keyframes audioPulse {
   0%,100% {
-    box-shadow: 0 0 14px rgba(109,231,255,.2);
+    box-shadow:
+      0 0 14px rgba(109,231,255,.2);
   }
 
   50% {
-    box-shadow: 0 0 34px rgba(109,231,255,.65);
+    box-shadow:
+      0 0 34px rgba(109,231,255,.65);
   }
 }
 
+/* ------------------------------------------------------------
+   OPTIONS
+   ------------------------------------------------------------ */
+
 .options-grid {
   display: flex;
+
   justify-content: center;
+
   gap: clamp(24px, 7vw, 70px);
+
   flex-wrap: wrap;
 }
 
 .option-btn {
   width: clamp(115px, 24vw, 190px);
+
   aspect-ratio: 1 / 1;
+
   border-radius: 50%;
+
   border: 1px solid rgba(255,255,255,.24);
+
   color: white;
+
   font-size: clamp(3.8rem, 11vw, 6.5rem);
+
   font-weight: 700;
+
   cursor: pointer;
 
   background:
@@ -643,6 +735,7 @@ button:focus-visible {
 
 .option-btn:hover {
   transform: translateY(-5px) scale(1.05);
+
   border-color: rgba(255,255,255,.6);
 
   box-shadow:
@@ -652,13 +745,19 @@ button:focus-visible {
 
 .option-btn.correct {
   border-color: var(--gold);
-  box-shadow: 0 0 45px rgba(255,216,107,.72);
+
+  box-shadow:
+    0 0 45px rgba(255,216,107,.72);
+
   color: var(--gold);
 }
 
 .option-btn.wrong {
   border-color: var(--pink);
-  box-shadow: 0 0 35px rgba(255,100,180,.6);
+
+  box-shadow:
+    0 0 35px rgba(255,100,180,.6);
+
   color: #ffb1df;
 }
 
@@ -666,12 +765,21 @@ button:focus-visible {
   cursor: default;
 }
 
+/* ------------------------------------------------------------
+   FEEDBACK
+   ------------------------------------------------------------ */
+
 .feedback {
   min-height: 34px;
+
   margin: 26px 0 0;
+
   font-size: 1.3rem;
+
   font-weight: 700;
-  text-shadow: 0 0 15px currentColor;
+
+  text-shadow:
+    0 0 15px currentColor;
 }
 
 .feedback.correct {
@@ -682,68 +790,168 @@ button:focus-visible {
   color: var(--pink);
 }
 
+/* ------------------------------------------------------------
+   NEXT BUTTON
+   ------------------------------------------------------------ */
+
 .next-wrap {
   min-height: 54px;
+
   margin-top: 12px;
+
+  position: relative;
+
+  z-index: 5;
 }
 
 /* ------------------------------------------------------------
-   RESULTS / MISSION COMPLETE
+   RESULTS SCREEN
    ------------------------------------------------------------ */
 
 /*
-   Results is now inside the same question-stage as the
-   question. It is therefore NOT a separate page underneath
-   the 7th question.
+   Normally the results screen behaves like an ordinary screen.
+
+   During Question 7 → Mission Complete, JavaScript adds
+   .final-overlay.
+
+   This allows the results screen to temporarily sit ON TOP of
+   the game screen while Question 7 flies away.
 */
 
+.results-screen {
+  text-align: center;
+}
+
+.results-screen.final-overlay {
+  position: absolute;
+
+  inset: 0;
+
+  width: 100%;
+
+  display: grid !important;
+
+  place-items: center;
+
+  z-index: 15;
+
+  pointer-events: none;
+
+  padding: 24px;
+}
+
+/* Results box */
+
 .results-content {
+  width: min(900px, 100%);
+
   padding: 42px 28px;
+
   border: 1px solid rgba(255,255,255,.13);
+
   border-radius: 30px;
+
   background: rgba(8,6,28,.32);
+
   backdrop-filter: blur(10px);
 
   box-shadow:
     0 0 70px rgba(100,70,210,.16);
 
-  opacity: 0;
-  pointer-events: none;
+  transform-origin: center center;
+
+  will-change:
+    transform,
+    opacity,
+    filter;
+
+  transition:
+    opacity var(--transition) cubic-bezier(.2,.8,.2,1),
+    transform var(--transition) cubic-bezier(.15,.85,.2,1),
+    filter var(--transition) ease;
 }
 
 /*
-   When the results are being brought in by the transition,
-   JavaScript removes q-enter and the content zooms toward
-   the viewer into the exact position of the old question.
+   Mission Complete begins far away,
+   just like a question arriving from deep space.
 */
 
-.results-content h2 {
-  margin: 12px 0;
-  font-size: clamp(2rem, 6vw, 3.2rem);
-  text-shadow: 0 0 24px rgba(180,150,255,.55);
+.results-content.q-enter {
+  opacity: 0;
+
+  transform:
+    perspective(1200px)
+    translateZ(-1400px)
+    scale(.04)
+    rotateX(-4deg);
+
+  filter:
+    blur(14px)
+    brightness(1.7);
+}
+
+/*
+   Small landing effect once Mission Complete arrives.
+*/
+
+.results-content.question-landed {
+  animation:
+    resultsLand 360ms ease-out;
+}
+
+@keyframes resultsLand {
+  0% {
+    transform: scale(1.06);
+  }
+
+  65% {
+    transform: scale(.985);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
 
 .results-emoji {
   font-size: 4rem;
-  filter: drop-shadow(0 0 18px rgba(255,216,107,.65));
+
+  filter:
+    drop-shadow(0 0 18px rgba(255,216,107,.65));
+}
+
+.results-content h2 {
+  margin: 12px 0;
+
+  font-size: clamp(2rem, 6vw, 3.2rem);
+
+  text-shadow:
+    0 0 24px rgba(180,150,255,.55);
 }
 
 .results-score {
   margin: 10px 0;
+
   color: var(--gold);
+
   font-size: clamp(1.7rem, 5vw, 2.5rem);
+
   font-weight: 800;
 }
 
 .results-msg {
   color: var(--muted);
+
   font-size: 1.05rem;
 }
 
 .results-stars {
   min-height: 48px;
+
   margin: 15px 0 25px;
+
   font-size: 1.8rem;
+
   letter-spacing: 8px;
 }
 
@@ -762,7 +970,7 @@ button:focus-visible {
 }
 
 /* ------------------------------------------------------------
-   RESPONSIVE / MOBILE / LANDSCAPE
+   RESPONSIVE / MOBILE
    ------------------------------------------------------------ */
 
 @media (max-width: 600px) {
@@ -777,9 +985,14 @@ button:focus-visible {
 
   .start-screen {
     width: min(100%, 560px);
-    max-height: calc(100dvh - 24px);
+
+    max-height:
+      calc(100dvh - 24px);
+
     overflow: auto;
+
     padding: 30px 18px;
+
     border-radius: 24px;
   }
 
@@ -788,7 +1001,8 @@ button:focus-visible {
   }
 
   .title {
-    font-size: clamp(1.7rem, 7vw, 2.5rem);
+    font-size:
+      clamp(1.7rem, 7vw, 2.5rem);
   }
 
   .subtitle {
@@ -797,69 +1011,107 @@ button:focus-visible {
 
   .start-illustration {
     margin: 24px 0 12px;
+
     font-size: 2rem;
   }
 
   .game-header {
-    top: max(10px, env(safe-area-inset-top));
-    left: max(10px, env(safe-area-inset-left));
-    right: max(10px, env(safe-area-inset-right));
+    top:
+      max(10px, env(safe-area-inset-top));
+
+    left:
+      max(10px, env(safe-area-inset-left));
+
+    right:
+      max(10px, env(safe-area-inset-right));
   }
 
   .pill {
     font-size: .72rem;
+
     padding: 7px 9px;
   }
 
   .constellation {
-    top: clamp(56px, 10vh, 76px);
-    width: calc(100vw - 28px);
+    width:
+      calc(100vw - 28px);
+
     height: 42px;
+
+    margin-top: 66px;
   }
 
   .question-stage {
-    width: calc(100vw - 24px);
-    height: calc(100dvh - 150px);
+    width:
+      calc(100vw - 24px);
+
+    height:
+      calc(100dvh - 150px);
+
+    min-height: 0;
   }
 
   .prompt {
     margin-bottom: 20px;
-    font-size: clamp(1.1rem, 5vw, 1.5rem);
+
+    font-size:
+      clamp(1.1rem, 5vw, 1.5rem);
   }
 
   .audio-btn {
     margin-bottom: 25px;
+
     padding: 10px 17px;
   }
 
   .options-grid {
-    gap: clamp(14px, 5vw, 24px);
+    gap:
+      clamp(14px, 5vw, 24px);
   }
 
   .option-btn {
-    width: clamp(105px, 30vw, 145px);
-    font-size: clamp(3.3rem, 16vw, 5rem);
+    width:
+      clamp(105px, 30vw, 145px);
+
+    font-size:
+      clamp(3.3rem, 16vw, 5rem);
   }
 
   .feedback {
     margin-top: 16px;
+
     font-size: 1.1rem;
   }
 
   .next-wrap {
-    bottom: max(12px, env(safe-area-inset-bottom));
+    margin-top: 8px;
+
+    bottom:
+      max(12px, env(safe-area-inset-bottom));
+  }
+
+  .results-screen.final-overlay {
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
   }
 
   .results-content {
     width: min(100%, 560px);
-    max-height: calc(100dvh - 24px);
+
+    max-height:
+      calc(100dvh - 24px);
+
     overflow: auto;
+
     padding: 30px 18px;
   }
 }
 
 /* ------------------------------------------------------------
-   SHORT LANDSCAPE PHONES
+   LANDSCAPE PHONES
    ------------------------------------------------------------ */
 
 @media (orientation: landscape) and (max-height: 600px) {
@@ -869,12 +1121,15 @@ button:focus-visible {
   }
 
   .start-screen {
-    max-height: calc(100dvh - 16px);
+    max-height:
+      calc(100dvh - 16px);
+
     padding: 18px 24px;
   }
 
   .start-illustration {
     margin: 10px 0;
+
     font-size: 1.6rem;
   }
 
@@ -883,56 +1138,102 @@ button:focus-visible {
   }
 
   .game-header {
-    top: max(8px, env(safe-area-inset-top));
+    top:
+      max(8px, env(safe-area-inset-top));
   }
 
   .constellation {
-    top: 42px;
+    margin-top: 48px;
+
     height: 32px;
   }
 
   .question-stage {
-    height: calc(100dvh - 78px);
-    width: min(760px, calc(100vw - 24px));
+    height:
+      calc(100dvh - 78px);
+
+    width:
+      min(760px, calc(100vw - 24px));
   }
 
-  .question-content,
-  .results-content {
+  .question-content {
     transform-origin: center center;
   }
 
   .prompt {
     margin-bottom: 10px;
-    font-size: clamp(1rem, 3.2vh, 1.35rem);
+
+    font-size:
+      clamp(1rem, 3.2vh, 1.35rem);
   }
 
   .audio-btn {
     margin-bottom: 12px;
+
     padding: 8px 15px;
   }
 
   .option-btn {
-    width: clamp(82px, 22vh, 112px);
-    font-size: clamp(2.7rem, 11vh, 4rem);
+    width:
+      clamp(82px, 22vh, 112px);
+
+    font-size:
+      clamp(2.7rem, 11vh, 4rem);
   }
 
   .feedback {
     margin-top: 8px;
+
     min-height: 24px;
+
     font-size: 1rem;
   }
 
   .next-wrap {
-    bottom: max(8px, env(safe-area-inset-bottom));
+    bottom:
+      max(8px, env(safe-area-inset-bottom));
   }
 
   .results-content {
-    padding: 20px 18px;
+    max-height:
+      calc(100dvh - 20px);
+
+    padding: 20px 24px;
+  }
+
+  .results-emoji {
+    font-size: 2.8rem;
+  }
+
+  .results-content h2 {
+    margin: 5px 0;
+
+    font-size:
+      clamp(1.6rem, 7vh, 2.6rem);
+  }
+
+  .results-score {
+    font-size:
+      clamp(1.3rem, 5vh, 2rem);
+  }
+
+  .results-msg {
+    margin: 8px 0;
+
+    font-size: .9rem;
+  }
+
+  .results-stars {
+    min-height: 30px;
+
+    margin: 8px 0 12px;
+
+    font-size: 1.4rem;
   }
 }
 
 /* ------------------------------------------------------------
-   VERY SHORT LANDSCAPE SCREENS
+   VERY SHORT LANDSCAPE
    ------------------------------------------------------------ */
 
 @media (orientation: landscape) and (max-height: 430px) {
@@ -946,7 +1247,8 @@ button:focus-visible {
   }
 
   .question-stage {
-    height: calc(100dvh - 48px);
+    height:
+      calc(100dvh - 48px);
   }
 
   .prompt {
@@ -962,24 +1264,44 @@ button:focus-visible {
   }
 
   .results-content {
-    padding: 15px 18px;
+    padding: 12px 20px;
   }
 
   .results-emoji {
-    font-size: 2.8rem;
+    display: none;
   }
 
   .results-content h2 {
-    margin: 6px 0;
-    font-size: clamp(1.7rem, 5vw, 2.5rem);
+    margin: 2px 0;
+
+    font-size:
+      clamp(1.4rem, 7vh, 2rem);
   }
 
   .results-score {
-    margin: 6px 0;
+    margin: 4px 0;
+
+    font-size:
+      clamp(1.2rem, 5vh, 1.7rem);
+  }
+
+  .results-msg {
+    margin: 4px 0;
+
+    font-size: .82rem;
   }
 
   .results-stars {
-    margin: 8px 0 15px;
+    margin: 4px 0 8px;
+
+    min-height: 22px;
+
+    font-size: 1.2rem;
+  }
+
+  .results-content .btn {
+    padding: 8px 18px;
+    font-size: .9rem;
   }
 }
 
@@ -990,7 +1312,10 @@ button:focus-visible {
 @media (min-width: 601px) {
 
   .question-stage {
-    width: min(800px, calc(100vw - 48px));
-    height: min(560px, calc(100dvh - 150px));
+    width:
+      min(800px, calc(100vw - 48px));
+
+    height:
+      min(560px, calc(100dvh - 150px));
   }
 }
