@@ -54,46 +54,46 @@
 
       <!-- Only the current question travels through space -->
       <div class="question-stage" id="questionStage">
-        <div class="question-content" id="questionContent">
-          <p class="prompt">Which letter did you hear?</p>
 
-          <button id="playAudioBtn" class="audio-btn" type="button"
-                  aria-label="Play the letter sound">
-            <span class="speaker-icon" aria-hidden="true">🔊</span>
-            <span>Play Sound</span>
-          </button>
+  <!-- QUESTION -->
+  <div class="question-content" id="questionContent">
+    <p class="prompt">Which letter did you hear?</p>
 
-          <audio id="letterAudio" preload="none"></audio>
+    <button id="playAudioBtn" class="audio-btn" type="button"
+            aria-label="Play the letter sound">
+      <span class="speaker-icon" aria-hidden="true">🔊</span>
+      <span>Play Sound</span>
+    </button>
 
-          <div class="options-grid" id="optionsGrid"
-               role="group" aria-label="Answer choices"></div>
+    <audio id="letterAudio" preload="none"></audio>
 
-          <p class="feedback" id="feedback" role="status"></p>
-        </div>
-      </div>
+    <div class="options-grid" id="optionsGrid"
+         role="group" aria-label="Answer choices"></div>
 
-      <div class="next-wrap">
-        <button id="nextBtn" class="btn btn-secondary" type="button" style="display:none;">
-          Next →
-        </button>
-      </div>
-    </section>
+    <p class="feedback" id="feedback" role="status"></p>
+  </div>
 
-    <!-- RESULTS SCREEN -->
-    <section id="resultsScreen" class="screen results-screen" aria-live="polite">
-      <div class="results-content" id="resultsContent">
-        <div class="results-emoji" aria-hidden="true">🎉</div>
-        <h2>Mission Complete!</h2>
-        <p class="results-score" id="resultsScore">0 / 7 Correct!</p>
-        <p class="results-msg" id="resultsMsg"></p>
-        <div class="results-stars" id="resultsStars" aria-hidden="true"></div>
+  <!-- MISSION COMPLETE -->
+  <div class="results-content" id="resultsContent">
+    <div class="results-emoji" aria-hidden="true">🎉</div>
+    <h2>Mission Complete!</h2>
+    <p class="results-score" id="resultsScore">0 / 7 Correct!</p>
+    <p class="results-msg" id="resultsMsg"></p>
+    <div class="results-stars" id="resultsStars" aria-hidden="true"></div>
 
-        <button id="playAgainBtn" class="btn btn-primary btn-lg" type="button">
-          🔄 Try Again
-        </button>
-      </div>
-    </section>
+    <button id="playAgainBtn" class="btn btn-primary btn-lg" type="button">
+      🔄 Try Again
+    </button>
+  </div>
 
+</div>
+
+<div class="next-wrap">
+  <button id="nextBtn" class="btn btn-secondary" type="button" style="display:none;">
+    Next →
+  </button>
+</div>
+    
   </main>
 
   <!-- IMPORTANT:
