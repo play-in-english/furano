@@ -125,13 +125,25 @@ button:focus-visible {
 }
 
 @keyframes twinkle {
-  from { opacity: .25; transform: scale(.75); }
-  to   { opacity: 1; transform: scale(1.35); }
+  from {
+    opacity: .25;
+    transform: scale(.75);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1.35);
+  }
 }
 
 @keyframes nebulaDrift {
-  from { transform: scale(1) translate3d(-1%, 0, 0); }
-  to   { transform: scale(1.08) translate3d(1%, -1%, 0); }
+  from {
+    transform: scale(1) translate3d(-1%, 0, 0);
+  }
+
+  to {
+    transform: scale(1.08) translate3d(1%, -1%, 0);
+  }
 }
 
 /* ------------------------------------------------------------
@@ -151,7 +163,13 @@ button:focus-visible {
 .galaxy-flash {
   z-index: 30;
   opacity: 0;
-  background: radial-gradient(circle, rgba(255,255,255,.75), rgba(180,140,255,.18) 20%, transparent 62%);
+  background:
+    radial-gradient(
+      circle,
+      rgba(255,255,255,.75),
+      rgba(180,140,255,.18) 20%,
+      transparent 62%
+    );
 }
 
 .galaxy-flash.active {
@@ -159,9 +177,17 @@ button:focus-visible {
 }
 
 @keyframes galaxyFlash {
-  0% { opacity: 0; }
-  20% { opacity: .75; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+
+  20% {
+    opacity: .75;
+  }
+
+  100% {
+    opacity: 0;
+  }
 }
 
 /* ------------------------------------------------------------
@@ -176,7 +202,9 @@ button:focus-visible {
   display: grid;
   place-items: center;
   padding: 24px;
-  transition: opacity 420ms ease, transform 420ms ease;
+  transition:
+    opacity 420ms ease,
+    transform 420ms ease;
 }
 
 .app.transition-hide {
@@ -244,18 +272,36 @@ button:focus-visible {
   font-size: 2.5rem;
 }
 
-.start-illustration span:nth-child(1) { animation: floatA 3s ease-in-out infinite; }
-.start-illustration span:nth-child(2) { animation: floatB 4s ease-in-out infinite; }
-.start-illustration span:nth-child(3) { animation: floatA 3.6s ease-in-out infinite reverse; }
+.start-illustration span:nth-child(1) {
+  animation: floatA 3s ease-in-out infinite;
+}
+
+.start-illustration span:nth-child(2) {
+  animation: floatB 4s ease-in-out infinite;
+}
+
+.start-illustration span:nth-child(3) {
+  animation: floatA 3.6s ease-in-out infinite reverse;
+}
 
 @keyframes floatA {
-  0%,100% { transform: translateY(0) rotate(-3deg); }
-  50% { transform: translateY(-12px) rotate(4deg); }
+  0%,100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+
+  50% {
+    transform: translateY(-12px) rotate(4deg);
+  }
 }
 
 @keyframes floatB {
-  0%,100% { transform: translateY(5px); }
-  50% { transform: translateY(-15px); }
+  0%,100% {
+    transform: translateY(5px);
+  }
+
+  50% {
+    transform: translateY(-15px);
+  }
 }
 
 .mission-info {
@@ -292,7 +338,12 @@ button:focus-visible {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, rgba(111,76,220,.8), rgba(172,72,190,.72));
+  background:
+    linear-gradient(
+      135deg,
+      rgba(111,76,220,.8),
+      rgba(172,72,190,.72)
+    );
 }
 
 .btn-secondary {
@@ -405,7 +456,9 @@ button:focus-visible {
 }
 
 /* ------------------------------------------------------------
-   QUESTION — NO CARD
+   QUESTION / RESULTS STAGE
+   Both the question and MISSION COMPLETE occupy the
+   exact same physical space.
    ------------------------------------------------------------ */
 
 .question-stage {
@@ -417,47 +470,89 @@ button:focus-visible {
   perspective: 1200px;
 }
 
-.question-content {
+/*
+   IMPORTANT:
+   Question and results are placed in the SAME grid cell.
+   This prevents the results page from appearing underneath
+   the final question.
+*/
+
+.question-content,
+.results-content {
+  grid-area: 1 / 1;
   width: 100%;
   text-align: center;
   transform-origin: center center;
   will-change: transform, opacity, filter;
+
   transition:
     opacity var(--transition) cubic-bezier(.2,.8,.2,1),
     transform var(--transition) cubic-bezier(.15,.85,.2,1),
     filter var(--transition) ease;
 }
 
+/* ------------------------------------------------------------
+   QUESTION TRANSITION
+   ------------------------------------------------------------ */
+
 /* Current question leaves the galaxy */
-.question-content.q-exit {
+
+.question-content.q-exit,
+.results-content.q-exit {
   opacity: 0;
-  transform: perspective(1200px)
-             translateZ(-1400px)
-             scale(.04)
-             rotateX(4deg);
-  filter: blur(14px) brightness(1.7);
+
+  transform:
+    perspective(1200px)
+    translateZ(-1400px)
+    scale(.04)
+    rotateX(4deg);
+
+  filter:
+    blur(14px)
+    brightness(1.7);
 }
 
-/* Next question begins extremely far away */
-.question-content.q-enter {
+/* New question / results begin extremely far away */
+
+.question-content.q-enter,
+.results-content.q-enter {
   opacity: 0;
-  transform: perspective(1200px)
-             translateZ(-1400px)
-             scale(.04)
-             rotateX(-4deg);
-  filter: blur(14px) brightness(1.7);
+
+  transform:
+    perspective(1200px)
+    translateZ(-1400px)
+    scale(.04)
+    rotateX(-4deg);
+
+  filter:
+    blur(14px)
+    brightness(1.7);
 }
 
 /* Subtle "stop" after arriving */
-.question-content.question-landed {
+
+.question-content.question-landed,
+.results-content.question-landed {
   animation: questionLand 360ms ease-out;
 }
 
 @keyframes questionLand {
-  0%   { transform: scale(1.06); }
-  65%  { transform: scale(.985); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1.06);
+  }
+
+  65% {
+    transform: scale(.985);
+  }
+
+  100% {
+    transform: scale(1);
+  }
 }
+
+/* ------------------------------------------------------------
+   QUESTION CONTENT
+   ------------------------------------------------------------ */
 
 .prompt {
   margin: 0 0 28px;
@@ -483,7 +578,9 @@ button:focus-visible {
   box-shadow:
     0 0 20px rgba(125,95,255,.12),
     inset 0 0 15px rgba(255,255,255,.025);
-  transition: transform 180ms ease, box-shadow 180ms ease;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .audio-btn:hover {
@@ -496,8 +593,13 @@ button:focus-visible {
 }
 
 @keyframes audioPulse {
-  0%,100% { box-shadow: 0 0 14px rgba(109,231,255,.2); }
-  50% { box-shadow: 0 0 34px rgba(109,231,255,.65); }
+  0%,100% {
+    box-shadow: 0 0 14px rgba(109,231,255,.2);
+  }
+
+  50% {
+    box-shadow: 0 0 34px rgba(109,231,255,.65);
+  }
 }
 
 .options-grid {
@@ -516,17 +618,23 @@ button:focus-visible {
   font-size: clamp(3.8rem, 11vw, 6.5rem);
   font-weight: 700;
   cursor: pointer;
+
   background:
-    radial-gradient(circle at 35% 30%,
+    radial-gradient(
+      circle at 35% 30%,
       rgba(255,255,255,.18),
       rgba(105,78,190,.22) 35%,
-      rgba(17,13,48,.42) 75%);
+      rgba(17,13,48,.42) 75%
+    );
+
   box-shadow:
     0 0 25px rgba(130,105,255,.22),
     inset 0 0 25px rgba(255,255,255,.035);
+
   text-shadow:
     0 0 12px rgba(190,165,255,.8),
     0 0 30px rgba(120,210,255,.28);
+
   transition:
     transform 180ms ease,
     box-shadow 180ms ease,
@@ -536,6 +644,7 @@ button:focus-visible {
 .option-btn:hover {
   transform: translateY(-5px) scale(1.05);
   border-color: rgba(255,255,255,.6);
+
   box-shadow:
     0 0 35px rgba(140,110,255,.55),
     inset 0 0 30px rgba(255,255,255,.08);
@@ -579,12 +688,14 @@ button:focus-visible {
 }
 
 /* ------------------------------------------------------------
-   RESULTS
+   RESULTS / MISSION COMPLETE
    ------------------------------------------------------------ */
 
-.results-screen {
-  text-align: center;
-}
+/*
+   Results is now inside the same question-stage as the
+   question. It is therefore NOT a separate page underneath
+   the 7th question.
+*/
 
 .results-content {
   padding: 42px 28px;
@@ -592,18 +703,29 @@ button:focus-visible {
   border-radius: 30px;
   background: rgba(8,6,28,.32);
   backdrop-filter: blur(10px);
-  box-shadow: 0 0 70px rgba(100,70,210,.16);
+
+  box-shadow:
+    0 0 70px rgba(100,70,210,.16);
+
+  opacity: 0;
+  pointer-events: none;
 }
 
-.results-emoji {
-  font-size: 4rem;
-  filter: drop-shadow(0 0 18px rgba(255,216,107,.65));
-}
+/*
+   When the results are being brought in by the transition,
+   JavaScript removes q-enter and the content zooms toward
+   the viewer into the exact position of the old question.
+*/
 
 .results-content h2 {
   margin: 12px 0;
   font-size: clamp(2rem, 6vw, 3.2rem);
   text-shadow: 0 0 24px rgba(180,150,255,.55);
+}
+
+.results-emoji {
+  font-size: 4rem;
+  filter: drop-shadow(0 0 18px rgba(255,216,107,.65));
 }
 
 .results-score {
@@ -644,6 +766,7 @@ button:focus-visible {
    ------------------------------------------------------------ */
 
 @media (max-width: 600px) {
+
   .app {
     padding:
       max(12px, env(safe-area-inset-top))
@@ -735,9 +858,12 @@ button:focus-visible {
   }
 }
 
-/* Short landscape phones: prioritize vertical space and keep
-   the entire question composition centered without clipping. */
+/* ------------------------------------------------------------
+   SHORT LANDSCAPE PHONES
+   ------------------------------------------------------------ */
+
 @media (orientation: landscape) and (max-height: 600px) {
+
   .app {
     padding: 10px 16px;
   }
@@ -770,7 +896,8 @@ button:focus-visible {
     width: min(760px, calc(100vw - 24px));
   }
 
-  .question-content {
+  .question-content,
+  .results-content {
     transform-origin: center center;
   }
 
@@ -798,10 +925,18 @@ button:focus-visible {
   .next-wrap {
     bottom: max(8px, env(safe-area-inset-bottom));
   }
+
+  .results-content {
+    padding: 20px 18px;
+  }
 }
 
-/* Very short landscape screens (some older/small phones). */
+/* ------------------------------------------------------------
+   VERY SHORT LANDSCAPE SCREENS
+   ------------------------------------------------------------ */
+
 @media (orientation: landscape) and (max-height: 430px) {
+
   .game-header {
     top: 5px;
   }
@@ -825,15 +960,37 @@ button:focus-visible {
   .next-wrap {
     bottom: 5px;
   }
+
+  .results-content {
+    padding: 15px 18px;
+  }
+
+  .results-emoji {
+    font-size: 2.8rem;
+  }
+
+  .results-content h2 {
+    margin: 6px 0;
+    font-size: clamp(1.7rem, 5vw, 2.5rem);
+  }
+
+  .results-score {
+    margin: 6px 0;
+  }
+
+  .results-stars {
+    margin: 8px 0 15px;
+  }
 }
 
-/* Larger tablets / desktops: keep the whole composition visually
-   centered instead of allowing the browser's document flow to
-   pull it upward or sideways. */
+/* ------------------------------------------------------------
+   LARGER TABLETS / DESKTOPS
+   ------------------------------------------------------------ */
+
 @media (min-width: 601px) {
+
   .question-stage {
     width: min(800px, calc(100vw - 48px));
     height: min(560px, calc(100dvh - 150px));
   }
 }
-
