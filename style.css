@@ -22,13 +22,25 @@
 html,
 body {
   width: 100%;
+  min-width: 100%;
   min-height: 100%;
+  height: 100%;
   margin: 0;
+}
+
+html {
+  background: #03020d;
 }
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
+  height: 100%;
   overflow: hidden;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
   color: var(--text);
   font-family: "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   background: #03020d;
@@ -628,56 +640,200 @@ button:focus-visible {
 }
 
 /* ------------------------------------------------------------
-   MOBILE
+   RESPONSIVE / MOBILE / LANDSCAPE
    ------------------------------------------------------------ */
 
 @media (max-width: 600px) {
   .app {
-    padding: 14px;
+    padding:
+      max(12px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      max(12px, env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
   }
 
   .start-screen {
-    padding: 34px 18px;
+    width: min(100%, 560px);
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
+    padding: 30px 18px;
     border-radius: 24px;
   }
 
+  .brand {
+    gap: 9px;
+  }
+
+  .title {
+    font-size: clamp(1.7rem, 7vw, 2.5rem);
+  }
+
+  .subtitle {
+    font-size: .98rem;
+  }
+
+  .start-illustration {
+    margin: 24px 0 12px;
+    font-size: 2rem;
+  }
+
   .game-header {
-    top: 12px;
-    left: 12px;
-    right: 12px;
+    top: max(10px, env(safe-area-inset-top));
+    left: max(10px, env(safe-area-inset-left));
+    right: max(10px, env(safe-area-inset-right));
   }
 
   .pill {
-    font-size: .74rem;
-    padding: 7px 10px;
+    font-size: .72rem;
+    padding: 7px 9px;
   }
 
   .constellation {
-    margin-top: 64px;
-    height: 44px;
+    top: clamp(56px, 10vh, 76px);
+    width: calc(100vw - 28px);
+    height: 42px;
   }
 
   .question-stage {
-    min-height: 360px;
+    width: calc(100vw - 24px);
+    height: calc(100dvh - 150px);
   }
 
   .prompt {
-    margin-bottom: 22px;
+    margin-bottom: 20px;
+    font-size: clamp(1.1rem, 5vw, 1.5rem);
   }
 
   .audio-btn {
-    margin-bottom: 28px;
+    margin-bottom: 25px;
+    padding: 10px 17px;
   }
 
   .options-grid {
-    gap: 18px;
+    gap: clamp(14px, 5vw, 24px);
   }
 
   .option-btn {
-    width: min(35vw, 145px);
+    width: clamp(105px, 30vw, 145px);
+    font-size: clamp(3.3rem, 16vw, 5rem);
   }
 
   .feedback {
-    margin-top: 18px;
+    margin-top: 16px;
+    font-size: 1.1rem;
+  }
+
+  .next-wrap {
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .results-content {
+    width: min(100%, 560px);
+    max-height: calc(100dvh - 24px);
+    overflow: auto;
+    padding: 30px 18px;
   }
 }
+
+/* Short landscape phones: prioritize vertical space and keep
+   the entire question composition centered without clipping. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .app {
+    padding: 10px 16px;
+  }
+
+  .start-screen {
+    max-height: calc(100dvh - 16px);
+    padding: 18px 24px;
+  }
+
+  .start-illustration {
+    margin: 10px 0;
+    font-size: 1.6rem;
+  }
+
+  .mission-info {
+    margin: 6px 0 12px;
+  }
+
+  .game-header {
+    top: max(8px, env(safe-area-inset-top));
+  }
+
+  .constellation {
+    top: 42px;
+    height: 32px;
+  }
+
+  .question-stage {
+    height: calc(100dvh - 78px);
+    width: min(760px, calc(100vw - 24px));
+  }
+
+  .question-content {
+    transform-origin: center center;
+  }
+
+  .prompt {
+    margin-bottom: 10px;
+    font-size: clamp(1rem, 3.2vh, 1.35rem);
+  }
+
+  .audio-btn {
+    margin-bottom: 12px;
+    padding: 8px 15px;
+  }
+
+  .option-btn {
+    width: clamp(82px, 22vh, 112px);
+    font-size: clamp(2.7rem, 11vh, 4rem);
+  }
+
+  .feedback {
+    margin-top: 8px;
+    min-height: 24px;
+    font-size: 1rem;
+  }
+
+  .next-wrap {
+    bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Very short landscape screens (some older/small phones). */
+@media (orientation: landscape) and (max-height: 430px) {
+  .game-header {
+    top: 5px;
+  }
+
+  .constellation {
+    display: none;
+  }
+
+  .question-stage {
+    height: calc(100dvh - 48px);
+  }
+
+  .prompt {
+    margin-bottom: 7px;
+  }
+
+  .audio-btn {
+    margin-bottom: 8px;
+  }
+
+  .next-wrap {
+    bottom: 5px;
+  }
+}
+
+/* Larger tablets / desktops: keep the whole composition visually
+   centered instead of allowing the browser's document flow to
+   pull it upward or sideways. */
+@media (min-width: 601px) {
+  .question-stage {
+    width: min(800px, calc(100vw - 48px));
+    height: min(560px, calc(100dvh - 150px));
+  }
+}
+
