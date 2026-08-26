@@ -55,9 +55,9 @@ button:focus-visible {
   outline-offset: 4px;
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    GALAXY BACKGROUND
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 .sky,
 .nebula,
@@ -82,16 +82,22 @@ button:focus-visible {
   z-index: -9;
   opacity: .85;
   background:
-    radial-gradient(ellipse at 50% 48%,
+    radial-gradient(
+      ellipse at 50% 48%,
       rgba(117,75,220,.14) 0%,
       rgba(70,50,160,.08) 28%,
-      transparent 62%),
-    radial-gradient(ellipse at 25% 75%,
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse at 25% 75%,
       rgba(30,120,190,.08),
-      transparent 45%),
-    radial-gradient(ellipse at 78% 22%,
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse at 78% 22%,
       rgba(230,80,180,.07),
-      transparent 45%);
+      transparent 45%
+    );
   filter: blur(18px);
   animation: nebulaDrift 18s ease-in-out infinite alternate;
 }
@@ -108,7 +114,9 @@ button:focus-visible {
   border-radius: 50%;
   background: white;
   box-shadow: 0 0 5px rgba(255,255,255,.9);
-  animation: twinkle var(--twinkle, 3s) ease-in-out infinite alternate;
+  animation:
+    twinkle var(--twinkle, 3s)
+    ease-in-out infinite alternate;
   animation-delay: var(--delay, 0s);
 }
 
@@ -146,9 +154,9 @@ button:focus-visible {
   }
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    WARP CANVAS
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 .warp-canvas {
   z-index: 20;
@@ -190,16 +198,17 @@ button:focus-visible {
   }
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    APP / SCREENS
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 .app {
   position: relative;
   z-index: 5;
+
+  width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
-  width: 100%;
 
   display: grid;
   place-items: center;
@@ -216,21 +225,43 @@ button:focus-visible {
   transform: scale(1.04);
 }
 
+/*
+   IMPORTANT:
+   Every screen is hidden unless it has .active.
+*/
 .screen {
   display: none;
   width: min(900px, 100%);
 }
 
+/*
+   Normal active screens.
+*/
 .screen.active {
   display: block;
 }
 
-/* ------------------------------------------------------------
-   START SCREEN — GLASS / CINEMATIC
-   ------------------------------------------------------------ */
+/*
+   IMPORTANT FIX:
+   The game screen uses flex ONLY while active.
+
+   Previously .game-screen { display:flex; }
+   overrode .screen { display:none; }
+
+   That caused the Game Screen to remain visible
+   underneath the Mission Complete screen.
+*/
+.screen.game-screen.active {
+  display: flex;
+}
+
+/* ============================================================
+   START SCREEN
+   ============================================================ */
 
 .start-screen {
   text-align: center;
+
   padding: 46px 28px;
 
   border: 1px solid var(--border);
@@ -254,15 +285,17 @@ button:focus-visible {
 
 .brand-emoji {
   font-size: clamp(2.2rem, 6vw, 4rem);
-  filter: drop-shadow(0 0 16px rgba(150,120,255,.8));
+
+  filter:
+    drop-shadow(0 0 16px rgba(150,120,255,.8));
 }
 
 .title {
   margin: 0;
 
   font-size: clamp(2rem, 6vw, 4rem);
-  line-height: 1.05;
 
+  line-height: 1.05;
   letter-spacing: .02em;
 
   text-shadow:
@@ -275,6 +308,7 @@ button:focus-visible {
   color: var(--muted);
 
   font-size: clamp(1rem, 2.5vw, 1.25rem);
+
   line-height: 1.6;
 }
 
@@ -298,7 +332,8 @@ button:focus-visible {
 }
 
 .start-illustration span:nth-child(3) {
-  animation: floatA 3.6s ease-in-out infinite reverse;
+  animation:
+    floatA 3.6s ease-in-out infinite reverse;
 }
 
 @keyframes floatA {
@@ -323,17 +358,19 @@ button:focus-visible {
 
 .mission-info {
   color: #aaa5ca;
+
   font-size: .92rem;
 
   margin: 12px 0 24px;
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    BUTTONS
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 .btn {
   border: 1px solid rgba(255,255,255,.2);
+
   border-radius: 999px;
 
   padding: 13px 24px;
@@ -379,6 +416,7 @@ button:focus-visible {
 
 .btn-lg {
   font-size: 1.12rem;
+
   padding: 15px 30px;
 }
 
@@ -386,19 +424,31 @@ button:focus-visible {
   width: min(360px, 100%);
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    GAME SCREEN
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 .game-screen {
   position: relative;
 
-  min-height: 80vh;
+  width: 100%;
 
-  display: flex;
+  min-height: min(760px, calc(100dvh - 48px));
+
   flex-direction: column;
   align-items: center;
+
+  /*
+     DO NOT put display:flex here.
+
+     It is intentionally controlled by:
+     .screen.game-screen.active
+  */
 }
+
+/* ============================================================
+   GAME HEADER
+   ============================================================ */
 
 .game-header {
   position: fixed;
@@ -408,6 +458,7 @@ button:focus-visible {
   right: 24px;
 
   display: flex;
+
   justify-content: space-between;
 
   z-index: 10;
@@ -419,6 +470,7 @@ button:focus-visible {
   padding: 8px 14px;
 
   border: 1px solid rgba(255,255,255,.12);
+
   border-radius: 999px;
 
   background: rgba(7,5,25,.36);
@@ -437,22 +489,28 @@ button:focus-visible {
   color: var(--gold);
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    CONSTELLATION
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 .constellation {
+  position: relative;
+
   width: min(600px, 90vw);
+
   height: 54px;
 
   margin-top: 76px;
 
   opacity: .85;
+
+  flex-shrink: 0;
 }
 
 .constellation svg {
   width: 100%;
   height: 100%;
+
   overflow: visible;
 }
 
@@ -481,7 +539,8 @@ button:focus-visible {
 
   stroke: white;
 
-  filter: drop-shadow(0 0 8px var(--cyan));
+  filter:
+    drop-shadow(0 0 8px var(--cyan));
 }
 
 .constellation-node.done {
@@ -489,7 +548,8 @@ button:focus-visible {
 
   stroke: white;
 
-  filter: drop-shadow(0 0 7px var(--gold));
+  filter:
+    drop-shadow(0 0 7px var(--gold));
 }
 
 .constellation-node.wrong-node {
@@ -497,7 +557,8 @@ button:focus-visible {
 
   stroke: white;
 
-  filter: drop-shadow(0 0 7px var(--pink));
+  filter:
+    drop-shadow(0 0 7px var(--pink));
 }
 
 .rocket {
@@ -516,21 +577,30 @@ button:focus-visible {
     left 500ms cubic-bezier(.2,.8,.2,1);
 }
 
-/* ------------------------------------------------------------
-   QUESTION
-   ------------------------------------------------------------ */
+/* ============================================================
+   QUESTION AREA
+   ============================================================ */
 
 .question-stage {
   position: relative;
 
   width: min(800px, 94vw);
 
+  /*
+     Flexible height rather than a huge fixed block.
+     This keeps the options visible.
+  */
+  flex: 1;
+
   min-height: 390px;
 
   display: grid;
+
   place-items: center;
 
   perspective: 1200px;
+
+  overflow: visible;
 }
 
 .question-content {
@@ -546,12 +616,19 @@ button:focus-visible {
     filter;
 
   transition:
-    opacity var(--transition) cubic-bezier(.2,.8,.2,1),
-    transform var(--transition) cubic-bezier(.15,.85,.2,1),
+    opacity var(--transition)
+      cubic-bezier(.2,.8,.2,1),
+
+    transform var(--transition)
+      cubic-bezier(.15,.85,.2,1),
+
     filter var(--transition) ease;
 }
 
-/* Current question flies away */
+/* ============================================================
+   QUESTION HYPERSPACE EXIT
+   ============================================================ */
+
 .question-content.q-exit {
   opacity: 0;
 
@@ -566,7 +643,10 @@ button:focus-visible {
     brightness(1.7);
 }
 
-/* Next question begins extremely far away */
+/* ============================================================
+   QUESTION HYPERSPACE ENTER
+   ============================================================ */
+
 .question-content.q-enter {
   opacity: 0;
 
@@ -581,7 +661,10 @@ button:focus-visible {
     brightness(1.7);
 }
 
-/* Subtle landing */
+/* ============================================================
+   QUESTION LANDING
+   ============================================================ */
+
 .question-content.question-landed {
   animation:
     questionLand 360ms ease-out;
@@ -601,16 +684,17 @@ button:focus-visible {
   }
 }
 
-/* ------------------------------------------------------------
-   QUESTION TEXT
-   ------------------------------------------------------------ */
+/* ============================================================
+   QUESTION PROMPT
+   ============================================================ */
 
 .prompt {
   margin: 0 0 28px;
 
   color: rgba(245,241,255,.95);
 
-  font-size: clamp(1.25rem, 3.5vw, 1.8rem);
+  font-size:
+    clamp(1.25rem, 3.5vw, 1.8rem);
 
   font-weight: 600;
 
@@ -620,9 +704,9 @@ button:focus-visible {
     0 0 18px rgba(170,140,255,.45);
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    AUDIO BUTTON
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 .audio-btn {
   display: inline-flex;
@@ -680,18 +764,22 @@ button:focus-visible {
   }
 }
 
-/* ------------------------------------------------------------
-   OPTIONS
-   ------------------------------------------------------------ */
+/* ============================================================
+   ANSWER OPTIONS
+   ============================================================ */
 
 .options-grid {
   display: flex;
 
   justify-content: center;
 
+  align-items: center;
+
   gap: clamp(24px, 7vw, 70px);
 
   flex-wrap: wrap;
+
+  width: 100%;
 }
 
 .option-btn {
@@ -699,13 +787,16 @@ button:focus-visible {
 
   aspect-ratio: 1 / 1;
 
+  flex: 0 0 auto;
+
   border-radius: 50%;
 
   border: 1px solid rgba(255,255,255,.24);
 
   color: white;
 
-  font-size: clamp(3.8rem, 11vw, 6.5rem);
+  font-size:
+    clamp(3.8rem, 11vw, 6.5rem);
 
   font-weight: 700;
 
@@ -734,9 +825,12 @@ button:focus-visible {
 }
 
 .option-btn:hover {
-  transform: translateY(-5px) scale(1.05);
+  transform:
+    translateY(-5px)
+    scale(1.05);
 
-  border-color: rgba(255,255,255,.6);
+  border-color:
+    rgba(255,255,255,.6);
 
   box-shadow:
     0 0 35px rgba(140,110,255,.55),
@@ -765,9 +859,9 @@ button:focus-visible {
   cursor: default;
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    FEEDBACK
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 .feedback {
   min-height: 34px;
@@ -790,126 +884,98 @@ button:focus-visible {
   color: var(--pink);
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    NEXT BUTTON
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 .next-wrap {
   min-height: 54px;
 
-  margin-top: 12px;
+  margin-top: 8px;
 
-  position: relative;
+  display: flex;
 
-  z-index: 5;
+  justify-content: center;
+
+  align-items: center;
+
+  flex-shrink: 0;
 }
 
-/* ------------------------------------------------------------
-   RESULTS SCREEN
-   ------------------------------------------------------------ */
-
-/*
-   Normally the results screen behaves like an ordinary screen.
-
-   During Question 7 → Mission Complete, JavaScript adds
-   .final-overlay.
-
-   This allows the results screen to temporarily sit ON TOP of
-   the game screen while Question 7 flies away.
-*/
+/* ============================================================
+   RESULTS / MISSION COMPLETE
+   ============================================================ */
 
 .results-screen {
+  width: min(900px, 100%);
+
   text-align: center;
 }
 
-.results-screen.final-overlay {
-  position: absolute;
-
-  inset: 0;
-
-  width: 100%;
-
-  display: grid !important;
-
-  place-items: center;
-
-  z-index: 15;
-
-  pointer-events: none;
-
-  padding: 24px;
-}
-
-/* Results box */
-
 .results-content {
-  width: min(900px, 100%);
+  width: min(620px, 100%);
+
+  margin: 0 auto;
 
   padding: 42px 28px;
 
-  border: 1px solid rgba(255,255,255,.13);
+  border:
+    1px solid rgba(255,255,255,.13);
 
   border-radius: 30px;
 
-  background: rgba(8,6,28,.32);
+  background:
+    rgba(8,6,28,.32);
 
   backdrop-filter: blur(10px);
 
   box-shadow:
     0 0 70px rgba(100,70,210,.16);
 
-  transform-origin: center center;
-
-  will-change:
-    transform,
-    opacity,
-    filter;
-
-  transition:
-    opacity var(--transition) cubic-bezier(.2,.8,.2,1),
-    transform var(--transition) cubic-bezier(.15,.85,.2,1),
-    filter var(--transition) ease;
-}
-
-/*
-   Mission Complete begins far away,
-   just like a question arriving from deep space.
-*/
-
-.results-content.q-enter {
-  opacity: 0;
-
-  transform:
-    perspective(1200px)
-    translateZ(-1400px)
-    scale(.04)
-    rotateX(-4deg);
-
-  filter:
-    blur(14px)
-    brightness(1.7);
-}
-
-/*
-   Small landing effect once Mission Complete arrives.
-*/
-
-.results-content.question-landed {
   animation:
-    resultsLand 360ms ease-out;
+    resultsAppear 650ms
+    cubic-bezier(.2,.8,.2,1)
+    both;
 }
 
-@keyframes resultsLand {
+@keyframes resultsAppear {
   0% {
-    transform: scale(1.06);
+    opacity: 0;
+
+    transform:
+      perspective(1200px)
+      translateZ(-900px)
+      scale(.12);
+
+    filter:
+      blur(12px)
+      brightness(1.7);
   }
 
   65% {
-    transform: scale(.985);
+    opacity: 1;
+
+    transform:
+      perspective(1200px)
+      translateZ(30px)
+      scale(1.03);
+
+    filter:
+      blur(0)
+      brightness(1.15);
   }
 
   100% {
-    transform: scale(1);
+    opacity: 1;
+
+    transform:
+      perspective(1200px)
+      translateZ(0)
+      scale(1);
+
+    filter:
+      blur(0)
+      brightness(1);
   }
 }
 
@@ -923,7 +989,8 @@ button:focus-visible {
 .results-content h2 {
   margin: 12px 0;
 
-  font-size: clamp(2rem, 6vw, 3.2rem);
+  font-size:
+    clamp(2rem, 6vw, 3.2rem);
 
   text-shadow:
     0 0 24px rgba(180,150,255,.55);
@@ -934,7 +1001,8 @@ button:focus-visible {
 
   color: var(--gold);
 
-  font-size: clamp(1.7rem, 5vw, 2.5rem);
+  font-size:
+    clamp(1.7rem, 5vw, 2.5rem);
 
   font-weight: 800;
 }
@@ -943,6 +1011,8 @@ button:focus-visible {
   color: var(--muted);
 
   font-size: 1.05rem;
+
+  line-height: 1.5;
 }
 
 .results-stars {
@@ -955,23 +1025,25 @@ button:focus-visible {
   letter-spacing: 8px;
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    REDUCED MOTION
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     animation-duration: .01ms !important;
+
     animation-iteration-count: 1 !important;
+
     transition-duration: .01ms !important;
   }
 }
 
-/* ------------------------------------------------------------
-   RESPONSIVE / MOBILE
-   ------------------------------------------------------------ */
+/* ============================================================
+   MOBILE
+   ============================================================ */
 
 @media (max-width: 600px) {
 
@@ -982,6 +1054,10 @@ button:focus-visible {
       max(12px, env(safe-area-inset-bottom))
       max(12px, env(safe-area-inset-left));
   }
+
+  /* ----------------------------------------------------------
+     START
+     ---------------------------------------------------------- */
 
   .start-screen {
     width: min(100%, 560px);
@@ -1015,6 +1091,10 @@ button:focus-visible {
     font-size: 2rem;
   }
 
+  /* ----------------------------------------------------------
+     GAME HEADER
+     ---------------------------------------------------------- */
+
   .game-header {
     top:
       max(10px, env(safe-area-inset-top));
@@ -1032,24 +1112,48 @@ button:focus-visible {
     padding: 7px 9px;
   }
 
+  /* ----------------------------------------------------------
+     CONSTELLATION
+     ---------------------------------------------------------- */
+
   .constellation {
     width:
       calc(100vw - 28px);
 
     height: 42px;
 
-    margin-top: 66px;
+    margin-top:
+      max(56px, 10vh);
+  }
+
+  /* ----------------------------------------------------------
+     GAME
+     ---------------------------------------------------------- */
+
+  .game-screen {
+    min-height:
+      calc(100dvh - 24px);
   }
 
   .question-stage {
     width:
       calc(100vw - 24px);
 
-    height:
-      calc(100dvh - 150px);
-
     min-height: 0;
+
+    height:
+      calc(100dvh - 190px);
+
+    flex: 0 1 auto;
   }
+
+  .question-content {
+    width: 100%;
+  }
+
+  /* ----------------------------------------------------------
+     PROMPT
+     ---------------------------------------------------------- */
 
   .prompt {
     margin-bottom: 20px;
@@ -1058,11 +1162,19 @@ button:focus-visible {
       clamp(1.1rem, 5vw, 1.5rem);
   }
 
+  /* ----------------------------------------------------------
+     AUDIO
+     ---------------------------------------------------------- */
+
   .audio-btn {
     margin-bottom: 25px;
 
     padding: 10px 17px;
   }
+
+  /* ----------------------------------------------------------
+     OPTIONS
+     ---------------------------------------------------------- */
 
   .options-grid {
     gap:
@@ -1077,29 +1189,40 @@ button:focus-visible {
       clamp(3.3rem, 16vw, 5rem);
   }
 
+  /* ----------------------------------------------------------
+     FEEDBACK
+     ---------------------------------------------------------- */
+
   .feedback {
     margin-top: 16px;
 
     font-size: 1.1rem;
   }
 
-  .next-wrap {
-    margin-top: 8px;
+  /* ----------------------------------------------------------
+     NEXT
+     ---------------------------------------------------------- */
 
-    bottom:
-      max(12px, env(safe-area-inset-bottom));
+  .next-wrap {
+    min-height: 50px;
+
+    margin-top: 4px;
+
+    padding-bottom:
+      max(8px, env(safe-area-inset-bottom));
   }
 
-  .results-screen.final-overlay {
-    padding:
-      max(12px, env(safe-area-inset-top))
-      max(12px, env(safe-area-inset-right))
-      max(12px, env(safe-area-inset-bottom))
-      max(12px, env(safe-area-inset-left));
+  /* ----------------------------------------------------------
+     RESULTS
+     ---------------------------------------------------------- */
+
+  .results-screen {
+    width: 100%;
   }
 
   .results-content {
-    width: min(100%, 560px);
+    width:
+      min(100%, 560px);
 
     max-height:
       calc(100dvh - 24px);
@@ -1110,11 +1233,13 @@ button:focus-visible {
   }
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    LANDSCAPE PHONES
-   ------------------------------------------------------------ */
+   ============================================================ */
 
-@media (orientation: landscape) and (max-height: 600px) {
+@media
+  (orientation: landscape)
+  and (max-height: 600px) {
 
   .app {
     padding: 10px 16px;
@@ -1143,21 +1268,27 @@ button:focus-visible {
   }
 
   .constellation {
-    margin-top: 48px;
+    margin-top: 42px;
 
     height: 32px;
   }
 
+  .game-screen {
+    min-height:
+      calc(100dvh - 20px);
+  }
+
   .question-stage {
     height:
-      calc(100dvh - 78px);
+      calc(100dvh - 115px);
 
     width:
       min(760px, calc(100vw - 24px));
   }
 
   .question-content {
-    transform-origin: center center;
+    transform-origin:
+      center center;
   }
 
   .prompt {
@@ -1171,6 +1302,11 @@ button:focus-visible {
     margin-bottom: 12px;
 
     padding: 8px 15px;
+  }
+
+  .options-grid {
+    gap:
+      clamp(12px, 4vw, 30px);
   }
 
   .option-btn {
@@ -1190,53 +1326,20 @@ button:focus-visible {
   }
 
   .next-wrap {
-    bottom:
-      max(8px, env(safe-area-inset-bottom));
-  }
+    min-height: 42px;
 
-  .results-content {
-    max-height:
-      calc(100dvh - 20px);
-
-    padding: 20px 24px;
-  }
-
-  .results-emoji {
-    font-size: 2.8rem;
-  }
-
-  .results-content h2 {
-    margin: 5px 0;
-
-    font-size:
-      clamp(1.6rem, 7vh, 2.6rem);
-  }
-
-  .results-score {
-    font-size:
-      clamp(1.3rem, 5vh, 2rem);
-  }
-
-  .results-msg {
-    margin: 8px 0;
-
-    font-size: .9rem;
-  }
-
-  .results-stars {
-    min-height: 30px;
-
-    margin: 8px 0 12px;
-
-    font-size: 1.4rem;
+    padding-bottom:
+      max(5px, env(safe-area-inset-bottom));
   }
 }
 
-/* ------------------------------------------------------------
+/* ============================================================
    VERY SHORT LANDSCAPE
-   ------------------------------------------------------------ */
+   ============================================================ */
 
-@media (orientation: landscape) and (max-height: 430px) {
+@media
+  (orientation: landscape)
+  and (max-height: 430px) {
 
   .game-header {
     top: 5px;
@@ -1248,7 +1351,7 @@ button:focus-visible {
 
   .question-stage {
     height:
-      calc(100dvh - 48px);
+      calc(100dvh - 60px);
   }
 
   .prompt {
@@ -1259,63 +1362,39 @@ button:focus-visible {
     margin-bottom: 8px;
   }
 
+  .option-btn {
+    width:
+      clamp(70px, 20vh, 100px);
+
+    font-size:
+      clamp(2.3rem, 10vh, 3.5rem);
+  }
+
   .next-wrap {
-    bottom: 5px;
-  }
-
-  .results-content {
-    padding: 12px 20px;
-  }
-
-  .results-emoji {
-    display: none;
-  }
-
-  .results-content h2 {
-    margin: 2px 0;
-
-    font-size:
-      clamp(1.4rem, 7vh, 2rem);
-  }
-
-  .results-score {
-    margin: 4px 0;
-
-    font-size:
-      clamp(1.2rem, 5vh, 1.7rem);
-  }
-
-  .results-msg {
-    margin: 4px 0;
-
-    font-size: .82rem;
-  }
-
-  .results-stars {
-    margin: 4px 0 8px;
-
-    min-height: 22px;
-
-    font-size: 1.2rem;
-  }
-
-  .results-content .btn {
-    padding: 8px 18px;
-    font-size: .9rem;
+    min-height: 36px;
   }
 }
 
-/* ------------------------------------------------------------
-   LARGER TABLETS / DESKTOPS
-   ------------------------------------------------------------ */
+/* ============================================================
+   DESKTOP / TABLET
+   ============================================================ */
 
 @media (min-width: 601px) {
+
+  .game-screen {
+    min-height:
+      calc(100dvh - 48px);
+  }
 
   .question-stage {
     width:
       min(800px, calc(100vw - 48px));
 
     height:
-      min(560px, calc(100dvh - 150px));
+      min(500px, calc(100dvh - 150px));
+
+    min-height: 390px;
+
+    flex: 0 1 auto;
   }
 }
