@@ -276,7 +276,7 @@ h1, h2, h3 {
   background: linear-gradient(90deg, var(--star-gold), var(--nebula-pink) 60%, var(--nebula-violet));
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
+  color: white;
 }
 
 .subtitle {
