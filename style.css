@@ -273,7 +273,7 @@ h1, h2, h3 {
   font-size: clamp(28px, 6vw, 38px);
   font-weight: 800;
   line-height: 1.15;
-  color: white;
+  color: #ffffff;
 }
 
 .subtitle {
