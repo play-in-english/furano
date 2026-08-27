@@ -3,12 +3,687 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
-<title>Alphabet Quiz</title>
-<link rel="stylesheet" href="style.css" />
+<title>Galaxy Alphabet Quiz</title>
+<style>
+/* ============================================================
+   ALPHABET LISTENING QUIZ — STYLES
+   ============================================================
+   Galaxy / night-sky theme. Structure:
+   1. Tokens (colors, fonts, spacing)
+   2. Background (sky, stars, nebula)
+   3. Layout & shell
+   4. Screens (start / game / results)
+   5. Components (buttons, progress trail, feedback)
+   6. Responsive
+   7. Motion / accessibility
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap');
+
+/* ---------- 1. Tokens ---------- */
+:root {
+  --sky-deep: #05060f;
+  --sky-navy: #0b0e2b;
+  --sky-navy-2: #131947;
+  --nebula-violet: #7c5cff;
+  --nebula-pink: #ff6fb0;
+  --star-gold: #ffd966;
+  --comet-teal: #4fe3c1;
+  --ink-light: #f4f2ff;
+  --ink-soft: #c7c9ec;
+  --success: #4fe3c1;
+  --success-glow: rgba(79, 227, 193, 0.45);
+  --error: #ff6f91;
+  --error-glow: rgba(255, 111, 145, 0.45);
+
+  --font-display: "Baloo 2", "Trebuchet MS", sans-serif;
+  --font-body: "Nunito", "Trebuchet MS", sans-serif;
+
+  --radius-md: 18px;
+  --radius-sm: 12px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  /* Fallbacks first, then modern dynamic-viewport units so the layout
+     fits the ACTUAL visible area on phones/tablets — accounting for
+     browser chrome (address bars, home indicator) and updating live
+     when a window is resized, rotated, or toggled to fullscreen. */
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  font-family: var(--font-body);
+  color: var(--ink-light);
+  background: var(--sky-deep);
+  overflow-x: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Keep content clear of iPhone notches / home indicator / Android
+     gesture bars in any orientation, while never going below 16px. */
+  padding: max(16px, env(safe-area-inset-top))
+           max(16px, env(safe-area-inset-right))
+           max(16px, env(safe-area-inset-bottom))
+           max(16px, env(safe-area-inset-left));
+}
+
+/* ---------- 2. Background: sky, stars, nebula ---------- */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -3;
+  background:
+    radial-gradient(ellipse at 20% 15%, rgba(124, 92, 255, 0.16), transparent 55%),
+    radial-gradient(ellipse at 82% 78%, rgba(255, 111, 176, 0.12), transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(79, 227, 193, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--sky-deep) 0%, var(--sky-navy) 55%, #0a0d2a 100%);
+}
+
+/* soft drifting nebula clouds, purely decorative */
+.nebula {
+  position: fixed;
+  inset: -10%;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(600px 400px at 15% 25%, rgba(124, 92, 255, 0.14), transparent 60%),
+    radial-gradient(500px 380px at 85% 20%, rgba(255, 111, 176, 0.10), transparent 60%),
+    radial-gradient(700px 500px at 60% 90%, rgba(79, 227, 193, 0.08), transparent 60%);
+  filter: blur(6px);
+  animation: driftNebula 50s ease-in-out infinite alternate;
+  transition: opacity .8s ease, filter .8s ease, transform .8s ease;
+}
+
+/* Nebula blooms brighter and more saturated during the galaxy-entry
+   transition, then settles back down once the quiz appears. */
+body.warping .nebula {
+  opacity: 1;
+  filter: blur(14px) saturate(1.6);
+  transform: scale(1.08);
+}
+
+@keyframes driftNebula {
+  0%   { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-2%, 2%) scale(1.05); }
+}
+
+/* star field: layered dots via box-shadow, generated in JS onto this canvas-free layer */
+.stars {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  transition: opacity .5s ease;
+}
+
+/* While the hyperspace transition plays, fade the calm twinkling
+   field out — the warp canvas takes over the star show. */
+body.warping .stars {
+  opacity: 0;
+}
+
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.6;
+  animation: twinkle linear infinite;
+}
+
+.star.big {
+  box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: var(--min-o, 0.25); transform: scale(1); }
+  50%      { opacity: var(--max-o, 0.95); transform: scale(1.25); }
+}
+
+@keyframes floatY {
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+/* ---------- 2b. Galaxy entrance transition ---------- */
+
+/* Full-screen canvas the JS draws the hyperspace star streak
+   animation onto. Sits above the calm background layers but below
+   the quiz card, and is fully transparent/inert until "active". */
+.warp-canvas {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .6s ease;
+}
+
+.warp-canvas.active {
+  opacity: 1;
+}
+
+/* Soft bright bloom that pulses once as the student "arrives" in
+   the galaxy, right after the hyperspace burst. */
+.galaxy-flash {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle at 50% 50%,
+      rgba(255, 255, 255, 0.85) 0%,
+      rgba(255, 217, 102, 0.45) 22%,
+      rgba(124, 92, 255, 0.35) 45%,
+      rgba(5, 6, 15, 0) 72%);
+}
+
+.galaxy-flash.flash {
+  animation: galaxyFlashPulse 1100ms ease-out forwards;
+}
+
+@keyframes galaxyFlashPulse {
+  0%   { opacity: 0; }
+  35%  { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* The quiz shell fades/shrinks away as hyperspace begins, then
+   fades/grows back in once the galaxy-entry flash has passed. */
+.app {
+  position: relative;
+  z-index: 2;
+  transition: opacity .6s ease, transform .6s ease;
+  /* No card background anymore, so text needs its own contrast
+     against the starfield/nebula. text-shadow is inherited, so this
+     one declaration covers every heading, label, and button below. */
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.app.transition-hide {
+  opacity: 0;
+  transform: scale(0.94);
+  pointer-events: none;
+}
+
+/* While a hyperspace burst plays (big entrance or a between-question
+   hop), the whole app subtly scales up in step with the stars
+   rushing outward — so the UI feels like it's traveling with the
+   galaxy rather than sitting still on top of it. */
+body.warping .app:not(.transition-hide) {
+  transform: scale(1.035);
+}
+
+/* ---------- 3. Layout & shell ---------- */
+.app {
+  width: 100%;
+  max-width: 640px;
+  /* Never let the app shell exceed the visible viewport height,
+     whatever device or window size it's viewed at. */
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.card {
+  position: relative;
+  width: 100%;
+  /* No panel/box here on purpose — content floats directly over the
+     galaxy background so it feels like part of the scene rather than
+     a UI card sitting on top of it. Text/buttons keep their own
+     shadows and solid backgrounds for readability instead. */
+  padding: clamp(20px, 4vw, 36px) clamp(18px, 4vw, 32px) clamp(18px, 4vw, 32px);
+  animation: floatY 7s ease-in-out infinite;
+  /* If content is ever taller than the available space (very short
+     landscape windows), scroll instead of clipping off-screen. This
+     is a functional safety net only — there's no visible boundary. */
+  max-height: min(860px, 96svh, 96dvh);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  margin: 0;
+}
+
+/* ---------- 4. Start Screen ---------- */
+.start-screen {
+  text-align: center;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.brand-emoji {
+  font-size: 56px;
+  filter: drop-shadow(0 0 18px rgba(255, 217, 102, 0.5));
+  animation: floatY 4.5s ease-in-out infinite;
+}
+
+.title {
+  font-size: clamp(28px, 6vw, 38px);
+  font-weight: 800;
+  line-height: 1.15;
+  color: #ffffff;
+}
+
+.subtitle {
+  color: var(--ink-soft);
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 6px;
+  line-height: 1.5;
+}
+
+.start-illustration {
+  margin: 22px 0;
+  font-size: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+}
+.start-illustration span { animation: floatY 3.6s ease-in-out infinite; }
+.start-illustration span:nth-child(2) { animation-delay: .6s; }
+.start-illustration span:nth-child(3) { animation-delay: 1.2s; }
+
+/* ---------- 5. Buttons ---------- */
+.btn {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 18px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 16px 32px;
+  color: var(--sky-deep);
+  background: linear-gradient(135deg, var(--star-gold), #ffb84f);
+  box-shadow: 0 0 0 rgba(255, 217, 102, 0), 0 10px 24px rgba(255, 184, 79, 0.28);
+  transition: transform .15s ease, box-shadow .25s ease, filter .15s ease;
+  /* Removes the ~300ms tap delay and stops accidental double-tap
+     zoom on iOS/Android when kids tap quickly. */
+  touch-action: manipulation;
+}
+
+.btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
+.btn:active { transform: translateY(0); }
+
+.btn:focus-visible {
+  outline: 3px solid var(--comet-teal);
+  outline-offset: 3px;
+}
+
+.btn-primary {
+  box-shadow: 0 0 24px rgba(255, 217, 102, 0.35), 0 12px 26px rgba(0, 0, 0, 0.35);
+}
+
+.btn-secondary {
+  background: linear-gradient(135deg, var(--nebula-violet), #5a3fd6);
+  color: #fff;
+  box-shadow: 0 0 24px rgba(124, 92, 255, 0.35), 0 12px 26px rgba(0, 0, 0, 0.35);
+}
+
+.btn-block { width: 100%; }
+
+.btn-lg {
+  font-size: 20px;
+  padding: 18px 36px;
+}
+
+/* Replay audio button */
+.audio-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 6px auto 4px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 19px;
+  color: var(--sky-deep);
+  background: radial-gradient(circle at 30% 30%, #fff, var(--comet-teal) 70%);
+  border: none;
+  border-radius: 999px;
+  padding: 20px 34px;
+  cursor: pointer;
+  box-shadow: 0 0 0 6px rgba(79, 227, 193, 0.12), 0 14px 30px rgba(79, 227, 193, 0.3);
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.audio-btn:hover { transform: scale(1.03); }
+.audio-btn:active { transform: scale(0.98); }
+.audio-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.audio-btn .speaker-icon {
+  font-size: 24px;
+  animation: pulseIcon 1.6s ease-in-out infinite;
+}
+@keyframes pulseIcon {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+.audio-btn.playing {
+  box-shadow: 0 0 0 10px rgba(79, 227, 193, 0.18), 0 14px 30px rgba(79, 227, 193, 0.45);
+}
+
+/* ---------- Game screen ---------- */
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--ink-soft);
+  font-size: 14px;
+  letter-spacing: .02em;
+}
+
+.pill {
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+
+.pill.score-pill { color: var(--star-gold); }
+
+/* Constellation progress trail — the signature element:
+   each answered question lights up a star on the trail the
+   rocket travels along toward the finish. */
+.constellation {
+  position: relative;
+  height: 54px;
+  margin: 4px 0 22px;
+}
+
+.constellation svg { width: 100%; height: 100%; display: block; }
+
+.constellation-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.14);
+  stroke-width: 2;
+  stroke-dasharray: 4 6;
+}
+
+.constellation-node {
+  fill: rgba(255, 255, 255, 0.2);
+  stroke: rgba(255, 255, 255, 0.35);
+  stroke-width: 1;
+  transition: fill .3s ease, stroke .3s ease, r .3s ease;
+}
+
+.constellation-node.done {
+  fill: var(--star-gold);
+  stroke: var(--star-gold);
+  filter: drop-shadow(0 0 6px rgba(255, 217, 102, 0.9));
+}
+
+.constellation-node.wrong-node {
+  fill: var(--error);
+  stroke: var(--error);
+  filter: drop-shadow(0 0 6px rgba(255, 111, 145, 0.9));
+}
+
+.constellation-node.current {
+  fill: var(--comet-teal);
+  stroke: var(--comet-teal);
+  filter: drop-shadow(0 0 8px rgba(79, 227, 193, 0.9));
+}
+
+.rocket {
+  position: absolute;
+  top: -6px;
+  font-size: 22px;
+  transform: translateX(-50%) rotate(90deg);
+  transition: left .5s cubic-bezier(.4,1.4,.5,1);
+  filter: drop-shadow(0 0 8px rgba(255, 217, 102, 0.7));
+}
+
+.prompt {
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--ink-soft);
+  margin: 4px 0 18px;
+}
+
+/* ---------- Question-to-question galaxy zoom transition ----------
+   Wraps the prompt/audio button/options/feedback for one question.
+   app.js toggles q-exit / q-enter on this element so each question
+   moves the SAME way the hyperspace stars do: the outgoing question
+   rushes bigger/brighter and blurs past the viewer (like something
+   flying past at warp speed), and the next one starts tiny and far
+   away, then zooms up to size as it "arrives" — so the content and
+   the starfield feel like one continuous flight rather than a card
+   fading in place while the background does its own thing.
+   NOTE: the 360ms duration here is referenced by QUESTION_TRANSITION_MS
+   in app.js — keep them in sync if you change either one. */
+.question-content {
+  /* Ease-out: fast at first, settling gently — used when arriving
+     (q-enter is removed and it eases back to full size). */
+  transition: opacity 360ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 360ms cubic-bezier(0.16, 1, 0.3, 1),
+              filter 360ms ease-out;
+}
+
+.question-content.q-exit {
+  /* Ease-in: starts slow, accelerates away — matches stars
+     speeding up as they rush toward the edges of the screen. */
+  transition: opacity 320ms cubic-bezier(0.7, 0, 0.84, 0),
+              transform 320ms cubic-bezier(0.7, 0, 0.84, 0),
+              filter 320ms ease-in;
+  opacity: 0;
+  transform: scale(1.4);
+  filter: blur(5px);
+}
+
+.question-content.q-enter {
+  /* Snapped to instantly (no transition) right after the content is
+     swapped, so it starts small/far/blurred with nothing to animate
+     FROM — then this class is removed a frame later, letting the
+     base .question-content transition above ease it up to full size. */
+  transition: none;
+  opacity: 0;
+  transform: scale(0.35) translateY(10px);
+  filter: blur(6px);
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.option-btn {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(32px, 8vw, 42px);
+  color: var(--ink-light);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-md);
+  padding: clamp(14px, 3vh, 22px) 10px;
+  min-height: 44px; /* comfortable tap target on all touch devices */
+  cursor: pointer;
+  transition: transform .15s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
+  touch-action: manipulation;
+}
+
+.option-btn:hover:not(:disabled) {
+  transform: translateY(-3px);
+  border-color: var(--comet-teal);
+  box-shadow: 0 0 20px rgba(79, 227, 193, 0.25);
+}
+
+.option-btn:focus-visible {
+  outline: 3px solid var(--comet-teal);
+  outline-offset: 3px;
+}
+
+.option-btn:disabled { cursor: default; }
+
+.option-btn.correct {
+  background: linear-gradient(160deg, rgba(79, 227, 193, 0.35), rgba(79, 227, 193, 0.12));
+  border-color: var(--success);
+  box-shadow: 0 0 26px var(--success-glow);
+  animation: pop .35s ease;
+}
+
+.option-btn.incorrect {
+  background: linear-gradient(160deg, rgba(255, 111, 145, 0.35), rgba(255, 111, 145, 0.12));
+  border-color: var(--error);
+  box-shadow: 0 0 26px var(--error-glow);
+  animation: shake .4s ease;
+}
+
+.option-btn.dimmed { opacity: 0.45; }
+
+@keyframes pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+.feedback {
+  min-height: 34px;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 20px;
+  margin: 10px 0 4px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .25s ease, transform .25s ease;
+}
+
+.feedback.show { opacity: 1; transform: translateY(0); }
+.feedback.correct-text { color: var(--success); }
+.feedback.incorrect-text { color: var(--error); }
+
+.next-wrap {
+  display: flex;
+  justify-content: center;
+  margin-top: 14px;
+  min-height: 60px;
+}
+
+/* ---------- Results screen ---------- */
+.results-screen { text-align: center; }
+
+.results-emoji {
+  font-size: 60px;
+  margin-bottom: 6px;
+  animation: floatY 4s ease-in-out infinite;
+}
+
+.results-score {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(30px, 7vw, 40px);
+  margin: 6px 0 4px;
+  background: linear-gradient(90deg, var(--star-gold), var(--comet-teal));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.results-msg {
+  color: var(--ink-soft);
+  font-weight: 700;
+  margin-bottom: 22px;
+}
+
+.results-stars {
+  font-size: 30px;
+  letter-spacing: 6px;
+  margin: 14px 0 24px;
+}
+
+/* ---------- 6. Responsive ---------- */
+
+/* Phones (portrait) — iPhone SE through Pro Max, small Android phones */
+@media (max-width: 480px) {
+  .options-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .audio-btn { padding: 14px 24px; font-size: 17px; }
+  .brand-emoji { font-size: 46px; }
+  .start-illustration { font-size: 32px; margin: 16px 0; }
+}
+
+/* Tablets — iPad portrait/landscape and similarly sized Android tablets */
+@media (min-width: 600px) and (max-width: 1024px) {
+  .app { max-width: 560px; }
+}
+
+/* Short viewports — phones in landscape, minimized/split-screen desktop
+   windows, or fullscreen on a small display. Trims vertical space so
+   everything fits without the card overflowing the screen. */
+@media (max-height: 560px) {
+  .card { animation: none; } /* stop the float bob so it doesn't fight with scrolling */
+  .brand-emoji { font-size: 36px; }
+  .title { font-size: clamp(22px, 5vw, 30px); }
+  .subtitle { font-size: 14px; margin-top: 4px; }
+  .start-illustration { display: none; }
+  .audio-btn { padding: 12px 22px; font-size: 16px; }
+  .option-btn { font-size: clamp(24px, 6vw, 34px); }
+  .constellation { height: 40px; margin-bottom: 14px; }
+  .results-emoji { font-size: 40px; }
+}
+
+/* Very short viewports — e.g. a small phone in landscape */
+@media (max-height: 400px) {
+  .card { padding-top: 14px; padding-bottom: 14px; }
+  .brand { gap: 4px; }
+  .prompt { margin: 2px 0 10px; font-size: 15px; }
+}
+
+/* ---------- 7. Motion & accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+</style>
 </head>
 <body>
 
-  <!-- decorative background layers (see style.css / app.js for star generation) -->
+  <!-- decorative background layers (star field generated in the game-logic <script> below) -->
   <div class="sky"></div>
   <div class="nebula"></div>
   <div class="stars" id="starField" aria-hidden="true"></div>
@@ -29,9 +704,9 @@
       <section id="startScreen" class="screen active start-screen">
         <div class="brand">
           <div class="brand-emoji" aria-hidden="true">🚀</div>
-          <h1 class="title">Galaxy Alphabet</h1>
+          <h1 class="title">Galaxy Alphabet Quiz</h1>
         </div>
-        <p class="subtitle">🚀聞こえた音はどのアルファベット？<br> さあ、見つけよう！ </p>
+        <p class="subtitle">Blast off, listen carefully, and catch<br>the letter sounds among the stars!</p>
         <div class="start-illustration" aria-hidden="true">
           <span>⭐</span><span>🪐</span><span>✨</span>
         </div>
@@ -95,9 +770,984 @@
     </div>
   </main>
 
-  <!-- Question data lives here — edit questions.js to add/change questions -->
-  <script src="questions.js"></script>
-  <!-- Game logic — see comments inside for what's safe to tweak -->
-  <script src="app.js"></script>
+  <!-- ============================================================
+       QUESTION BANK — edit the array below to add/remove/change
+       questions. See the comment block inside for full instructions.
+       ============================================================ -->
+  <script>
+/* ============================================================
+   ALPHABET LISTENING QUIZ — QUESTION BANK
+   ============================================================
+   This block holds ALL 50 questions. Edit the QUESTION_BANK array
+   below whenever you want to add, remove, or change questions. You
+   never need to touch the game-logic <script> further down to
+   update quiz content.
+
+   HOW TO ADD YOUR AUDIO FILES:
+   1. Record or export a short clip of a letter SOUND (not the
+      letter name, e.g. the /f/ sound, not "eff").
+   2. Save it as an .mp3 file inside the /audio folder.
+   3. Name it to match the "audio" path below (question01.mp3,
+      question02.mp3, ... question50.mp3) — or change the path
+      to whatever filename you used.
+
+   HOW TO EDIT A QUESTION:
+   - audio          -> path to the mp3 file for this question
+   - correctAnswer  -> the single correct letter (A-Z)
+   - options        -> array of letters shown as buttons,
+                       MUST include correctAnswer plus one or
+                       more incorrect letters. You can add a
+                       3rd or 4th option if you want more
+                       choices for a harder question.
+
+   HOW TO ADD A NEW QUESTION:
+   - Copy one block below, give it a unique "id", point
+     "audio" at a new mp3 file, and set correctAnswer/options.
+
+   HOW TO CHANGE HOW MANY QUESTIONS PLAY PER GAME:
+   - That setting lives in the game-logic <script> further down this
+     file, near the top, in a constant called QUESTIONS_PER_GAME.
+     This block only holds the pool of 50 questions that games are
+     randomly drawn from.
+   ============================================================ */
+
+const QUESTION_BANK = [
+  {
+    id: 1,
+    audio: "audio/question01.mp3",
+    correctAnswer: "A",
+    options: ["H", "A"]
+  },
+  {
+    id: 2,
+    audio: "audio/question02.mp3",
+    correctAnswer: "B",
+    options: ["B", "V"]
+  },
+  {
+    id: 3,
+    audio: "audio/question03.mp3",
+    correctAnswer: "C",
+    options: ["K", "C"]
+  },
+  {
+    id: 4,
+    audio: "audio/question04.mp3",
+    correctAnswer: "D",
+    options: ["B", "D"]
+  },
+  {
+    id: 5,
+    audio: "audio/question05.mp3",
+    correctAnswer: "E",
+    options: ["E", "I"]
+  },
+  {
+    id: 6,
+    audio: "audio/question06.mp3",
+    correctAnswer: "F",
+    options: ["S", "F"]
+  },
+  {
+    id: 7,
+    audio: "audio/question07.mp3",
+    correctAnswer: "G",
+    options: ["J", "G"]
+  },
+  {
+    id: 8,
+    audio: "audio/question08.mp3",
+    correctAnswer: "H",
+    options: ["A", "H"]
+  },
+  {
+    id: 9,
+    audio: "audio/question09.mp3",
+    correctAnswer: "I",
+    options: ["I", "E"]
+  },
+  {
+    id: 10,
+    audio: "audio/question10.mp3",
+    correctAnswer: "J",
+    options: ["J", "G"]
+  },
+  {
+    id: 11,
+    audio: "audio/question11.mp3",
+    correctAnswer: "K",
+    options: ["Q", "K"]
+  },
+  {
+    id: 12,
+    audio: "audio/question12.mp3",
+    correctAnswer: "L",
+    options: ["L", "R"]
+  },
+  {
+    id: 13,
+    audio: "audio/question13.mp3",
+    correctAnswer: "M",
+    options: ["M", "W"]
+  },
+  {
+    id: 14,
+    audio: "audio/question14.mp3",
+    correctAnswer: "N",
+    options: ["M", "N"]
+  },
+  {
+    id: 15,
+    audio: "audio/question15.mp3",
+    correctAnswer: "O",
+    options: ["Q", "O"]
+  },
+  {
+    id: 16,
+    audio: "audio/question16.mp3",
+    correctAnswer: "P",
+    options: ["P", "B"]
+  },
+  {
+    id: 17,
+    audio: "audio/question17.mp3",
+    correctAnswer: "Q",
+    options: ["Q", "K"]
+  },
+  {
+    id: 18,
+    audio: "audio/question18.mp3",
+    correctAnswer: "R",
+    options: ["R", "W"]
+  },
+  {
+    id: 19,
+    audio: "audio/question19.mp3",
+    correctAnswer: "S",
+    options: ["S", "F"]
+  },
+  {
+    id: 20,
+    audio: "audio/question20.mp3",
+    correctAnswer: "T",
+    options: ["T", "D"]
+  },
+  {
+    id: 21,
+    audio: "audio/question21.mp3",
+    correctAnswer: "U",
+    options: ["U", "O"]
+  },
+  {
+    id: 22,
+    audio: "audio/question22.mp3",
+    correctAnswer: "V",
+    options: ["F", "V"]
+  },
+  {
+    id: 23,
+    audio: "audio/question23.mp3",
+    correctAnswer: "W",
+    options: ["Y", "W"]
+  },
+  {
+    id: 24,
+    audio: "audio/question24.mp3",
+    correctAnswer: "X",
+    options: ["S", "X"]
+  },
+  {
+    id: 25,
+    audio: "audio/question25.mp3",
+    correctAnswer: "Y",
+    options: ["J", "Y"]
+  },
+  {
+    id: 26,
+    audio: "audio/question26.mp3",
+    correctAnswer: "Z",
+    options: ["S", "Z"]
+  },
+  {
+    id: 27,
+    audio: "audio/question27.mp3",
+    correctAnswer: "A",
+    options: ["A", "E"]
+  },
+  {
+    id: 28,
+    audio: "audio/question28.mp3",
+    correctAnswer: "B",
+    options: ["B", "P"]
+  },
+  {
+    id: 29,
+    audio: "audio/question29.mp3",
+    correctAnswer: "C",
+    options: ["C", "S"]
+  },
+  {
+    id: 30,
+    audio: "audio/question30.mp3",
+    correctAnswer: "D",
+    options: ["D", "T"]
+  },
+  {
+    id: 31,
+    audio: "audio/question31.mp3",
+    correctAnswer: "E",
+    options: ["A", "E"]
+  },
+  {
+    id: 32,
+    audio: "audio/question32.mp3",
+    correctAnswer: "F",
+    options: ["F", "V"]
+  },
+  {
+    id: 33,
+    audio: "audio/question33.mp3",
+    correctAnswer: "G",
+    options: ["G", "C"]
+  },
+  {
+    id: 34,
+    audio: "audio/question34.mp3",
+    correctAnswer: "H",
+    options: ["J", "H"]
+  },
+  {
+    id: 35,
+    audio: "audio/question35.mp3",
+    correctAnswer: "I",
+    options: ["I", "Y"]
+  },
+  {
+    id: 36,
+    audio: "audio/question36.mp3",
+    correctAnswer: "J",
+    options: ["H", "J"]
+  },
+  {
+    id: 37,
+    audio: "audio/question37.mp3",
+    correctAnswer: "K",
+    options: ["Q", "K"]
+  },
+  {
+    id: 38,
+    audio: "audio/question38.mp3",
+    correctAnswer: "L",
+    options: ["N", "L"]
+  },
+  {
+    id: 39,
+    audio: "audio/question39.mp3",
+    correctAnswer: "M",
+    options: ["W", "M"]
+  },
+  {
+    id: 40,
+    audio: "audio/question40.mp3",
+    correctAnswer: "N",
+    options: ["N", "L"]
+  },
+  {
+    id: 41,
+    audio: "audio/question41.mp3",
+    correctAnswer: "O",
+    options: ["O", "Q"]
+  },
+  {
+    id: 42,
+    audio: "audio/question42.mp3",
+    correctAnswer: "P",
+    options: ["P", "D"]
+  },
+  {
+    id: 43,
+    audio: "audio/question43.mp3",
+    correctAnswer: "Q",
+    options: ["O", "Q"]
+  },
+  {
+    id: 44,
+    audio: "audio/question44.mp3",
+    correctAnswer: "R",
+    options: ["R", "W"]
+  },
+  {
+    id: 45,
+    audio: "audio/question45.mp3",
+    correctAnswer: "S",
+    options: ["Z", "S"]
+  },
+  {
+    id: 46,
+    audio: "audio/question46.mp3",
+    correctAnswer: "T",
+    options: ["P", "T"]
+  },
+  {
+    id: 47,
+    audio: "audio/question47.mp3",
+    correctAnswer: "U",
+    options: ["W", "U"]
+  },
+  {
+    id: 48,
+    audio: "audio/question48.mp3",
+    correctAnswer: "V",
+    options: ["V", "F"]
+  },
+  {
+    id: 49,
+    audio: "audio/question49.mp3",
+    correctAnswer: "W",
+    options: ["W", "U"]
+  },
+  {
+    id: 50,
+    audio: "audio/question50.mp3",
+    correctAnswer: "X",
+    options: ["X", "Z"]
+  },
+];
+
+  </script>
+
+  <!-- ============================================================
+       GAME LOGIC — you shouldn't need to edit this to change quiz
+       content (that's all in the QUESTION_BANK above). Settings you
+       CAN tweak are called out near the top (QUESTIONS_PER_GAME,
+       STAR_COUNT, and the WARP_* / QUESTION_WARP_* galaxy-transition
+       timings).
+       ============================================================ -->
+  <script>
+/* ============================================================
+   ALPHABET LISTENING QUIZ — GAME LOGIC
+   ============================================================
+   You generally should NOT need to edit this section to update
+   quiz content — that all lives in the QUESTION_BANK <script>
+   above.
+
+   Settings you CAN safely change below:
+   - QUESTIONS_PER_GAME : how many questions are played each round
+   - STAR_COUNT         : how many background stars are drawn
+   - WARP_*             : timing/density of the big galaxy-entrance
+                          hyperspace sequence (Start Mission)
+   - QUESTION_WARP_*    : timing/density of the shorter galaxy zoom
+                          that plays between every question
+   ============================================================ */
+
+const QUESTIONS_PER_GAME = 7; // <-- change this to play more/fewer questions per game
+const STAR_COUNT = 90;        // <-- change this to make the sky sparser/denser
+
+/* Galaxy entrance transition timing (all in milliseconds).
+   Feel free to tune these — see beginGalaxyEntrance() below for how
+   they fit together. */
+const WARP_STAR_COUNT = 220;   // how many streaking stars during hyperspace
+const WARP_ACCEL_MS   = 1600;  // time to accelerate to full hyperspace speed
+const WARP_HOLD_MS    = 250;   // brief hold at top speed before the flash
+const WARP_EXIT_MS    = 650;   // fade from warp back into the quiz
+
+/* Question-to-question galaxy zoom transition (a shorter, lighter
+   version of the same hyperspace effect, replayed every time the
+   student moves to a new question). NOTE: QUESTION_EXIT_MS and
+   QUESTION_ENTER_MS must match the transition durations set on
+   .question-content / .question-content.q-exit in style.css — keep
+   all three in sync if you change any of them. */
+const QUESTION_WARP_STAR_COUNT = 70;   // fewer stars than the big entrance
+const QUESTION_WARP_ACCEL_MS   = 450;  // quick ramp — this is a short hop, not a full jump
+const QUESTION_EXIT_MS  = 320;  // outgoing question rushing/blurring past (matches CSS q-exit)
+const QUESTION_ENTER_MS = 360;  // incoming question easing in from the distance (matches base CSS)
+
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ------------------------------------------------------------
+   STATE
+   ------------------------------------------------------------ */
+const state = {
+  roundQuestions: [], // the QUESTIONS_PER_GAME questions chosen for this round
+  currentIndex: 0,
+  score: 0,
+  answeredCurrent: false,
+  results: [], // true/false per question, in order, for the constellation trail
+  transitioning: false // true while the galaxy entrance animation is playing
+};
+
+/* ------------------------------------------------------------
+   DOM REFERENCES
+   ------------------------------------------------------------ */
+const screens = {
+  start: document.getElementById('startScreen'),
+  game: document.getElementById('gameScreen'),
+  results: document.getElementById('resultsScreen')
+};
+
+const startBtn = document.getElementById('startBtn');
+const playAgainBtn = document.getElementById('playAgainBtn');
+const playAudioBtn = document.getElementById('playAudioBtn');
+const letterAudio = document.getElementById('letterAudio');
+const optionsGrid = document.getElementById('optionsGrid');
+const feedbackEl = document.getElementById('feedback');
+const nextBtn = document.getElementById('nextBtn');
+const questionCounter = document.getElementById('questionCounter');
+const scoreCounter = document.getElementById('scoreCounter');
+const constellationEl = document.getElementById('constellation');
+const resultsScore = document.getElementById('resultsScore');
+const resultsMsg = document.getElementById('resultsMsg');
+const resultsStars = document.getElementById('resultsStars');
+const starField = document.getElementById('starField');
+const appShell = document.getElementById('appShell');
+const warpCanvas = document.getElementById('warpCanvas');
+const galaxyFlash = document.getElementById('galaxyFlash');
+const questionContent = document.getElementById('questionContent');
+const resultsContent = document.getElementById('resultsContent');
+
+/* ------------------------------------------------------------
+   BACKGROUND STAR FIELD
+   Purely decorative — generates STAR_COUNT twinkling dots.
+   ------------------------------------------------------------ */
+function buildStarField() {
+  starField.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < STAR_COUNT; i++) {
+    const star = document.createElement('div');
+    const size = Math.random() < 0.15 ? (Math.random() * 2 + 2.5) : (Math.random() * 1.5 + 1);
+    const isBig = size > 3;
+    star.className = 'star' + (isBig ? ' big' : '');
+    star.style.left = Math.random() * 100 + 'vw';
+    star.style.top = Math.random() * 100 + 'vh';
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    const duration = (Math.random() * 3 + 2.5).toFixed(2);
+    const delay = (Math.random() * 4).toFixed(2);
+    star.style.setProperty('--min-o', (Math.random() * 0.25 + 0.1).toFixed(2));
+    star.style.setProperty('--max-o', (Math.random() * 0.4 + 0.6).toFixed(2));
+    star.style.animationDuration = duration + 's';
+    star.style.animationDelay = delay + 's';
+    frag.appendChild(star);
+  }
+  starField.appendChild(frag);
+}
+
+/* ------------------------------------------------------------
+   GALAXY ENTRANCE TRANSITION (hyperspace warp)
+   ------------------------------------------------------------
+   Draws a "flying through the galaxy" star-streak animation on a
+   full-screen canvas when the student clicks "Start Mission".
+   Stars spawn near the center and accelerate outward toward the
+   edges of the screen, growing larger/brighter as they approach —
+   classic warp-speed depth effect — before a soft light flash
+   marks "arriving" in the galaxy and the quiz fades in underneath.
+
+   This section is self-contained: if you never touch it, the rest
+   of the game logic below works exactly as before.
+   ------------------------------------------------------------ */
+let warpCtx = null;
+let warpStars = [];
+let warpMaxRadius = 0;
+let warpRAF = null;
+let warpAnimStart = 0;
+let warpAccelMsActive = WARP_ACCEL_MS; // set before each run: big entrance vs quick question hop
+
+function setupWarpCanvas() {
+  if (!warpCanvas.getContext) return; // very old browsers: skip gracefully
+  warpCtx = warpCanvas.getContext('2d');
+  resizeWarpCanvas();
+  window.addEventListener('resize', resizeWarpCanvas);
+}
+
+function resizeWarpCanvas() {
+  if (!warpCtx) return;
+  const dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  warpCanvas.width = w * dpr;
+  warpCanvas.height = h * dpr;
+  warpCanvas.style.width = w + 'px';
+  warpCanvas.style.height = h + 'px';
+  warpCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// Creates one warp star. `nearCenter` seeds it close to the middle
+// (used when a star finishes its flight and respawns).
+function makeWarpStar(nearCenter) {
+  const roll = Math.random();
+  return {
+    angle: Math.random() * Math.PI * 2,
+    r: nearCenter ? Math.random() * 24 : Math.random() * warpMaxRadius * 0.5,
+    spd: 0.6 + Math.random() * 1.4, // per-star speed variation, for depth
+    // mostly white starlight, with a sprinkle of gold/teal for magic
+    hue: roll < 0.14 ? 'gold' : (roll < 0.26 ? 'teal' : 'white')
+  };
+}
+
+function initWarpStars(count) {
+  warpMaxRadius = Math.hypot(window.innerWidth, window.innerHeight) / 2 * 1.05;
+  warpStars = [];
+  const total = count || WARP_STAR_COUNT;
+  for (let i = 0; i < total; i++) {
+    warpStars.push(makeWarpStar(false));
+  }
+}
+
+function warpFrame(now) {
+  const elapsed = now - warpAnimStart;
+  // Ease-in acceleration: slow drift at first, rapidly ramping up to
+  // full hyperspace speed by warpAccelMsActive, then holding there.
+  const accelProgress = Math.min(elapsed / warpAccelMsActive, 1);
+  const eased = accelProgress * accelProgress;
+  const speedFactor = 0.35 + eased * 5.5;
+
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const cx = w / 2;
+  const cy = h / 2;
+
+  // Translucent fill (instead of a full clear) so fast stars leave a
+  // soft streak behind them — the classic warp-speed trail look.
+  warpCtx.fillStyle = 'rgba(6, 8, 24, 0.28)';
+  warpCtx.fillRect(0, 0, w, h);
+
+  for (let i = 0; i < warpStars.length; i++) {
+    const star = warpStars[i];
+    // Stars further from center travel faster, simulating perspective
+    // as they approach the "camera".
+    const delta = speedFactor * star.spd * (2 + star.r * 0.045);
+    star.r += delta;
+
+    if (star.r > warpMaxRadius) {
+      warpStars[i] = makeWarpStar(true);
+      continue;
+    }
+
+    const ratio = star.r / warpMaxRadius;
+    const x = cx + Math.cos(star.angle) * star.r;
+    const y = cy + Math.sin(star.angle) * star.r;
+    const size = 0.6 + ratio * 3.6;
+    const alpha = Math.min(1, 0.2 + ratio * 1.1);
+
+    let color;
+    if (star.hue === 'gold') color = `rgba(255, 217, 102, ${alpha})`;
+    else if (star.hue === 'teal') color = `rgba(79, 227, 193, ${alpha})`;
+    else color = `rgba(255, 255, 255, ${alpha})`;
+
+    warpCtx.beginPath();
+    warpCtx.fillStyle = color;
+    warpCtx.arc(x, y, size, 0, Math.PI * 2);
+    warpCtx.fill();
+  }
+
+  warpRAF = requestAnimationFrame(warpFrame);
+}
+
+function stopWarpAnimation() {
+  if (warpRAF) cancelAnimationFrame(warpRAF);
+  warpRAF = null;
+  if (warpCtx) warpCtx.clearRect(0, 0, warpCanvas.width, warpCanvas.height);
+}
+
+// Called when the student clicks "Start Mission". Plays the
+// cinematic hyperspace sequence, then hands off to startGame().
+function beginGalaxyEntrance() {
+  if (state.transitioning) return; // ignore extra clicks mid-transition
+  state.transitioning = true;
+  startBtn.disabled = true;
+
+  // Respect motion-sensitivity settings: skip straight to the quiz
+  // with a short, gentle fade instead of the full hyperspace sequence.
+  if (prefersReducedMotion || !warpCtx) {
+    appShell.classList.add('transition-hide');
+    setTimeout(() => {
+      startGame();
+      appShell.classList.remove('transition-hide');
+      state.transitioning = false;
+      startBtn.disabled = false;
+    }, 300);
+    return;
+  }
+
+  // 1) Start screen fades/shrinks away, hyperspace canvas fades in,
+  //    stars begin accelerating outward from the center.
+  appShell.classList.add('transition-hide');
+  document.body.classList.add('warping');
+  warpAccelMsActive = WARP_ACCEL_MS;
+  initWarpStars(WARP_STAR_COUNT);
+  warpAnimStart = performance.now();
+  warpCanvas.classList.add('active');
+  stopWarpAnimation();
+  warpRAF = requestAnimationFrame(warpFrame);
+
+  // 2) Near the end of the acceleration, trigger the bright
+  //    "arriving in the galaxy" flash.
+  setTimeout(() => {
+    galaxyFlash.classList.remove('flash');
+    void galaxyFlash.offsetWidth; // restart animation if replayed
+    galaxyFlash.classList.add('flash');
+  }, WARP_ACCEL_MS);
+
+  // 3) While the app shell is still hidden, swap in the quiz screen
+  //    and pick the round's questions — invisible to the student, so
+  //    there's no jarring jump when everything fades back in.
+  setTimeout(() => {
+    startGame();
+  }, WARP_ACCEL_MS + WARP_HOLD_MS);
+
+  // 4) Fade the quiz back in and the hyperspace canvas/nebula bloom
+  //    back out, completing the "arrival".
+  setTimeout(() => {
+    appShell.classList.remove('transition-hide');
+    warpCanvas.classList.remove('active');
+    document.body.classList.remove('warping');
+  }, WARP_ACCEL_MS + WARP_HOLD_MS + 120);
+
+  // 5) Clean up once everything has faded, so the canvas isn't
+  //    silently animating in the background forever.
+  setTimeout(() => {
+    stopWarpAnimation();
+    state.transitioning = false;
+    startBtn.disabled = false;
+  }, WARP_ACCEL_MS + WARP_HOLD_MS + 120 + WARP_EXIT_MS);
+}
+
+/* ------------------------------------------------------------
+   QUESTION-TO-QUESTION GALAXY TRANSITION
+   ------------------------------------------------------------
+   Every time the student moves to a new question (or on to the
+   results screen), the current question rushes bigger/brighter and
+   blurs past — like it's flying past at warp speed — a burst of
+   hyperspace stars streaks past behind it, and the next question
+   starts tiny and far away, then zooms up to size as it arrives —
+   the same galaxy effect as the opening entrance, just a short hop
+   instead of a full journey, with the content moving the same way
+   the stars do instead of just fading in place.
+   ------------------------------------------------------------ */
+
+// Plays a short hyperspace star burst behind a question transition.
+// `visibleMs` is how long the canvas stays visible before fading —
+// keep it roughly in line with QUESTION_EXIT_MS + QUESTION_ENTER_MS.
+function playQuestionWarpBurst(visibleMs) {
+  if (!warpCtx) return;
+  document.body.classList.add('warping');
+  warpAccelMsActive = QUESTION_WARP_ACCEL_MS;
+  initWarpStars(QUESTION_WARP_STAR_COUNT);
+  warpAnimStart = performance.now();
+  stopWarpAnimation();
+  warpCanvas.classList.add('active');
+  warpRAF = requestAnimationFrame(warpFrame);
+
+  setTimeout(() => {
+    warpCanvas.classList.remove('active');
+    document.body.classList.remove('warping');
+  }, visibleMs);
+
+  // Give the canvas's own fade-out transition (defined in style.css)
+  // time to finish before we stop drawing and clear it.
+  setTimeout(() => {
+    stopWarpAnimation();
+  }, visibleMs + 650);
+}
+
+// Swaps the on-screen content using `onSwap`, wrapped in the
+// zoom-out / hyperspace-burst / zoom-in sequence described above.
+// `exitEl` is the content currently on screen; `enterEl` is what
+// should be visible afterward (they're the same element for a
+// same-screen question change, and different elements when the
+// swap also crosses from the game screen to the results screen,
+// or back again via "Play Again").
+function playGalaxyZoomTransition(exitEl, enterEl, onSwap) {
+  if (prefersReducedMotion) {
+    onSwap();
+    return;
+  }
+
+  playQuestionWarpBurst(QUESTION_EXIT_MS + QUESTION_ENTER_MS - 60);
+
+  // 1) Current content rushes bigger and blurs away, like it's
+  //    flying past the viewer at warp speed.
+  exitEl.classList.remove('q-enter');
+  exitEl.classList.add('q-exit');
+
+  // 2) Once it's fully faded, perform the actual screen/content swap
+  //    while everything is invisible, then flip the new content
+  //    straight to the "far away" state so it can zoom in from there.
+  setTimeout(() => {
+    onSwap();
+    if (exitEl !== enterEl) exitEl.classList.remove('q-exit');
+    enterEl.classList.remove('q-exit');
+    enterEl.classList.add('q-enter');
+    void enterEl.offsetWidth; // force reflow so the next class change transitions
+    requestAnimationFrame(() => {
+      // 3) Zoom the new content in from the distance to full size.
+      enterEl.classList.remove('q-enter');
+    });
+  }, QUESTION_EXIT_MS);
+}
+
+/* ------------------------------------------------------------
+   QUESTION SELECTION
+   Picks QUESTIONS_PER_GAME unique random questions from the
+   50-question bank using a Fisher–Yates shuffle, so both the
+   selection AND the order are freshly randomized every game.
+   ------------------------------------------------------------ */
+function shuffle(array) {
+  const arr = array.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function pickRoundQuestions() {
+  const shuffledBank = shuffle(QUESTION_BANK);
+  return shuffledBank.slice(0, QUESTIONS_PER_GAME);
+}
+
+/* ------------------------------------------------------------
+   SCREEN NAVIGATION
+   ------------------------------------------------------------ */
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+/* ------------------------------------------------------------
+   CONSTELLATION PROGRESS TRAIL
+   Draws a dashed path with one star-node per question; nodes
+   light up gold (correct) or pink (incorrect) as answered, and
+   a little rocket travels along the path.
+   ------------------------------------------------------------ */
+function renderConstellation() {
+  const total = state.roundQuestions.length;
+  const width = 600;
+  const height = 54;
+  const padding = 30;
+  const step = total > 1 ? (width - padding * 2) / (total - 1) : 0;
+  const y = height / 2;
+
+  let pathD = `M ${padding} ${y}`;
+  let nodesSvg = '';
+
+  for (let i = 0; i < total; i++) {
+    const x = padding + step * i;
+    if (i > 0) pathD += ` L ${x} ${y}`;
+
+    let cls = 'constellation-node';
+    if (i < state.results.length) {
+      cls += state.results[i] ? ' done' : ' wrong-node';
+    } else if (i === state.currentIndex) {
+      cls += ' current';
+    }
+    const r = i === state.currentIndex && i >= state.results.length ? 8 : 6;
+    nodesSvg += `<circle class="${cls}" cx="${x}" cy="${y}" r="${r}"></circle>`;
+  }
+
+  constellationEl.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+      <path class="constellation-line" d="${pathD}"></path>
+      ${nodesSvg}
+    </svg>
+    <div class="rocket" id="rocketIcon" aria-hidden="true">🚀</div>
+  `;
+
+  // position rocket over current node using percentage of width
+  const rocket = document.getElementById('rocketIcon');
+  const progressIndex = Math.min(state.currentIndex, total - 1);
+  const xPercent = total > 1
+    ? ((padding + step * progressIndex) / width) * 100
+    : 50;
+  rocket.style.left = xPercent + '%';
+}
+
+/* ------------------------------------------------------------
+   GAME FLOW
+   ------------------------------------------------------------ */
+function startGame() {
+  state.roundQuestions = pickRoundQuestions();
+  state.currentIndex = 0;
+  state.score = 0;
+  state.results = [];
+  showScreen('game');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  state.answeredCurrent = false;
+  const total = state.roundQuestions.length;
+  const q = state.roundQuestions[state.currentIndex];
+
+  questionCounter.textContent = `Question ${state.currentIndex + 1} / ${total}`;
+  scoreCounter.textContent = `Score: ${state.score} / ${state.currentIndex}`;
+
+  renderConstellation();
+
+  // reset audio + feedback + next button
+  letterAudio.pause();
+  letterAudio.currentTime = 0;
+  letterAudio.src = q.audio;
+  playAudioBtn.classList.remove('playing');
+  feedbackEl.textContent = '';
+  feedbackEl.className = 'feedback';
+  nextBtn.style.display = 'none';
+
+  // build answer option buttons (shuffled so the correct answer
+  // isn't always in the same position)
+  optionsGrid.innerHTML = '';
+  const shuffledOptions = shuffle(q.options);
+  shuffledOptions.forEach(letter => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.type = 'button';
+    btn.textContent = letter;
+    btn.setAttribute('aria-label', `Answer ${letter}`);
+    btn.addEventListener('click', () => handleAnswer(letter, btn, q.correctAnswer));
+    optionsGrid.appendChild(btn);
+  });
+
+  // autoplay the sound for this question (best effort; browsers may
+  // block autoplay, in which case the student just taps Play Sound)
+  playCurrentAudio();
+}
+
+function playCurrentAudio() {
+  playAudioBtn.classList.add('playing');
+  const playPromise = letterAudio.play();
+  if (playPromise && playPromise.catch) {
+    playPromise.catch(() => {
+      // Autoplay blocked, or the mp3 file hasn't been added yet.
+      // Silently ignore — the student can press "Play Sound" manually.
+      playAudioBtn.classList.remove('playing');
+    });
+  }
+  letterAudio.onended = () => playAudioBtn.classList.remove('playing');
+}
+
+playAudioBtn.addEventListener('click', () => {
+  letterAudio.currentTime = 0;
+  playCurrentAudio();
+});
+
+function handleAnswer(selectedLetter, btnEl, correctLetter) {
+  // Prevent multiple submissions for the same question
+  if (state.answeredCurrent) return;
+  state.answeredCurrent = true;
+
+  const isCorrect = selectedLetter === correctLetter;
+  state.results[state.currentIndex] = isCorrect;
+
+  const allOptionButtons = optionsGrid.querySelectorAll('.option-btn');
+  allOptionButtons.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correctLetter) {
+      b.classList.add('correct');
+    } else if (b === btnEl) {
+      b.classList.add('incorrect');
+    } else {
+      b.classList.add('dimmed');
+    }
+  });
+
+  if (isCorrect) {
+    state.score++;
+    feedbackEl.textContent = '✓ Correct!';
+    feedbackEl.classList.add('correct-text');
+  } else {
+    feedbackEl.textContent = `✗ Try again! It was "${correctLetter}".`;
+    feedbackEl.classList.add('incorrect-text');
+  }
+  feedbackEl.classList.add('show');
+
+  scoreCounter.textContent = `Score: ${state.score} / ${state.currentIndex + 1}`;
+  renderConstellation();
+
+  const total = state.roundQuestions.length;
+  nextBtn.textContent = (state.currentIndex + 1 < total) ? 'Next →' : 'See Results →';
+  nextBtn.style.display = 'inline-block';
+}
+
+nextBtn.addEventListener('click', () => {
+  if (state.transitioning) return; // ignore extra clicks mid-transition
+  state.transitioning = true;
+  nextBtn.disabled = true;
+
+  const total = state.roundQuestions.length;
+  const isLastQuestion = state.currentIndex + 1 >= total;
+
+  playGalaxyZoomTransition(
+    questionContent,
+    isLastQuestion ? resultsContent : questionContent,
+    () => {
+      if (isLastQuestion) {
+        showResults();
+      } else {
+        state.currentIndex++;
+        renderQuestion();
+      }
+    }
+  );
+
+  setTimeout(() => {
+    state.transitioning = false;
+    nextBtn.disabled = false;
+  }, QUESTION_EXIT_MS + QUESTION_ENTER_MS + 60);
+});
+
+/* ------------------------------------------------------------
+   RESULTS SCREEN
+   ------------------------------------------------------------ */
+function showResults() {
+  const total = state.roundQuestions.length;
+  resultsScore.textContent = `${state.score} / ${total} Correct!`;
+
+  let message;
+  const ratio = state.score / total;
+  if (ratio === 1) {
+    message = 'Perfect mission — you heard every letter!';
+  } else if (ratio >= 0.7) {
+    message = 'Awesome listening, space explorer!';
+  } else if (ratio >= 0.4) {
+    message = 'Nice work! Keep practicing those sounds.';
+  } else {
+    message = 'Good try! Let\u2019s blast off again and listen closely.';
+  }
+  resultsMsg.textContent = message;
+
+  const filled = Math.round(ratio * 5);
+  resultsStars.textContent = '⭐'.repeat(filled) + '☆'.repeat(5 - filled);
+
+  showScreen('results');
+}
+
+/* ------------------------------------------------------------
+   EVENT WIRING
+   ------------------------------------------------------------ */
+// First launch: the full cinematic galaxy-entrance sequence.
+startBtn.addEventListener('click', beginGalaxyEntrance);
+// Replaying: uses the same short galaxy zoom/hyperspace-burst as
+// between questions, rather than replaying the full ~2.5s entrance,
+// so repeat play stays snappy.
+playAgainBtn.addEventListener('click', () => {
+  if (state.transitioning) return;
+  state.transitioning = true;
+  playAgainBtn.disabled = true;
+
+  playGalaxyZoomTransition(resultsContent, questionContent, startGame);
+
+  setTimeout(() => {
+    state.transitioning = false;
+    playAgainBtn.disabled = false;
+  }, QUESTION_EXIT_MS + QUESTION_ENTER_MS + 60);
+});
+
+/* ------------------------------------------------------------
+   INIT
+   ------------------------------------------------------------ */
+buildStarField();
+setupWarpCanvas();
+
+  </script>
 </body>
 </html>
