@@ -577,20 +577,20 @@ h1, h2, h3 {
   touch-action: manipulation;
   transition: box-shadow .2s ease, transform .15s ease;
 }
-
+ 
 .blackhole-btn:hover { transform: scale(1.08); }
 .blackhole-btn:active { transform: scale(0.95); }
-
+ 
 .blackhole-btn:focus-visible {
   outline: 2px solid var(--comet-teal);
   outline-offset: 3px;
 }
-
+ 
 .blackhole-btn:disabled {
   cursor: default;
   opacity: 0.6;
 }
-
+ 
 @keyframes blackholeSpin {
   to { transform: rotate(360deg); }
 }
