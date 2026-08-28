@@ -146,7 +146,7 @@ body.warping .stars {
 .ambient-layer {
   position: fixed;
   inset: 0;
-  z-index: 2;
+  z-index: 1;
   pointer-events: none;
 }
 /* A shooting star: a short fading streak (the "extending line" of
@@ -291,9 +291,9 @@ body.warping . {
 
 /* The quiz shell fades/shrinks away as hyperspace begins, then
    fades/grows back in once the galaxy-entry flash has passed. */
-.app {
+app {
   position: relative;
-  z-index: 20;
+  z-index: 10;
 }
   /* No card background anymore, so text needs its own contrast
      against the starfield/nebula. text-shadow is inherited, so this
@@ -328,8 +328,7 @@ body.warping .app:not(.transition-hide) {
 
 .card {
   position: relative;
-  z-index: 21;
-}
+  width: 100%;
   /* No panel/box here on purpose — content floats directly over the
      galaxy background so it feels like part of the scene rather than
      a UI card sitting on top of it. Text/buttons keep their own
