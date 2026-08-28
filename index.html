@@ -46,28 +46,50 @@
         </div>
       </section>
 
-      <!-- ============================================================
-           GAME SCREEN
-           ============================================================ -->
-      <section id="gameScreen" class="screen" aria-live="polite">
-        <div class="game-header">
-          <div class="header-group">
-            <!-- Black hole "return home" button. Clicking it during the
-                 game abandons the current round and takes the student
-                 back to the very first screen. -->
-            <div class="blackhole-wrap">
-  <button id="blackholeBtn" class="blackhole-btn" type="button"
+     <!-- ============================================================
+     GAME SCREEN
+     ============================================================ -->
+<section id="gameScreen" class="screen" aria-live="polite">
+
+  <div class="game-header">
+
+    <div class="header-group">
+
+      <!-- Black hole "return home" button -->
+      <div class="blackhole-wrap">
+        <button
+          id="blackholeBtn"
+          class="blackhole-btn"
+          type="button"
           aria-label="Leave the mission and return to the home screen"
-          title="Return to home screen"></button>
-  <span class="blackhole-label">ホームに戻る</span>
-</div>
-            <span class="pill" id="questionCounter">Question 1 / 7</span>
-          </div>
-          <div class="header-group">
-            <span class="pill timer-pill" id="timerPill">⏱ 0:00</span>
-            <span class="pill score-pill" id="scoreCounter">Score: 0 / 0</span>
-          </div>
-        </div>
+          title="Return to home screen">
+        </button>
+
+        <span class="blackhole-label">ホームに戻る</span>
+      </div>
+
+      <!-- Question counter -->
+      <span class="pill" id="questionCounter">
+        Question 1 / 7
+      </span>
+
+    </div>
+
+    <div class="header-group">
+
+      <!-- Mission timer -->
+      <span class="pill timer-pill" id="timerPill">
+        ⏱ 0:00
+      </span>
+
+      <!-- Score -->
+      <span class="pill score-pill" id="scoreCounter">
+        Score: 0 / 0
+      </span>
+
+    </div>
+
+  </div>
 
         <!-- Constellation progress trail (signature visual element) -->
         <div class="constellation" id="constellation" aria-hidden="true"></div>
