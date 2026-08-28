@@ -239,8 +239,14 @@ function spawnFloatingSatellite() {
   // opposite side so the satellite actually crosses the visible screen.
   const goingRight = Math.random() < 0.5;
   const goingDown = Math.random() < 0.5;
-  const dx = (goingRight ? 1 : -1) * randRange(200, 420);
-const dy = (goingDown ? 1 : -1) * randRange(80, 260);
+  const dx = (goingRight ? 1 : -1) * randRange(
+  window.innerWidth * 0.35,
+  window.innerWidth * 0.65
+);
+const dy = (goingDown ? 1 : -1) * randRange(
+  window.innerHeight * 0.15,
+  window.innerHeight * 0.35
+);
 
 const startLeft = goingRight ? randRange(-5, 35) : randRange(65, 100);
 const startTop = goingDown ? randRange(5, 35) : randRange(55, 90);
