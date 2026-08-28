@@ -240,10 +240,10 @@ function spawnFloatingSatellite() {
   const goingRight = Math.random() < 0.5;
   const goingDown = Math.random() < 0.5;
   const dx = (goingRight ? 1 : -1) * randRange(200, 420);
-  const dy = (goingDown ? 1 : -1) * randRange(80, 260);
+const dy = (goingDown ? 1 : -1) * randRange(80, 260);
 
-  const startLeft = goingRight ? randRange(-5, 35) : randRange(65, 100);
-  const startTop = goingDown ? randRange(5, 35) : randRange(55, 90);
+const startLeft = goingRight ? randRange(-5, 35) : randRange(65, 100);
+const startTop = goingDown ? randRange(5, 35) : randRange(55, 90);
 
   // Unlike a rocket, a satellite doesn't need to "point" anywhere —
   // it just gently tumbles end over end while it drifts.
