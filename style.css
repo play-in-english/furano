@@ -146,8 +146,56 @@ body.warping .stars {
 .ambient-layer {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.floating-satellite {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 0 8px rgba(199, 201, 236, 0.4));
+  animation-name: floatingSatelliteDrift;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes floatingSatelliteDrift {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(0.85);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.85;
+  }
+
+  50% {
+    transform:
+      translate(
+        calc(var(--dx) * 0.5),
+        calc(var(--dy) * 0.5)
+      )
+      rotate(calc(var(--spin) * 0.5))
+      scale(1);
+    opacity: 0.85;
+  }
+
+  80% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform:
+      translate(var(--dx), var(--dy))
+      rotate(var(--spin))
+      scale(0.85);
+    opacity: 0;
+  }
 }
 /* A shooting star: a short fading streak (the "extending line" of
    its path) that shoots across the screen at a random angle/spot
