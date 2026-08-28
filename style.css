@@ -509,19 +509,10 @@ h1, h2, h3 {
 .pill.timer-pill { color: var(--comet-teal); }
 
 /* Black hole "return home" button — beside the question counter.
-   A dark event horizon with a slowly-spinning swirl of galaxy colors.
-   The Japanese label below it tells students that it returns them
-   to the home screen. */
-
-.blackhole-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  flex: none;
-}
-
+   A dark event horizon with a slowly-spinning swirl of galaxy colors
+   for its accretion disk. Clicking it during the game sends the
+   student back to the very first screen (see blackholeBtn's click
+   handler in app.js). */
 .blackhole-btn {
   --bh-size: 34px;
   flex: none;
@@ -533,29 +524,15 @@ h1, h2, h3 {
   cursor: pointer;
   background:
     radial-gradient(circle at 50% 50%, #000 0 34%, transparent 36%),
-    conic-gradient(
-      from 0deg,
-      var(--nebula-violet),
-      var(--star-gold),
-      var(--nebula-pink),
-      var(--comet-teal),
-      var(--nebula-violet)
-    );
-  box-shadow:
-    0 0 10px rgba(124, 92, 255, 0.55),
-    0 0 3px rgba(0, 0, 0, 0.7) inset;
+    conic-gradient(from 0deg, var(--nebula-violet), var(--star-gold), var(--nebula-pink), var(--comet-teal), var(--nebula-violet));
+  box-shadow: 0 0 10px rgba(124, 92, 255, 0.55), 0 0 3px rgba(0, 0, 0, 0.7) inset;
   animation: blackholeSpin 6s linear infinite;
   touch-action: manipulation;
   transition: box-shadow .2s ease, transform .15s ease;
 }
 
-.blackhole-btn:hover {
-  transform: scale(1.08);
-}
-
-.blackhole-btn:active {
-  transform: scale(0.95);
-}
+.blackhole-btn:hover { transform: scale(1.08); }
+.blackhole-btn:active { transform: scale(0.95); }
 
 .blackhole-btn:focus-visible {
   outline: 2px solid var(--comet-teal);
@@ -567,21 +544,8 @@ h1, h2, h3 {
   opacity: 0.6;
 }
 
-/* "Return to Home" label */
-.blackhole-label {
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 0.03em;
-  color: rgba(255, 255, 255, 0.7);
-  white-space: nowrap;
-  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
-  pointer-events: none;
-}
-
 @keyframes blackholeSpin {
-  to {
-    transform: rotate(360deg);
-  }
+  to { transform: rotate(360deg); }
 }
 
 /* Constellation progress trail — the signature element:
