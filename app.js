@@ -5,31 +5,34 @@
    quiz content — that all lives in questions.js.
 
    Settings you CAN safely change below:
-   - QUESTIONS_PER_GAME : how many questions are played each round
-   - STAR_COUNT         : how many background stars are drawn
-   - WARP_*             : timing/density of the big galaxy-entrance
-                          hyperspace sequence (Start Mission)
-   - QUESTION_WARP_*    : timing/density of the shorter galaxy zoom
-                          that plays between every question
-   - SHOOTING_STAR_*    : how often shooting stars streak by
-   - FLOATING_ROCKET_*  : how often 🚀 emoji drift across the screen,
-                          and how many can be on screen at once
-   - calcTimeBonus()    : the time-bonus point table for scoring
-   - BEST_SCORE_KEY     : the localStorage key the best score is saved under
+   - QUESTIONS_PER_GAME   : how many questions are played each round
+   - STAR_COUNT           : how many background stars are drawn
+   - WARP_*               : timing/density of the big galaxy-entrance
+                            hyperspace sequence (Start Mission)
+   - QUESTION_WARP_*      : timing/density of the shorter galaxy zoom
+                            that plays between every question
+   - SHOOTING_STAR_*      : how often shooting stars streak by, and
+                            how many can be on screen at once
+   - FLOATING_SATELLITE_* : how often 🛰️ satellites drift across the
+                            screen, and how many can be on screen at once
+   - calcTimeBonus()      : the time-bonus point table for scoring
+   - BEST_SCORE_KEY       : the localStorage key the best score is saved under
    ============================================================ */
 
 const QUESTIONS_PER_GAME = 7; // <-- change this to play more/fewer questions per game
 const STAR_COUNT = 90;        // <-- change this to make the sky sparser/denser
 
-/* Ambient shooting stars & floating rockets — these play continuously
-   throughout the WHOLE site (start screen, quiz, results), independent
-   of the hyperspace transitions below. Each spawns on a random delay
-   somewhere between its MIN and MAX, forever. */
+/* Ambient shooting stars & floating satellites — these play
+   continuously throughout the WHOLE site (start screen, quiz,
+   results), independent of the hyperspace transitions below. Each
+   spawns on a random delay somewhere between its MIN and MAX,
+   forever. */
 const SHOOTING_STAR_MIN_DELAY_MS = 2200;
 const SHOOTING_STAR_MAX_DELAY_MS = 5200;
-const FLOATING_ROCKET_MIN_DELAY_MS = 4500;
-const FLOATING_ROCKET_MAX_DELAY_MS = 9500;
-const FLOATING_ROCKET_MAX_CONCURRENT = 2; // never more than this many on screen at once
+const SHOOTING_STAR_MAX_CONCURRENT = 3; // never more than this many streaking at once
+const FLOATING_SATELLITE_MIN_DELAY_MS = 5000;
+const FLOATING_SATELLITE_MAX_DELAY_MS = 11000;
+const FLOATING_SATELLITE_MAX_CONCURRENT = 3; // never more than this many on screen at once
 
 /* Galaxy entrance transition timing (all in milliseconds).
    Feel free to tune these — see beginGalaxyEntrance() below for how
@@ -155,13 +158,13 @@ function buildStarField() {
 }
 
 /* ------------------------------------------------------------
-   AMBIENT FLOATING ROCKETS & SHOOTING STARS
+   AMBIENT FLOATING SATELLITES & SHOOTING STARS
    ------------------------------------------------------------
    Purely decorative flourishes that run continuously for the whole
    site visit — start screen, quiz, and results alike — completely
    independent of the hyperspace warp system below. Each function
    spawns one element, lets its CSS animation play out, then removes
-   it; scheduleShootingStars()/scheduleFloatingRockets() just keep
+   it; scheduleShootingStars()/scheduleFloatingSatellites() just keep
    calling that on a random delay, forever.
    ------------------------------------------------------------ */
 function randRange(min, max) {
@@ -169,28 +172,45 @@ function randRange(min, max) {
 }
 
 // A quick streak with a fading trail that shoots across the screen
-// at a random spot/angle and disappears.
+// at a random spot/angle and disappears. Most are small, dim, and
+// short ("far away" — a subtle background detail); a minority are
+// bigger, brighter, and slightly longer ("nearer" — unmistakable).
+// Never more than SHOOTING_STAR_MAX_CONCURRENT are on screen at once.
+let activeShootingStarCount = 0;
+
 function spawnShootingStar() {
   if (!ambientLayer) return;
+  if (activeShootingStarCount >= SHOOTING_STAR_MAX_CONCURRENT) return; // try again next scheduled tick
+
   const el = document.createElement('div');
   el.className = 'shooting-star';
+
+  const isNear = Math.random() < 0.3; // ~30% read as close/obvious, rest as distant/subtle
+  const length = isNear ? randRange(55, 90) : randRange(22, 42);     // px, visible trail length
+  const distance = isNear ? randRange(150, 230) : randRange(80, 150); // px travelled — short either way
+  const duration = isNear ? randRange(550, 850) : randRange(420, 680);
+  const peakOpacity = isNear ? 1 : randRange(0.4, 0.65);
+  const thickness = isNear ? 2.2 : 1.2; // px
 
   const startTop = randRange(-5, 55);   // upper half-ish of the screen, in %
   const startLeft = randRange(0, 100);  // %
   // Mostly a classic downward-right sweep, occasionally mirrored for variety.
   const angle = randRange(15, 35) * (Math.random() < 0.75 ? 1 : -1);
-  const distance = randRange(260, 520); // px travelled
-  const duration = randRange(900, 1500);
-  const length = randRange(90, 160);    // px, the visible trail length
 
   el.style.top = startTop + '%';
   el.style.left = startLeft + '%';
-  el.style.width = length + 'px';
+  el.style.width = length.toFixed(0) + 'px';
+  el.style.height = thickness + 'px';
   el.style.setProperty('--angle', angle.toFixed(1) + 'deg');
   el.style.setProperty('--distance', distance.toFixed(0) + 'px');
+  el.style.setProperty('--peak-opacity', peakOpacity.toFixed(2));
   el.style.animationDuration = duration.toFixed(0) + 'ms';
 
-  el.addEventListener('animationend', () => el.remove());
+  activeShootingStarCount++;
+  el.addEventListener('animationend', () => {
+    el.remove();
+    activeShootingStarCount--;
+  });
   ambientLayer.appendChild(el);
 }
 
@@ -198,31 +218,25 @@ function scheduleShootingStars() {
   const delay = randRange(SHOOTING_STAR_MIN_DELAY_MS, SHOOTING_STAR_MAX_DELAY_MS);
   setTimeout(() => {
     spawnShootingStar();
-    // Every so often, send a second one shortly after so a few are
-    // visible together, matching "several shooting stars".
-    if (Math.random() < 0.3) {
-      setTimeout(spawnShootingStar, randRange(150, 500));
-    }
     scheduleShootingStars();
   }, delay);
 }
 
-// A slow-drifting 🚀 emoji that cruises across part of the screen and
-// fades out. Its rotation is computed FROM its actual travel vector
-// (dx, dy), so the nose always points the way it's actually moving —
-// and only FLOATING_ROCKET_MAX_CONCURRENT can exist on screen at once.
-let activeRocketCount = 0;
+// A slow-drifting satellite (🛰️) that cruises across part of the
+// screen while gently tumbling, then fades out. Only
+// FLOATING_SATELLITE_MAX_CONCURRENT can exist on screen at once.
+let activeSatelliteCount = 0;
 
-function spawnFloatingRocket() {
+function spawnFloatingSatellite() {
   if (!ambientLayer) return;
-  if (activeRocketCount >= FLOATING_ROCKET_MAX_CONCURRENT) return; // try again next scheduled tick
+  if (activeSatelliteCount >= FLOATING_SATELLITE_MAX_CONCURRENT) return; // try again next scheduled tick
 
   const el = document.createElement('div');
-  el.className = 'floating-rocket';
-  el.textContent = '🚀';
+  el.className = 'floating-satellite';
+  el.textContent = '🛰️';
 
   // Pick a travel direction first, then choose a spawn point on the
-  // opposite side so the rocket actually crosses the visible screen.
+  // opposite side so the satellite actually crosses the visible screen.
   const goingRight = Math.random() < 0.5;
   const goingDown = Math.random() < 0.5;
   const dx = (goingRight ? 1 : -1) * randRange(200, 420);
@@ -231,36 +245,34 @@ function spawnFloatingRocket() {
   const startLeft = goingRight ? randRange(-5, 35) : randRange(65, 100);
   const startTop = goingDown ? randRange(5, 35) : randRange(55, 90);
 
-  // Rotate so the emoji's nose (which points up-and-to-the-right by
-  // default, ~45° off the horizontal) aligns with the direction it's
-  // actually travelling.
-  const travelAngleDeg = Math.atan2(dy, dx) * (180 / Math.PI);
-  const angle = travelAngleDeg - 45;
+  // Unlike a rocket, a satellite doesn't need to "point" anywhere —
+  // it just gently tumbles end over end while it drifts.
+  const spin = (Math.random() < 0.5 ? 1 : -1) * randRange(180, 420);
 
-  const duration = randRange(9000, 15000);
-  const size = randRange(20, 34);
+  const duration = randRange(10000, 18000); // slower/statelier than the old rockets
+  const size = randRange(20, 32);
 
   el.style.top = startTop + '%';
   el.style.left = startLeft + '%';
   el.style.fontSize = size.toFixed(1) + 'px';
   el.style.setProperty('--dx', dx.toFixed(0) + 'px');
   el.style.setProperty('--dy', dy.toFixed(0) + 'px');
-  el.style.setProperty('--angle', angle.toFixed(1) + 'deg');
+  el.style.setProperty('--spin', spin.toFixed(0) + 'deg');
   el.style.animationDuration = duration.toFixed(0) + 'ms';
 
-  activeRocketCount++;
+  activeSatelliteCount++;
   el.addEventListener('animationend', () => {
     el.remove();
-    activeRocketCount--;
+    activeSatelliteCount--;
   });
   ambientLayer.appendChild(el);
 }
 
-function scheduleFloatingRockets() {
-  const delay = randRange(FLOATING_ROCKET_MIN_DELAY_MS, FLOATING_ROCKET_MAX_DELAY_MS);
+function scheduleFloatingSatellites() {
+  const delay = randRange(FLOATING_SATELLITE_MIN_DELAY_MS, FLOATING_SATELLITE_MAX_DELAY_MS);
   setTimeout(() => {
-    spawnFloatingRocket();
-    scheduleFloatingRockets();
+    spawnFloatingSatellite();
+    scheduleFloatingSatellites();
   }, delay);
 }
 
@@ -906,15 +918,77 @@ blackholeBtn.addEventListener('click', () => {
 });
 
 /* ------------------------------------------------------------
+   SPACE GUN CLICK SOUND
+   ------------------------------------------------------------
+   Every button on the site fires a short synthesized laser "pew"
+   on click. This is generated live with the Web Audio API (a
+   frequency sweep through a square-wave oscillator) rather than an
+   audio file — no copyrighted sound effect is used or needed, and
+   there's nothing to download or host. Swap this out for your own
+   licensed .mp3 by pointing an <audio> element at it instead, if
+   you'd rather use a specific sound.
+
+   A single click listener on the whole document (using event
+   delegation) covers every button that exists now AND any created
+   later — like the answer buttons, which are rebuilt fresh for each
+   question — so nothing needs to be wired up per-button.
+   ------------------------------------------------------------ */
+let clickSoundCtx = null;
+
+function playClickSound() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return; // very old browser: skip silently
+
+  if (!clickSoundCtx) {
+    clickSoundCtx = new AudioContextClass();
+  }
+  // Browsers suspend new AudioContexts until a user gesture resumes
+  // them — since this only ever runs from a click, resuming here is
+  // exactly the right moment.
+  if (clickSoundCtx.state === 'suspended') {
+    clickSoundCtx.resume();
+  }
+
+  const ctx = clickSoundCtx;
+  const now = ctx.currentTime;
+
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+
+  // A fast downward pitch sweep on a square wave reads as a classic
+  // sci-fi laser/blaster "pew" rather than a plain electronic beep.
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(1100, now);
+  osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
+
+  // Kept fairly quiet since this fires on every single click.
+  gain.gain.setValueAtTime(0.16, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  osc.start(now);
+  osc.stop(now + 0.18);
+}
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (btn && !btn.disabled) {
+    playClickSound();
+  }
+}, true);
+
+/* ------------------------------------------------------------
    INIT
    ------------------------------------------------------------ */
 buildStarField();
 setupWarpCanvas();
 
-// Ambient rockets/shooting stars run for the whole site visit, but
-// are skipped for motion-sensitive users (same policy as the warp
-// transitions above).
+// Ambient satellites/shooting stars run for the whole site visit,
+// but are skipped for motion-sensitive users (same policy as the
+// warp transitions above).
 if (!prefersReducedMotion) {
   scheduleShootingStars();
-  scheduleFloatingRockets();
+  scheduleFloatingSatellites();
 }
