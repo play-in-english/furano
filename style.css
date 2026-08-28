@@ -138,7 +138,7 @@ body.warping .stars {
   50%      { opacity: var(--max-o, 0.95); transform: scale(1.25); }
 }
 
-/* ---------- 2a. Ambient floating rockets & shooting stars ----------
+/* ---------- 2a. Ambient floating satellites & shooting stars ----------
    Continuous background flourishes — separate from the hyperspace
    warp system entirely. Elements are spawned/removed by app.js on a
    loose random schedule and play throughout the whole site: start
@@ -155,7 +155,11 @@ body.warping .stars {
    its path) that shoots across the screen at a random angle/spot
    and disappears. The rotate+translateX combo below (with a FIXED
    rotation angle set via --angle) is what makes it travel in a
-   straight line at that angle — see spawnShootingStar() in app.js. */
+   straight line at that angle — see spawnShootingStar() in app.js.
+   Sizes/opacity vary per star via inline --peak-opacity and
+   height/width, so some read as small & distant, others as bigger
+   and unmistakably obvious — see the two "far"/"near" tiers in
+   spawnShootingStar(). */
 .shooting-star {
   position: absolute;
   height: 2px;
@@ -171,37 +175,40 @@ body.warping .stars {
 
 @keyframes shootingStarMove {
   0%   { transform: rotate(var(--angle)) translateX(0); opacity: 0; }
-  8%   { opacity: 1; }
-  75%  { opacity: 1; }
+  8%   { opacity: var(--peak-opacity, 1); }
+  75%  { opacity: var(--peak-opacity, 1); }
   100% { transform: rotate(var(--angle)) translateX(var(--distance)); opacity: 0; }
 }
 
-/* A slowly drifting rocket emoji. Duration is much longer than a
-   shooting star's so it reads as cruising calmly through space
-   rather than shooting past. The path is a straight line so the
-   --angle (computed from the actual dx/dy in app.js) keeps the
-   rocket's nose pointed exactly the way it's travelling. */
-.floating-rocket {
+/* A slow-drifting satellite (🛰️) — an ISS-style flourish that cruises
+   calmly across part of the screen and gently tumbles as it goes.
+   Its drift path (--dx/--dy) and its spin (--spin) are independent:
+   writing translate() BEFORE rotate() in the transform means the
+   translate happens in screen space regardless of rotation, so the
+   satellite moves in a straight line while separately spinning in
+   place — unlike the rocket-style effect this replaces, a satellite
+   doesn't need to "point" anywhere in particular. */
+.floating-satellite {
   position: absolute;
   opacity: 0;
-  filter: drop-shadow(0 0 10px rgba(255, 217, 102, 0.35));
-  animation-name: floatingRocketDrift;
+  filter: drop-shadow(0 0 8px rgba(199, 201, 236, 0.4));
+  animation-name: floatingSatelliteDrift;
   animation-timing-function: ease-in-out;
   animation-fill-mode: forwards;
 }
 
-@keyframes floatingRocketDrift {
-  0%   { transform: translate(0, 0) rotate(var(--angle)); opacity: 0; }
+@keyframes floatingSatelliteDrift {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
   10%  { opacity: 0.85; }
   90%  { opacity: 0.85; }
-  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--angle)); opacity: 0; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)); opacity: 0; }
 }
 
 /* Pause (rather than hide) ambient flourishes during a hyperspace
    burst so they don't visually compete with the more intense warp
    canvas — they simply resume once the transition finishes. */
 body.warping .shooting-star,
-body.warping .floating-rocket {
+body.warping .floating-satellite {
   animation-play-state: paused;
 }
 
