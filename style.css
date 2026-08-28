@@ -198,17 +198,42 @@ body.warping .stars {
 }
 
 @keyframes floatingSatelliteDrift {
-  0%   { transform: translate(0, 0) rotate(0deg); opacity: 0; }
-  10%  { opacity: 0.85; }
-  90%  { opacity: 0.85; }
-  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)); opacity: 0; }
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(0.85);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.85;
+  }
+
+  50% {
+    transform: translate(
+      calc(var(--dx) * 0.5),
+      calc(var(--dy) * 0.5)
+    )
+    rotate(calc(var(--spin) * 0.5))
+    scale(1);
+    opacity: 0.85;
+  }
+
+  80% {
+    opacity: 0.85;
+  }
+
+  100% {
+    transform: translate(var(--dx), var(--dy))
+      rotate(var(--spin))
+      scale(0.85);
+    opacity: 0;
+  }
 }
 
 /* Pause (rather than hide) ambient flourishes during a hyperspace
    burst so they don't visually compete with the more intense warp
    canvas — they simply resume once the transition finishes. */
 body.warping .shooting-star,
-body.warping .floating-satellite {
+body.warping . {
   animation-play-state: paused;
 }
 
