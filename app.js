@@ -16,7 +16,8 @@
    - FLOATING_SATELLITE_* : how often 🛰️ satellites drift across the
                             screen, and how many can be on screen at once
    - calcTimeBonus()      : the time-bonus point table for scoring
-   - BEST_SCORE_KEY       : the localStorage key the best score is saved under
+   - BEST_SCORE_KEY       : the localStorage key the best score is
+                            saved under (resets daily at local midnight)
    ============================================================ */
 
 const QUESTIONS_PER_GAME = 7; // <-- change this to play more/fewer questions per game
@@ -55,11 +56,11 @@ const QUESTION_ENTER_MS = 360;  // incoming question easing in from the distance
 
 /* Scoring & best-score persistence.
    Total score for a round = (correct answers × 100) + a time bonus
-   looked up from calcTimeBonus() below. The best score ever achieved
-   is saved in the browser's localStorage (works offline, survives
-   closing the tab/browser, and has no built-in expiry — so it easily
-   satisfies "saved on the device for at least a day"; it stays until
-   the student clears their browser data). */
+   looked up from calcTimeBonus() below. The best score is saved in
+   the browser's localStorage, but only counts for the CURRENT
+   calendar day: it resets automatically at local midnight (00:00),
+   because it's stored alongside the date it was set on, and any
+   record from a previous date is treated as if it doesn't exist. */
 const POINTS_PER_CORRECT_ANSWER = 100;
 const BEST_SCORE_KEY = 'galaxyAlphabetQuiz.bestScore.v1';
 
@@ -106,6 +107,7 @@ const screens = {
 };
 
 const startBtn = document.getElementById('startBtn');
+const shareBtn = document.getElementById('shareBtn');
 const playAgainBtn = document.getElementById('playAgainBtn');
 const playAudioBtn = document.getElementById('playAudioBtn');
 const letterAudio = document.getElementById('letterAudio');
@@ -584,21 +586,34 @@ function updateTimerDisplay() {
 }
 
 /* ------------------------------------------------------------
-   BEST SCORE (persisted on this device via localStorage)
+   BEST SCORE (persisted on this device via localStorage,
+   resets daily at local midnight)
    ------------------------------------------------------------
-   localStorage has no built-in expiry — a saved value stays until
-   the student (or their browser) clears site data, which is far
-   more than the "at least a day" this needs to survive. Wrapped in
-   try/catch because some browsers block storage entirely in private
-   browsing — in that case the game still works, it just won't
-   remember a best score between visits.
+   The saved record is tagged with the calendar date (YYYY-MM-DD, in
+   the player's local timezone) it was set on. Whenever we read it
+   back, if that date isn't TODAY anymore, we treat it as if there
+   were no best score — which is what makes the "best of the day"
+   reset happen automatically right at midnight rather than needing
+   a timer running in the background. Wrapped in try/catch because
+   some browsers block storage entirely in private browsing — in
+   that case the game still works, it just won't remember a best
+   score between visits.
    ------------------------------------------------------------ */
+function getTodayDateKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function loadBestScore() {
   try {
     const raw = localStorage.getItem(BEST_SCORE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (typeof parsed.points !== 'number' || !isFinite(parsed.points)) return null;
+    if (parsed.dateKey !== getTodayDateKey()) return null; // from a previous day — expired
     return parsed;
   } catch (e) {
     return null;
@@ -609,6 +624,7 @@ function saveBestScore(points) {
   try {
     localStorage.setItem(BEST_SCORE_KEY, JSON.stringify({
       points: points,
+      dateKey: getTodayDateKey(),
       savedAt: Date.now()
     }));
   } catch (e) {
@@ -874,7 +890,7 @@ function showResults() {
     saveBestScore(totalPoints);
   }
   const bestPoints = isNewBest ? totalPoints : previousBest.points;
-  resultsBest.textContent = (isNewBest ? '🏆 New Best! ' : '🏆 Best: ') + bestPoints + ' POINTS';
+  resultsBest.textContent = (isNewBest ? "🏆 Today's New Best! " : "🏆 Today's Best: ") + bestPoints + ' POINTS';
   resultsBest.classList.toggle('new-best', isNewBest);
 
   showScreen('results');
@@ -922,6 +938,57 @@ blackholeBtn.addEventListener('click', () => {
     blackholeBtn.disabled = false;
   }, QUESTION_EXIT_MS + QUESTION_ENTER_MS + 60);
 });
+
+/* ------------------------------------------------------------
+   SHARE BUTTON
+   ------------------------------------------------------------
+   Uses the native share sheet (navigator.share) where available —
+   the normal way to share a link on phones/tablets. On desktops or
+   browsers without it, falls back to copying the link to the
+   clipboard, and if even that's unavailable, falls back once more
+   to an old-fashioned prompt() so the link is always obtainable.
+   ------------------------------------------------------------ */
+function showShareFeedback(message, durationMs) {
+  const original = shareBtn.textContent;
+  shareBtn.textContent = message;
+  shareBtn.disabled = true;
+  setTimeout(() => {
+    shareBtn.textContent = original;
+    shareBtn.disabled = false;
+  }, durationMs || 2000);
+}
+
+if (shareBtn) {
+  shareBtn.addEventListener('click', async () => {
+    const shareData = {
+      title: document.title,
+      text: 'Come play the Galaxy Alphabet Quiz with me! 🚀',
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // Student cancelled the share sheet, or it failed silently —
+        // either way there's nothing useful to show them.
+      }
+      return;
+    }
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        showShareFeedback('✅ Link Copied!');
+        return;
+      } catch (err) {
+        // fall through to the prompt() fallback below
+      }
+    }
+
+    window.prompt('Copy this link to share:', shareData.url);
+  });
+}
 
 /* ------------------------------------------------------------
    SPACE GUN CLICK SOUND
