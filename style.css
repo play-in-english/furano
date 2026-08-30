@@ -142,61 +142,18 @@ body.warping .stars {
    Continuous background flourishes — separate from the hyperspace
    warp system entirely. Elements are spawned/removed by app.js on a
    loose random schedule and play throughout the whole site: start
-   screen, quiz, and results alike. */
+   screen, quiz, and results alike. Sits with the other purely-
+   decorative background layers (behind the quiz UI), same as .stars. */
 .ambient-layer {
   position: fixed;
   inset: 0;
   width: 100%;
   height: 100%;
+  z-index: -1;
   pointer-events: none;
   overflow: hidden;
-  z-index: 10;
 }
 
-.floating-satellite {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  filter: drop-shadow(0 0 8px rgba(199, 201, 236, 0.4));
-  animation-name: floatingSatelliteDrift;
-  animation-timing-function: ease-in-out;
-  animation-fill-mode: forwards;
-  will-change: transform, opacity;
-}
-
-@keyframes floatingSatelliteDrift {
-  0% {
-    transform: translate(0, 0) rotate(0deg) scale(0.85);
-    opacity: 0;
-  }
-
-  20% {
-    opacity: 0.85;
-  }
-
-  50% {
-    transform:
-      translate(
-        calc(var(--dx) * 0.5),
-        calc(var(--dy) * 0.5)
-      )
-      rotate(calc(var(--spin) * 0.5))
-      scale(1);
-    opacity: 0.85;
-  }
-
-  80% {
-    opacity: 0.85;
-  }
-
-  100% {
-    transform:
-      translate(var(--dx), var(--dy))
-      rotate(var(--spin))
-      scale(0.85);
-    opacity: 0;
-  }
-}
 /* A shooting star: a short fading streak (the "extending line" of
    its path) that shoots across the screen at a random angle/spot
    and disappears. The rotate+translateX combo below (with a FIXED
@@ -214,6 +171,7 @@ body.warping .stars {
   filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.65));
   transform-origin: left center;
   opacity: 0;
+  pointer-events: none;
   animation-name: shootingStarMove;
   animation-timing-function: linear;
   animation-fill-mode: forwards;
@@ -232,17 +190,16 @@ body.warping .stars {
    writing translate() BEFORE rotate() in the transform means the
    translate happens in screen space regardless of rotation, so the
    satellite moves in a straight line while separately spinning in
-   place — unlike the rocket-style effect this replaces, a satellite
-   doesn't need to "point" anywhere in particular. */
+   place. */
 .floating-satellite {
   position: absolute;
   opacity: 0;
-  z-index: 1;
   pointer-events: none;
   filter: drop-shadow(0 0 8px rgba(199, 201, 236, 0.4));
   animation-name: floatingSatelliteDrift;
   animation-timing-function: ease-in-out;
   animation-fill-mode: forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes floatingSatelliteDrift {
@@ -250,31 +207,21 @@ body.warping .stars {
     transform: translate(0, 0) rotate(0deg) scale(0.85);
     opacity: 0;
   }
-
   20% {
     opacity: 0.85;
   }
-
   50% {
     transform:
-      translate(
-        calc(var(--dx) * 0.5),
-        calc(var(--dy) * 0.5)
-      )
+      translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5))
       rotate(calc(var(--spin) * 0.5))
       scale(1);
     opacity: 0.85;
   }
-
   80% {
     opacity: 0.85;
   }
-
   100% {
-    transform:
-      translate(var(--dx), var(--dy))
-      rotate(var(--spin))
-      scale(0.85);
+    transform: translate(var(--dx), var(--dy)) rotate(var(--spin)) scale(0.85);
     opacity: 0;
   }
 }
@@ -283,7 +230,7 @@ body.warping .stars {
    burst so they don't visually compete with the more intense warp
    canvas — they simply resume once the transition finishes. */
 body.warping .shooting-star,
-body.warping . {
+body.warping .floating-satellite {
   animation-play-state: paused;
 }
 
@@ -339,10 +286,10 @@ body.warping . {
 
 /* The quiz shell fades/shrinks away as hyperspace begins, then
    fades/grows back in once the galaxy-entry flash has passed. */
-app {
+.app {
   position: relative;
-  z-index: 10;
-}
+  z-index: 2;
+  transition: opacity .6s ease, transform .6s ease;
   /* No card background anymore, so text needs its own contrast
      against the starfield/nebula. text-shadow is inherited, so this
      one declaration covers every heading, label, and button below. */
@@ -444,6 +391,11 @@ h1, h2, h3 {
 .start-illustration span:nth-child(2) { animation-delay: .6s; }
 .start-illustration span:nth-child(3) { animation-delay: 1.2s; }
 
+/* Secondary action under the main Start Mission button (e.g. Share) */
+.start-secondary-btn {
+  margin-top: 14px;
+}
+
 /* ---------- 5. Buttons ---------- */
 .btn {
   font-family: var(--font-display);
@@ -468,6 +420,12 @@ h1, h2, h3 {
 .btn:focus-visible {
   outline: 3px solid var(--comet-teal);
   outline-offset: 3px;
+}
+
+.btn:disabled {
+  opacity: 0.65;
+  cursor: default;
+  transform: none;
 }
 
 .btn-primary {
@@ -555,11 +513,29 @@ h1, h2, h3 {
 .pill.score-pill { color: var(--star-gold); }
 .pill.timer-pill { color: var(--comet-teal); }
 
-/* Black hole "return home" button — beside the question counter.
+/* Black hole "return home" button — beside the question counter,
+   with a small Japanese caption underneath explaining what it does.
    A dark event horizon with a slowly-spinning swirl of galaxy colors
    for its accretion disk. Clicking it during the game sends the
    student back to the very first screen (see blackholeBtn's click
    handler in app.js). */
+.blackhole-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: none;
+}
+
+.blackhole-label {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
 .blackhole-btn {
   --bh-size: 34px;
   flex: none;
@@ -577,20 +553,20 @@ h1, h2, h3 {
   touch-action: manipulation;
   transition: box-shadow .2s ease, transform .15s ease;
 }
- 
+
 .blackhole-btn:hover { transform: scale(1.08); }
 .blackhole-btn:active { transform: scale(0.95); }
- 
+
 .blackhole-btn:focus-visible {
   outline: 2px solid var(--comet-teal);
   outline-offset: 3px;
 }
- 
+
 .blackhole-btn:disabled {
   cursor: default;
   opacity: 0.6;
 }
- 
+
 @keyframes blackholeSpin {
   to { transform: rotate(360deg); }
 }
