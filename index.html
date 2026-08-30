@@ -46,6 +46,7 @@
             <span>⭐</span><span>🪐</span><span>✨</span>
           </div>
           <button id="startBtn" class="btn btn-primary btn-lg btn-block">🚀 Start Mission</button>
+          <button id="shareBtn" class="btn btn-secondary btn-block start-secondary-btn" type="button">📤 Share with a Friend</button>
         </div>
       </section>
 
@@ -58,9 +59,12 @@
             <!-- Black hole "return home" button. Clicking it during the
                  game abandons the current round and takes the student
                  back to the very first screen. -->
-            <button id="blackholeBtn" class="blackhole-btn" type="button"
-        aria-label="Leave the mission and return to the home screen"
-        title="Return to home screen"></button>
+            <div class="blackhole-wrap">
+              <button id="blackholeBtn" class="blackhole-btn" type="button"
+          aria-label="Leave the mission and return to the home screen"
+          title="Return to home screen"></button>
+              <span class="blackhole-label" aria-hidden="true">最初からやり直す！</span>
+            </div>
             <span class="pill" id="questionCounter">Question 1 / 7</span>
           </div>
           <div class="header-group">
