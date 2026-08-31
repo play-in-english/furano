@@ -1,324 +1,114 @@
 /* ============================================================
-   GALAXY ALPHABET QUIZ — 50 QUESTION BANK
+   GALAXY ALPHABET QUIZ — QUESTION BANKS
    ============================================================
-
-   You have 50 questions here.
-   Every game randomly selects 7 of these 50.
+   Three separate 50-question banks, one per difficulty mode.
+   Every game randomly selects 7 questions from whichever bank
+   matches the mode the player picked on the Difficulty screen.
 
    For each question:
      audio          = your audio file
-     correctAnswer  = the correct letter
+     correctAnswer  = the correct answer (letter, blend, or word)
      options        = the choices students can click
 
-   Example:
-     {
-       audio: "audio/question01.mp3",
-       correctAnswer: "F",
-       options: ["F", "H"]
-     }
-
-   Replace the audio filenames and answers with your actual questions.
+   Replace the audio filenames and answers with your actual
+   recordings/content — these are placeholders so the game runs
+   end-to-end immediately.
    ============================================================ */
 
-const QUESTION_BANK = [
-  // Question 1
-  {
-    audio: "audio/question01.mp3",
-    correctAnswer: "A",
-    options: ["A", "H"]
-  },
-  // Question 2
-  {
-    audio: "audio/question02.mp3",
-    correctAnswer: "B",
-    options: ["B", "D"]
-  },
-  // Question 3
-  {
-    audio: "audio/question03.mp3",
-    correctAnswer: "C",
-    options: ["C", "G"]
-  },
-  // Question 4
-  {
-    audio: "audio/question04.mp3",
-    correctAnswer: "D",
-    options: ["D", "B"]
-  },
-  // Question 5
-  {
-    audio: "audio/question05.mp3",
-    correctAnswer: "E",
-    options: ["E", "T"]
-  },
-  // Question 6
-  {
-    audio: "audio/question06.mp3",
-    correctAnswer: "F",
-    options: ["F", "H"]
-  },
-  // Question 7
-  {
-    audio: "audio/question07.mp3",
-    correctAnswer: "G",
-    options: ["G", "C"]
-  },
-  // Question 8
-  {
-    audio: "audio/question08.mp3",
-    correctAnswer: "H",
-    options: ["H", "F"]
-  },
-  // Question 9
-  {
-    audio: "audio/question09.mp3",
-    correctAnswer: "I",
-    options: ["I", "E"]
-  },
-  // Question 10
-  {
-    audio: "audio/question10.mp3",
-    correctAnswer: "J",
-    options: ["J", "G"]
-  },
-  // Question 11
-  {
-    audio: "audio/question11.mp3",
-    correctAnswer: "K",
-    options: ["K", "Q"]
-  },
-  // Question 12
-  {
-    audio: "audio/question12.mp3",
-    correctAnswer: "L",
-    options: ["L", "R"]
-  },
-  // Question 13
-  {
-    audio: "audio/question13.mp3",
-    correctAnswer: "M",
-    options: ["M", "N"]
-  },
-  // Question 14
-  {
-    audio: "audio/question14.mp3",
-    correctAnswer: "N",
-    options: ["N", "M"]
-  },
-  // Question 15
-  {
-    audio: "audio/question15.mp3",
-    correctAnswer: "O",
-    options: ["O", "U"]
-  },
-  // Question 16
-  {
-    audio: "audio/question16.mp3",
-    correctAnswer: "P",
-    options: ["P", "B"]
-  },
-  // Question 17
-  {
-    audio: "audio/question17.mp3",
-    correctAnswer: "Q",
-    options: ["Q", "K"]
-  },
-  // Question 18
-  {
-    audio: "audio/question18.mp3",
-    correctAnswer: "R",
-    options: ["R", "L"]
-  },
-  // Question 19
-  {
-    audio: "audio/question19.mp3",
-    correctAnswer: "S",
-    options: ["S", "X"]
-  },
-  // Question 20
-  {
-    audio: "audio/question20.mp3",
-    correctAnswer: "T",
-    options: ["T", "E"]
-  },
-  // Question 21
-  {
-    audio: "audio/question21.mp3",
-    correctAnswer: "U",
-    options: ["U", "O"]
-  },
-  // Question 22
-  {
-    audio: "audio/question22.mp3",
-    correctAnswer: "V",
-    options: ["V", "B"]
-  },
-  // Question 23
-  {
-    audio: "audio/question23.mp3",
-    correctAnswer: "W",
-    options: ["W", "M"]
-  },
-  // Question 24
-  {
-    audio: "audio/question24.mp3",
-    correctAnswer: "X",
-    options: ["X", "S"]
-  },
-  // Question 25
-  {
-    audio: "audio/question25.mp3",
-    correctAnswer: "Y",
-    options: ["Y", "I"]
-  },
-  // Question 26
-  {
-    audio: "audio/question26.mp3",
-    correctAnswer: "Z",
-    options: ["Z", "C"]
-  },
-  // Question 27
-  {
-    audio: "audio/question27.mp3",
-    correctAnswer: "A",
-    options: ["A", "C"]
-  },
-  // Question 28
-  {
-    audio: "audio/question28.mp3",
-    correctAnswer: "B",
-    options: ["B", "E"]
-  },
-  // Question 29
-  {
-    audio: "audio/question29.mp3",
-    correctAnswer: "C",
-    options: ["C", "G"]
-  },
-  // Question 30
-  {
-    audio: "audio/question30.mp3",
-    correctAnswer: "D",
-    options: ["D", "I"]
-  },
-  // Question 31
-  {
-    audio: "audio/question31.mp3",
-    correctAnswer: "E",
-    options: ["E", "F"]
-  },
-  // Question 32
-  {
-    audio: "audio/question32.mp3",
-    correctAnswer: "F",
-    options: ["F", "H"]
-  },
-  // Question 33
-  {
-    audio: "audio/question33.mp3",
-    correctAnswer: "G",
-    options: ["G", "J"]
-  },
-  // Question 34
-  {
-    audio: "audio/question34.mp3",
-    correctAnswer: "H",
-    options: ["H", "L"]
-  },
-  // Question 35
-  {
-    audio: "audio/question35.mp3",
-    correctAnswer: "I",
-    options: ["I", "N"]
-  },
-  // Question 36
-  {
-    audio: "audio/question36.mp3",
-    correctAnswer: "J",
-    options: ["J", "K"]
-  },
-  // Question 37
-  {
-    audio: "audio/question37.mp3",
-    correctAnswer: "K",
-    options: ["K", "M"]
-  },
-  // Question 38
-  {
-    audio: "audio/question38.mp3",
-    correctAnswer: "L",
-    options: ["L", "O"]
-  },
-  // Question 39
-  {
-    audio: "audio/question39.mp3",
-    correctAnswer: "M",
-    options: ["M", "Q"]
-  },
-  // Question 40
-  {
-    audio: "audio/question40.mp3",
-    correctAnswer: "N",
-    options: ["N", "S"]
-  },
-  // Question 41
-  {
-    audio: "audio/question41.mp3",
-    correctAnswer: "O",
-    options: ["O", "P"]
-  },
-  // Question 42
-  {
-    audio: "audio/question42.mp3",
-    correctAnswer: "P",
-    options: ["P", "R"]
-  },
-  // Question 43
-  {
-    audio: "audio/question43.mp3",
-    correctAnswer: "Q",
-    options: ["Q", "T"]
-  },
-  // Question 44
-  {
-    audio: "audio/question44.mp3",
-    correctAnswer: "R",
-    options: ["R", "V"]
-  },
-  // Question 45
-  {
-    audio: "audio/question45.mp3",
-    correctAnswer: "S",
-    options: ["S", "X"]
-  },
-  // Question 46
-  {
-    audio: "audio/question46.mp3",
-    correctAnswer: "T",
-    options: ["T", "U"]
-  },
-  // Question 47
-  {
-    audio: "audio/question47.mp3",
-    correctAnswer: "U",
-    options: ["U", "W"]
-  },
-  // Question 48
-  {
-    audio: "audio/question48.mp3",
-    correctAnswer: "V",
-    options: ["V", "Y"]
-  },
-  // Question 49
-  {
-    audio: "audio/question49.mp3",
-    correctAnswer: "W",
-    options: ["W", "A"]
-  },
-  // Question 50
-  {
-    audio: "audio/question50.mp3",
-    correctAnswer: "X",
-    options: ["X", "C"]
-  }
+/* ---------- EASY MODE: basic letter-sound recognition ---------- */
+const EASY_QUESTION_BANK = [
+  { audio: "audio/easy01.mp3", correctAnswer: "A", options: ["A", "H"] },
+  { audio: "audio/easy02.mp3", correctAnswer: "B", options: ["B", "D"] },
+  { audio: "audio/easy03.mp3", correctAnswer: "C", options: ["C", "G"] },
+  { audio: "audio/easy04.mp3", correctAnswer: "D", options: ["D", "B"] },
+  { audio: "audio/easy05.mp3", correctAnswer: "E", options: ["E", "T"] },
+  { audio: "audio/easy06.mp3", correctAnswer: "F", options: ["F", "H"] },
+  { audio: "audio/easy07.mp3", correctAnswer: "G", options: ["G", "C"] },
+  { audio: "audio/easy08.mp3", correctAnswer: "H", options: ["H", "F"] },
+  { audio: "audio/easy09.mp3", correctAnswer: "I", options: ["I", "E"] },
+  { audio: "audio/easy10.mp3", correctAnswer: "J", options: ["J", "G"] },
+  { audio: "audio/easy11.mp3", correctAnswer: "K", options: ["K", "Q"] },
+  { audio: "audio/easy12.mp3", correctAnswer: "L", options: ["L", "R"] },
+  { audio: "audio/easy13.mp3", correctAnswer: "M", options: ["M", "N"] },
+  { audio: "audio/easy14.mp3", correctAnswer: "N", options: ["N", "M"] },
+  { audio: "audio/easy15.mp3", correctAnswer: "O", options: ["O", "U"] },
+  { audio: "audio/easy16.mp3", correctAnswer: "P", options: ["P", "B"] },
+  { audio: "audio/easy17.mp3", correctAnswer: "Q", options: ["Q", "K"] },
+  { audio: "audio/easy18.mp3", correctAnswer: "R", options: ["R", "L"] },
+  { audio: "audio/easy19.mp3", correctAnswer: "S", options: ["S", "X"] },
+  { audio: "audio/easy20.mp3", correctAnswer: "T", options: ["T", "E"] },
+  { audio: "audio/easy21.mp3", correctAnswer: "U", options: ["U", "O"] },
+  { audio: "audio/easy22.mp3", correctAnswer: "V", options: ["V", "B"] },
+  { audio: "audio/easy23.mp3", correctAnswer: "W", options: ["W", "M"] },
+  { audio: "audio/easy24.mp3", correctAnswer: "X", options: ["X", "S"] },
+  { audio: "audio/easy25.mp3", correctAnswer: "Y", options: ["Y", "I"] },
+  { audio: "audio/easy26.mp3", correctAnswer: "Z", options: ["Z", "C"] },
+  { audio: "audio/easy27.mp3", correctAnswer: "A", options: ["A", "C"] },
+  { audio: "audio/easy28.mp3", correctAnswer: "B", options: ["B", "E"] },
+  { audio: "audio/easy29.mp3", correctAnswer: "C", options: ["C", "G"] },
+  { audio: "audio/easy30.mp3", correctAnswer: "D", options: ["D", "I"] },
+  { audio: "audio/easy31.mp3", correctAnswer: "E", options: ["E", "F"] },
+  { audio: "audio/easy32.mp3", correctAnswer: "F", options: ["F", "H"] },
+  { audio: "audio/easy33.mp3", correctAnswer: "G", options: ["G", "J"] },
+  { audio: "audio/easy34.mp3", correctAnswer: "H", options: ["H", "L"] },
+  { audio: "audio/easy35.mp3", correctAnswer: "I", options: ["I", "N"] },
+  { audio: "audio/easy36.mp3", correctAnswer: "J", options: ["J", "K"] },
+  { audio: "audio/easy37.mp3", correctAnswer: "K", options: ["K", "M"] },
+  { audio: "audio/easy38.mp3", correctAnswer: "L", options: ["L", "O"] },
+  { audio: "audio/easy39.mp3", correctAnswer: "M", options: ["M", "Q"] },
+  { audio: "audio/easy40.mp3", correctAnswer: "N", options: ["N", "S"] },
+  { audio: "audio/easy41.mp3", correctAnswer: "O", options: ["O", "P"] },
+  { audio: "audio/easy42.mp3", correctAnswer: "P", options: ["P", "R"] },
+  { audio: "audio/easy43.mp3", correctAnswer: "Q", options: ["Q", "T"] },
+  { audio: "audio/easy44.mp3", correctAnswer: "R", options: ["R", "V"] },
+  { audio: "audio/easy45.mp3", correctAnswer: "S", options: ["S", "X"] },
+  { audio: "audio/easy46.mp3", correctAnswer: "T", options: ["T", "U"] },
+  { audio: "audio/easy47.mp3", correctAnswer: "U", options: ["U", "W"] },
+  { audio: "audio/easy48.mp3", correctAnswer: "V", options: ["V", "Y"] },
+  { audio: "audio/easy49.mp3", correctAnswer: "W", options: ["W", "A"] },
+  { audio: "audio/easy50.mp3", correctAnswer: "X", options: ["X", "C"] }
 ];
+
+/* ---------- MEDIUM MODE: phonics / consonant blends ---------- */
+const MEDIUM_BLEND_PAIRS = [
+  ["bl", "br"], ["cl", "cr"], ["dr", "tr"], ["fl", "fr"], ["gl", "gr"],
+  ["pl", "pr"], ["sc", "sk"], ["sl", "sm"], ["sn", "sp"], ["st", "sw"],
+  ["tw", "dw"], ["ch", "sh"], ["th", "wh"], ["ph", "gh"], ["kn", "gn"],
+  ["scr", "spr"], ["str", "spl"], ["shr", "thr"], ["squ", "sw"], ["nk", "ng"],
+  ["ck", "ch"], ["ft", "pt"], ["mp", "nd"], ["lt", "lk"], ["sk", "sp"]
+];
+const MEDIUM_QUESTION_BANK = [];
+for (let i = 0; i < 50; i++) {
+  const pair = MEDIUM_BLEND_PAIRS[i % MEDIUM_BLEND_PAIRS.length];
+  MEDIUM_QUESTION_BANK.push({
+    audio: "audio/medium" + String(i + 1).padStart(2, "0") + ".mp3",
+    correctAnswer: pair[0],
+    options: [pair[0], pair[1]]
+  });
+}
+
+/* ---------- HARD MODE: full words / spelling ---------- */
+const HARD_WORD_PAIRS = [
+  ["cat", "cap"], ["dog", "dot"], ["sun", "fun"], ["hat", "hot"], ["pen", "pin"],
+  ["cup", "cut"], ["bed", "bad"], ["run", "rug"], ["big", "bag"], ["red", "rid"],
+  ["fish", "wish"], ["tree", "free"], ["star", "scar"], ["moon", "mood"], ["book", "look"],
+  ["frog", "flag"], ["milk", "silk"], ["rock", "lock"], ["desk", "disk"], ["snow", "slow"],
+  ["plane", "plate"], ["chair", "share"], ["light", "night"], ["clock", "block"], ["train", "brain"],
+  ["smile", "slide"], ["grape", "grade"], ["storm", "swarm"], ["planet", "plated"], ["rocket", "pocket"],
+  ["orbit", "order"], ["comet", "closet"], ["galaxy", "gallery"], ["shuttle", "shutter"], ["mission", "musician"],
+  ["astronaut", "restaurant"], ["universe", "diverse"], ["telescope", "envelope"], ["gravity", "cavity"], ["meteor", "meter"],
+  ["cosmic", "comic"], ["cluster", "cluster"], ["nebula", "neutral"], ["voyage", "village"], ["capsule", "capital"],
+  ["spaceship", "sportsman"], ["satellite", "settlement"], ["asteroid", "android"], ["horizon", "hoping"], ["explore", "explode"]
+];
+const HARD_QUESTION_BANK = HARD_WORD_PAIRS.slice(0, 50).map((pair, i) => ({
+  audio: "audio/hard" + String(i + 1).padStart(2, "0") + ".mp3",
+  correctAnswer: pair[0],
+  options: [pair[0], pair[1]]
+}));
+
+/* Lookup used by app.js when starting a round for a chosen mode. */
+const QUESTION_BANKS = {
+  easy: EASY_QUESTION_BANK,
+  medium: MEDIUM_QUESTION_BANK,
+  hard: HARD_QUESTION_BANK
+};
