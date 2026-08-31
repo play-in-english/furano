@@ -1,34 +1,45 @@
+```javascript
 /* ============================================================
-   ALPHABET LISTENING QUIZ — GAME LOGIC
+   S.P.A.C.E. ALPHABETS — GAME LOGIC
+   ============================================================
 
-   You generally should NOT need to edit this file to update
-   quiz content — that all lives in questions.js.
+   MATCHES THE CURRENT index.html
 
-   Settings you CAN safely change below:
+   FLOW:
 
-     QUESTIONS_PER_GAME       : how many questions are played each round
-     STAR_COUNT               : how many background stars are drawn
-     WARP_*                   : timing/density of the big galaxy-entrance
-                                 hyperspace sequence (mission launch)
-     QUESTION_WARP_*          : timing/density of the shorter galaxy zoom
-                                 that plays between every question
-     SHOOTING_STAR_*          : how often shooting stars streak by, and
-                                 how many can be on screen at once
-     FLOATING_SATELLITE_*     : how often satellites drift across the
-                                 screen, and how many can be on screen
-     AUTO_ADVANCE_DELAY_MS    : how long feedback shows before
-                                 auto-advancing
-     AUTOPLAY_GAP_MS          : gap between the two automatic audio plays
-     calcTimeBonus()          : the time-bonus point table for scoring
-     BEST_SCORE_KEY           : localStorage key for best score
-     LEADERBOARD_MAX_ROWS     : how many rows show on leaderboard
+   New player:
+     GALAXY CHECK-IN
+          ↓
+     Enter nickname
+          ↓
+     CONTINUE
+          ↓
+     START MISSION
+          ↓
+     CHOOSE YOUR MISSION LEVEL
+          ↓
+     GAME
+          ↓
+     RESULTS
+
+   Returning player on the same JST day:
+     GALAXY CHECK-IN
+          ↓
+     START MISSION
+
+   ============================================================ */
+
+
+/* ============================================================
+   SETTINGS
    ============================================================ */
 
 const QUESTIONS_PER_GAME = 7;
 const STAR_COUNT = 90;
 
+
 /* ------------------------------------------------------------
-   AMBIENT SHOOTING STARS & SATELLITES
+   AMBIENT EFFECTS
    ------------------------------------------------------------ */
 
 const SHOOTING_STAR_MIN_DELAY_MS = 2200;
@@ -39,6 +50,7 @@ const FLOATING_SATELLITE_MIN_DELAY_MS = 5000;
 const FLOATING_SATELLITE_MAX_DELAY_MS = 11000;
 const FLOATING_SATELLITE_MAX_CONCURRENT = 3;
 
+
 /* ------------------------------------------------------------
    GALAXY ENTRANCE TRANSITION
    ------------------------------------------------------------ */
@@ -48,8 +60,9 @@ const WARP_ACCEL_MS = 1600;
 const WARP_HOLD_MS = 250;
 const WARP_EXIT_MS = 650;
 
+
 /* ------------------------------------------------------------
-   QUESTION-TO-QUESTION GALAXY TRANSITION
+   QUESTION-TO-QUESTION TRANSITION
    ------------------------------------------------------------ */
 
 const QUESTION_WARP_STAR_COUNT = 70;
@@ -57,61 +70,70 @@ const QUESTION_WARP_ACCEL_MS = 450;
 const QUESTION_EXIT_MS = 320;
 const QUESTION_ENTER_MS = 360;
 
+
 /* ------------------------------------------------------------
    AUTO ADVANCE
    ------------------------------------------------------------ */
 
 const AUTO_ADVANCE_DELAY_MS = 2000;
 
+
 /* ------------------------------------------------------------
-   AUTOMATIC AUDIO PLAYBACK
+   AUTOMATIC AUDIO
    ------------------------------------------------------------ */
 
 const AUTOPLAY_GAP_MS = 2000;
+
 
 /* ------------------------------------------------------------
    SCORING
    ------------------------------------------------------------ */
 
 const POINTS_PER_CORRECT_ANSWER = 100;
-const BEST_SCORE_KEY = 'galaxyAlphabetQuiz.bestScore.v1';
+
+const BEST_SCORE_KEY =
+  'galaxyAlphabetQuiz.bestScore.v1';
+
 
 function calcTimeBonus(seconds) {
+
   if (seconds < 20) return 300;
   if (seconds < 25) return 200;
   if (seconds < 30) return 100;
   if (seconds < 35) return 80;
   if (seconds < 40) return 60;
   if (seconds < 45) return 40;
+
   return 20;
 }
 
+
 const prefersReducedMotion =
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  window.matchMedia(
+    '(prefers-reduced-motion: reduce)'
+  ).matches;
 
-/* ------------------------------------------------------------
-   NICKNAME + LEADERBOARD PERSISTENCE
 
-   Everything uses JAPAN STANDARD TIME.
+/* ============================================================
+   STORAGE
+   ============================================================ */
 
-   Nickname:
-   - entered once per JST calendar day
-   - remains valid until 23:59:59 JST
-   - expires automatically at 00:00 JST
+const NICKNAME_KEY =
+  'galaxyAlphabetQuiz.nickname.v1';
 
-   Leaderboards:
-   - separate for EASY / MEDIUM / HARD
-   - reset by JST date
+const LEADERBOARD_KEY_PREFIX =
+  'galaxyAlphabetQuiz.leaderboard.';
 
-   Best score:
-   - also reset by JST date
-   ------------------------------------------------------------ */
-
-const NICKNAME_KEY = 'galaxyAlphabetQuiz.nickname.v1';
-const LEADERBOARD_KEY_PREFIX = 'galaxyAlphabetQuiz.leaderboard.';
 const LEADERBOARD_MAX_ROWS = 5;
 
-const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+/* ============================================================
+   JAPAN TIME
+   ============================================================ */
+
+const JST_OFFSET_MS =
+  9 * 60 * 60 * 1000;
+
 
 const MODE_LABELS = {
   easy: 'EASY',
@@ -119,52 +141,88 @@ const MODE_LABELS = {
   hard: 'HARD'
 };
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    JST DATE HELPERS
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function getJstDateKey(date) {
-  const now = date || new Date();
 
-  const jst = new Date(now.getTime() + JST_OFFSET_MS);
+  const now =
+    date || new Date();
 
-  const y = jst.getUTCFullYear();
-  const m = String(jst.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(jst.getUTCDate()).padStart(2, '0');
+  const jst =
+    new Date(
+      now.getTime() +
+      JST_OFFSET_MS
+    );
+
+  const y =
+    jst.getUTCFullYear();
+
+  const m =
+    String(
+      jst.getUTCMonth() + 1
+    ).padStart(2, '0');
+
+  const d =
+    String(
+      jst.getUTCDate()
+    ).padStart(2, '0');
 
   return `${y}-${m}-${d}`;
 }
 
+
 function msUntilNextJstMidnight() {
-  const now = new Date();
 
-  const jstNow = new Date(now.getTime() + JST_OFFSET_MS);
+  const now =
+    new Date();
 
-  const jstMidnight = new Date(
-    Date.UTC(
-      jstNow.getUTCFullYear(),
-      jstNow.getUTCMonth(),
-      jstNow.getUTCDate() + 1,
-      0,
-      0,
-      0
-    )
+  const jstNow =
+    new Date(
+      now.getTime() +
+      JST_OFFSET_MS
+    );
+
+  const jstMidnight =
+    new Date(
+      Date.UTC(
+        jstNow.getUTCFullYear(),
+        jstNow.getUTCMonth(),
+        jstNow.getUTCDate() + 1,
+        0,
+        0,
+        0
+      )
+    );
+
+  return (
+    jstMidnight.getTime() -
+    jstNow.getTime()
   );
-
-  return jstMidnight.getTime() - jstNow.getTime();
 }
 
-/* ------------------------------------------------------------
-   NICKNAME
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   NICKNAME STORAGE
+   ============================================================ */
 
 function loadNickname() {
+
   try {
-    const raw = localStorage.getItem(NICKNAME_KEY);
 
-    if (!raw) return null;
+    const raw =
+      localStorage.getItem(
+        NICKNAME_KEY
+      );
 
-    const parsed = JSON.parse(raw);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed =
+      JSON.parse(raw);
 
     if (
       !parsed ||
@@ -174,20 +232,31 @@ function loadNickname() {
       return null;
     }
 
-    /* IMPORTANT:
-       Nickname expires according to JAPAN TIME. */
-    if (parsed.dateKey !== getJstDateKey()) {
+    /*
+       Nickname only remains valid
+       for the current JST calendar day.
+    */
+
+    if (
+      parsed.dateKey !==
+      getJstDateKey()
+    ) {
       return null;
     }
 
     return parsed.nickname;
-  } catch (e) {
+
+  } catch (error) {
+
     return null;
   }
 }
 
+
 function saveNickname(nickname) {
+
   try {
+
     localStorage.setItem(
       NICKNAME_KEY,
       JSON.stringify({
@@ -195,42 +264,66 @@ function saveNickname(nickname) {
         dateKey: getJstDateKey()
       })
     );
-  } catch (e) {
-    /* Storage unavailable — game can still run. */
+
+  } catch (error) {
+
+    /*
+       Game can still work if
+       localStorage is unavailable.
+    */
   }
 }
+
 
 function clearNickname() {
+
   try {
-    localStorage.removeItem(NICKNAME_KEY);
-  } catch (e) {
-    /* Ignore storage errors. */
+
+    localStorage.removeItem(
+      NICKNAME_KEY
+    );
+
+  } catch (error) {
+    /* Ignore */
   }
 }
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    LEADERBOARD
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function loadLeaderboard(mode) {
-  const key = LEADERBOARD_KEY_PREFIX + mode + '.v1';
+
+  const key =
+    LEADERBOARD_KEY_PREFIX +
+    mode +
+    '.v1';
 
   try {
-    const raw = localStorage.getItem(key);
+
+    const raw =
+      localStorage.getItem(key);
 
     if (raw) {
-      const parsed = JSON.parse(raw);
+
+      const parsed =
+        JSON.parse(raw);
 
       if (
         parsed &&
-        parsed.dateKey === getJstDateKey() &&
-        Array.isArray(parsed.entries)
+        parsed.dateKey ===
+          getJstDateKey() &&
+        Array.isArray(
+          parsed.entries
+        )
       ) {
         return parsed;
       }
     }
-  } catch (e) {
-    /* Fall through to a fresh board. */
+
+  } catch (error) {
+    /* Create fresh board below */
   }
 
   return {
@@ -239,15 +332,29 @@ function loadLeaderboard(mode) {
   };
 }
 
-function saveLeaderboard(mode, board) {
-  const key = LEADERBOARD_KEY_PREFIX + mode + '.v1';
+
+function saveLeaderboard(
+  mode,
+  board
+) {
+
+  const key =
+    LEADERBOARD_KEY_PREFIX +
+    mode +
+    '.v1';
 
   try {
-    localStorage.setItem(key, JSON.stringify(board));
-  } catch (e) {
-    /* Storage unavailable. */
+
+    localStorage.setItem(
+      key,
+      JSON.stringify(board)
+    );
+
+  } catch (error) {
+    /* Ignore */
   }
 }
+
 
 function recordLeaderboardResult(
   mode,
@@ -255,11 +362,16 @@ function recordLeaderboardResult(
   score,
   timeSeconds
 ) {
-  const board = loadLeaderboard(mode);
 
-  const existingIndex = board.entries.findIndex(
-    e => e.nickname === nickname
-  );
+  const board =
+    loadLeaderboard(mode);
+
+  const existingIndex =
+    board.entries.findIndex(
+      entry =>
+        entry.nickname ===
+        nickname
+    );
 
   const candidate = {
     nickname: nickname,
@@ -267,43 +379,79 @@ function recordLeaderboardResult(
     timeSeconds: timeSeconds
   };
 
-  if (existingIndex === -1) {
-    board.entries.push(candidate);
+
+  if (
+    existingIndex === -1
+  ) {
+
+    board.entries.push(
+      candidate
+    );
+
   } else {
-    const existing = board.entries[existingIndex];
+
+    const existing =
+      board.entries[
+        existingIndex
+      ];
 
     const isBetter =
       score > existing.score ||
       (
         score === existing.score &&
-        timeSeconds < existing.timeSeconds
+        timeSeconds <
+          existing.timeSeconds
       );
 
     if (isBetter) {
-      board.entries[existingIndex] = candidate;
+
+      board.entries[
+        existingIndex
+      ] = candidate;
     }
   }
 
-  saveLeaderboard(mode, board);
+
+  saveLeaderboard(
+    mode,
+    board
+  );
 
   return board;
 }
 
-function sortedLeaderboardEntries(board) {
-  return board.entries.slice().sort((a, b) => {
-    if (b.score !== a.score) {
-      return b.score - a.score;
-    }
 
-    return a.timeSeconds - b.timeSeconds;
-  });
+function sortedLeaderboardEntries(
+  board
+) {
+
+  return board.entries
+    .slice()
+    .sort((a, b) => {
+
+      if (
+        b.score !== a.score
+      ) {
+        return (
+          b.score -
+          a.score
+        );
+      }
+
+      return (
+        a.timeSeconds -
+        b.timeSeconds
+      );
+    });
 }
 
-/* ------------------------------------------------------------
-   STATE
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   GAME STATE
+   ============================================================ */
 
 const state = {
+
   mode: 'easy',
 
   nickname: '',
@@ -329,204 +477,408 @@ const state = {
   autoplaySecondTimeoutId: null
 };
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    DOM REFERENCES
+   ============================================================ */
+
+
+/* ------------------------------------------------------------
+   Screens
    ------------------------------------------------------------ */
 
 const screens = {
-  nickname: document.getElementById('nicknameScreen'),
-  start: document.getElementById('startScreen'),
-  difficulty: document.getElementById('difficultyScreen'),
-  game: document.getElementById('gameScreen'),
-  results: document.getElementById('resultsScreen')
+
+  nickname:
+    document.getElementById(
+      'nicknameScreen'
+    ),
+
+  checkin:
+    document.getElementById(
+      'checkinScreen'
+    ),
+
+  start:
+    document.getElementById(
+      'startScreen'
+    ),
+
+  difficulty:
+    document.getElementById(
+      'difficultyScreen'
+    ),
+
+  game:
+    document.getElementById(
+      'gameScreen'
+    ),
+
+  results:
+    document.getElementById(
+      'resultsScreen'
+    )
 };
 
-const nicknameForm =
-  document.getElementById('nicknameForm');
-
-const nicknameInput =
-  document.getElementById('nicknameInput');
-
-const nicknameSubmitBtn =
-  document.getElementById('nicknameSubmitBtn');
-
-const welcomeBackEl =
-  document.getElementById('welcomeBack');
-
-/* New nickname/check-in elements */
-const nicknameEntry =
-  document.getElementById('nicknameEntry');
-
-const nicknameWelcome =
-  document.getElementById('nicknameWelcome');
-
-const dailyCheckInBtn =
-  document.getElementById('dailyCheckInBtn');
-
-const startBtn =
-  document.getElementById('startBtn');
-
-const shareBtn =
-  document.getElementById('shareBtn');
-
-const difficultyButtons =
-  document.querySelectorAll('.difficulty-btn');
-
-const playAgainBtn =
-  document.getElementById('playAgainBtn');
-
-const playAudioBtn =
-  document.getElementById('playAudioBtn');
-
-const letterAudio =
-  document.getElementById('letterAudio');
-
-const optionsGrid =
-  document.getElementById('optionsGrid');
-
-const feedbackEl =
-  document.getElementById('feedback');
-
-const nextBtn =
-  document.getElementById('nextBtn');
-
-const questionCounter =
-  document.getElementById('questionCounter');
-
-const scoreCounter =
-  document.getElementById('scoreCounter');
-
-const modePill =
-  document.getElementById('modePill');
-
-const timerPill =
-  document.getElementById('timerPill');
-
-const blackholeBtn =
-  document.getElementById('blackholeBtn');
-
-const constellationEl =
-  document.getElementById('constellation');
-
-const resultsScore =
-  document.getElementById('resultsScore');
-
-const resultsMsg =
-  document.getElementById('resultsMsg');
-
-const resultsStars =
-  document.getElementById('resultsStars');
-
-const resultsBest =
-  document.getElementById('resultsBest');
-
-const championCountdownEl =
-  document.getElementById('championCountdown');
-
-const leaderboardTitleEl =
-  document.getElementById('leaderboardTitle');
-
-const leaderboardListEl =
-  document.getElementById('leaderboardList');
-
-const starField =
-  document.getElementById('starField');
-
-const ambientLayer =
-  document.getElementById('ambientLayer');
-
-const appShell =
-  document.getElementById('appShell');
-
-const warpCanvas =
-  document.getElementById('warpCanvas');
-
-const galaxyFlash =
-  document.getElementById('galaxyFlash');
-
-const startContent =
-  document.getElementById('startContent');
-
-const questionContent =
-  document.getElementById('questionContent');
-
-const resultsContent =
-  document.getElementById('resultsContent');
 
 /* ------------------------------------------------------------
-   BACKGROUND STAR FIELD
+   Nickname screen
    ------------------------------------------------------------ */
 
+const nicknameContent =
+  document.getElementById(
+    'nicknameContent'
+  );
+
+const nicknameForm =
+  document.getElementById(
+    'nicknameForm'
+  );
+
+const nicknameInput =
+  document.getElementById(
+    'nicknameInput'
+  );
+
+const nicknameSubmitBtn =
+  document.getElementById(
+    'nicknameSubmitBtn'
+  );
+
+
+/* ------------------------------------------------------------
+   Check-in screen
+   ------------------------------------------------------------ */
+
+const welcomeBackEl =
+  document.getElementById(
+    'welcomeBack'
+  );
+
+const checkinBtn =
+  document.getElementById(
+    'checkinBtn'
+  );
+
+const shareBtn =
+  document.getElementById(
+    'shareBtn'
+  );
+
+
+/* ------------------------------------------------------------
+   Start / difficulty
+   ------------------------------------------------------------ */
+
+const startBtn =
+  document.getElementById(
+    'startBtn'
+  );
+
+const difficultyButtons =
+  document.querySelectorAll(
+    '.difficulty-btn'
+  );
+
+
+/* ------------------------------------------------------------
+   Game
+   ------------------------------------------------------------ */
+
+const playAudioBtn =
+  document.getElementById(
+    'playAudioBtn'
+  );
+
+const letterAudio =
+  document.getElementById(
+    'letterAudio'
+  );
+
+const optionsGrid =
+  document.getElementById(
+    'optionsGrid'
+  );
+
+const feedbackEl =
+  document.getElementById(
+    'feedback'
+  );
+
+const nextBtn =
+  document.getElementById(
+    'nextBtn'
+  );
+
+const questionCounter =
+  document.getElementById(
+    'questionCounter'
+  );
+
+const scoreCounter =
+  document.getElementById(
+    'scoreCounter'
+  );
+
+const modePill =
+  document.getElementById(
+    'modePill'
+  );
+
+const timerPill =
+  document.getElementById(
+    'timerPill'
+  );
+
+const blackholeBtn =
+  document.getElementById(
+    'blackholeBtn'
+  );
+
+const constellationEl =
+  document.getElementById(
+    'constellation'
+  );
+
+
+/* ------------------------------------------------------------
+   Results
+   ------------------------------------------------------------ */
+
+const resultsContent =
+  document.getElementById(
+    'resultsContent'
+  );
+
+const resultsScore =
+  document.getElementById(
+    'resultsScore'
+  );
+
+const resultsMsg =
+  document.getElementById(
+    'resultsMsg'
+  );
+
+const resultsStars =
+  document.getElementById(
+    'resultsStars'
+  );
+
+const resultsBest =
+  document.getElementById(
+    'resultsBest'
+  );
+
+const championCountdownEl =
+  document.getElementById(
+    'championCountdown'
+  );
+
+const leaderboardTitleEl =
+  document.getElementById(
+    'leaderboardTitle'
+  );
+
+const leaderboardListEl =
+  document.getElementById(
+    'leaderboardList'
+  );
+
+const playAgainBtn =
+  document.getElementById(
+    'playAgainBtn'
+  );
+
+
+/* ------------------------------------------------------------
+   Background
+   ------------------------------------------------------------ */
+
+const starField =
+  document.getElementById(
+    'starField'
+  );
+
+const ambientLayer =
+  document.getElementById(
+    'ambientLayer'
+  );
+
+const appShell =
+  document.getElementById(
+    'appShell'
+  );
+
+const warpCanvas =
+  document.getElementById(
+    'warpCanvas'
+  );
+
+const galaxyFlash =
+  document.getElementById(
+    'galaxyFlash'
+  );
+
+const startContent =
+  document.getElementById(
+    'startContent'
+  );
+
+const questionContent =
+  document.getElementById(
+    'questionContent'
+  );
+
+
+/* ============================================================
+   SAFETY CHECK
+   ============================================================ */
+
+console.log(
+  'S.P.A.C.E. ALPHABETS app.js loaded successfully.'
+);
+
+
+/* ============================================================
+   BACKGROUND STAR FIELD
+   ============================================================ */
+
 function buildStarField() {
+
+  if (!starField) {
+    return;
+  }
+
   starField.innerHTML = '';
 
-  const frag = document.createDocumentFragment();
+  const frag =
+    document.createDocumentFragment();
 
-  for (let i = 0; i < STAR_COUNT; i++) {
-    const star = document.createElement('div');
+
+  for (
+    let i = 0;
+    i < STAR_COUNT;
+    i++
+  ) {
+
+    const star =
+      document.createElement(
+        'div'
+      );
 
     const size =
       Math.random() < 0.15
-        ? (Math.random() * 2 + 2.5)
-        : (Math.random() * 1.5 + 1);
+        ? Math.random() * 2 + 2.5
+        : Math.random() * 1.5 + 1;
 
-    const isBig = size > 3;
+    const isBig =
+      size > 3;
 
     star.className =
-      'star' + (isBig ? ' big' : '');
+      'star' +
+      (
+        isBig
+          ? ' big'
+          : ''
+      );
+
 
     star.style.left =
-      Math.random() * 100 + 'vw';
+      Math.random() *
+      100 +
+      'vw';
 
     star.style.top =
-      Math.random() * 100 + 'vh';
+      Math.random() *
+      100 +
+      'vh';
 
     star.style.width =
-      size + 'px';
+      size +
+      'px';
 
     star.style.height =
-      size + 'px';
+      size +
+      'px';
+
 
     const duration =
-      (Math.random() * 3 + 2.5).toFixed(2);
+      (
+        Math.random() * 3 +
+        2.5
+      ).toFixed(2);
 
     const delay =
-      (Math.random() * 4).toFixed(2);
+      (
+        Math.random() * 4
+      ).toFixed(2);
+
 
     star.style.setProperty(
       '--min-o',
-      (Math.random() * 0.25 + 0.1).toFixed(2)
+      (
+        Math.random() * 0.25 +
+        0.1
+      ).toFixed(2)
     );
 
     star.style.setProperty(
       '--max-o',
-      (Math.random() * 0.4 + 0.6).toFixed(2)
+      (
+        Math.random() * 0.4 +
+        0.6
+      ).toFixed(2)
     );
 
+
     star.style.animationDuration =
-      duration + 's';
+      duration +
+      's';
 
     star.style.animationDelay =
-      delay + 's';
+      delay +
+      's';
 
-    frag.appendChild(star);
+
+    frag.appendChild(
+      star
+    );
   }
 
-  starField.appendChild(frag);
+
+  starField.appendChild(
+    frag
+  );
 }
 
-/* ------------------------------------------------------------
-   AMBIENT FLOATING SATELLITES & SHOOTING STARS
-   ------------------------------------------------------------ */
 
-function randRange(min, max) {
-  return Math.random() * (max - min) + min;
+/* ============================================================
+   SHOOTING STARS
+   ============================================================ */
+
+function randRange(
+  min,
+  max
+) {
+
+  return (
+    Math.random() *
+    (max - min) +
+    min
+  );
 }
 
-let activeShootingStarCount = 0;
+
+let activeShootingStarCount =
+  0;
+
 
 function spawnShootingStar() {
-  if (!ambientLayer) return;
+
+  if (!ambientLayer) {
+    return;
+  }
 
   if (
     activeShootingStarCount >=
@@ -535,11 +887,19 @@ function spawnShootingStar() {
     return;
   }
 
-  const el = document.createElement('div');
 
-  el.className = 'shooting-star';
+  const el =
+    document.createElement(
+      'div'
+    );
 
-  const isNear = Math.random() < 0.3;
+  el.className =
+    'shooting-star';
+
+
+  const isNear =
+    Math.random() < 0.3;
+
 
   const length =
     isNear
@@ -562,7 +922,10 @@ function spawnShootingStar() {
       : randRange(0.4, 0.65);
 
   const thickness =
-    isNear ? 2.2 : 1.2;
+    isNear
+      ? 2.2
+      : 1.2;
+
 
   const startTop =
     randRange(-5, 55);
@@ -572,28 +935,40 @@ function spawnShootingStar() {
 
   const angle =
     randRange(15, 35) *
-    (Math.random() < 0.75 ? 1 : -1);
+    (
+      Math.random() < 0.75
+        ? 1
+        : -1
+    );
+
 
   el.style.top =
-    startTop + '%';
+    startTop +
+    '%';
 
   el.style.left =
-    startLeft + '%';
+    startLeft +
+    '%';
 
   el.style.width =
-    length.toFixed(0) + 'px';
+    length.toFixed(0) +
+    'px';
 
   el.style.height =
-    thickness + 'px';
+    thickness +
+    'px';
+
 
   el.style.setProperty(
     '--angle',
-    angle.toFixed(1) + 'deg'
+    angle.toFixed(1) +
+    'deg'
   );
 
   el.style.setProperty(
     '--distance',
-    distance.toFixed(0) + 'px'
+    distance.toFixed(0) +
+    'px'
   );
 
   el.style.setProperty(
@@ -601,39 +976,67 @@ function spawnShootingStar() {
     peakOpacity.toFixed(2)
   );
 
+
   el.style.animationDuration =
-    duration.toFixed(0) + 'ms';
+    duration.toFixed(0) +
+    'ms';
+
 
   activeShootingStarCount++;
+
 
   el.addEventListener(
     'animationend',
     () => {
+
       el.remove();
+
       activeShootingStarCount--;
     }
   );
 
-  ambientLayer.appendChild(el);
+
+  ambientLayer.appendChild(
+    el
+  );
 }
 
+
 function scheduleShootingStars() {
+
   const delay =
     randRange(
       SHOOTING_STAR_MIN_DELAY_MS,
       SHOOTING_STAR_MAX_DELAY_MS
     );
 
-  setTimeout(() => {
-    spawnShootingStar();
-    scheduleShootingStars();
-  }, delay);
+
+  setTimeout(
+    () => {
+
+      spawnShootingStar();
+
+      scheduleShootingStars();
+
+    },
+    delay
+  );
 }
 
-let activeSatelliteCount = 0;
+
+/* ============================================================
+   FLOATING SATELLITES
+   ============================================================ */
+
+let activeSatelliteCount =
+  0;
+
 
 function spawnFloatingSatellite() {
-  if (!ambientLayer) return;
+
+  if (!ambientLayer) {
+    return;
+  }
 
   if (
     activeSatelliteCount >=
@@ -642,12 +1045,18 @@ function spawnFloatingSatellite() {
     return;
   }
 
-  const el = document.createElement('div');
+
+  const el =
+    document.createElement(
+      'div'
+    );
 
   el.className =
     'floating-satellite';
 
-  el.textContent = '🛰️';
+  el.textContent =
+    '🛰️';
+
 
   const goingRight =
     Math.random() < 0.5;
@@ -655,96 +1064,148 @@ function spawnFloatingSatellite() {
   const goingDown =
     Math.random() < 0.5;
 
+
   const dx =
-    (goingRight ? 1 : -1) *
+    (
+      goingRight
+        ? 1
+        : -1
+    ) *
     randRange(
       window.innerWidth * 0.35,
       window.innerWidth * 0.65
     );
 
+
   const dy =
-    (goingDown ? 1 : -1) *
+    (
+      goingDown
+        ? 1
+        : -1
+    ) *
     randRange(
       window.innerHeight * 0.15,
       window.innerHeight * 0.35
     );
+
 
   const startLeft =
     goingRight
       ? randRange(-5, 35)
       : randRange(65, 100);
 
+
   const startTop =
     goingDown
       ? randRange(5, 35)
       : randRange(55, 90);
 
+
   const spin =
-    (Math.random() < 0.5 ? 1 : -1) *
+    (
+      Math.random() < 0.5
+        ? 1
+        : -1
+    ) *
     randRange(180, 420);
 
+
   const duration =
-    randRange(10000, 18000);
+    randRange(
+      10000,
+      18000
+    );
+
 
   const size =
-    randRange(20, 32);
+    randRange(
+      20,
+      32
+    );
+
 
   el.style.top =
-    startTop + '%';
+    startTop +
+    '%';
 
   el.style.left =
-    startLeft + '%';
+    startLeft +
+    '%';
 
   el.style.fontSize =
-    size.toFixed(1) + 'px';
+    size.toFixed(1) +
+    'px';
+
 
   el.style.setProperty(
     '--dx',
-    dx.toFixed(0) + 'px'
+    dx.toFixed(0) +
+    'px'
   );
 
   el.style.setProperty(
     '--dy',
-    dy.toFixed(0) + 'px'
+    dy.toFixed(0) +
+    'px'
   );
 
   el.style.setProperty(
     '--spin',
-    spin.toFixed(0) + 'deg'
+    spin.toFixed(0) +
+    'deg'
   );
 
+
   el.style.animationDuration =
-    duration.toFixed(0) + 'ms';
+    duration.toFixed(0) +
+    'ms';
+
 
   activeSatelliteCount++;
+
 
   el.addEventListener(
     'animationend',
     () => {
+
       el.remove();
+
       activeSatelliteCount--;
     }
   );
 
-  ambientLayer.appendChild(el);
+
+  ambientLayer.appendChild(
+    el
+  );
 }
 
+
 function scheduleFloatingSatellites() {
+
   const delay =
     randRange(
       FLOATING_SATELLITE_MIN_DELAY_MS,
       FLOATING_SATELLITE_MAX_DELAY_MS
     );
 
-  setTimeout(() => {
-    spawnFloatingSatellite();
-    scheduleFloatingSatellites();
-  }, delay);
+
+  setTimeout(
+    () => {
+
+      spawnFloatingSatellite();
+
+      scheduleFloatingSatellites();
+
+    },
+    delay
+  );
 }
 
-/* ------------------------------------------------------------
-   GALAXY ENTRANCE TRANSITION
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   WARP CANVAS
+   ============================================================ */
 
 let warpCtx = null;
 let warpStars = [];
@@ -755,13 +1216,25 @@ let warpAnimStart = 0;
 let warpAccelMsActive =
   WARP_ACCEL_MS;
 
+
 function setupWarpCanvas() {
-  if (!warpCanvas.getContext) return;
+
+  if (
+    !warpCanvas ||
+    !warpCanvas.getContext
+  ) {
+    return;
+  }
+
 
   warpCtx =
-    warpCanvas.getContext('2d');
+    warpCanvas.getContext(
+      '2d'
+    );
+
 
   resizeWarpCanvas();
+
 
   window.addEventListener(
     'resize',
@@ -769,11 +1242,17 @@ function setupWarpCanvas() {
   );
 }
 
+
 function resizeWarpCanvas() {
-  if (!warpCtx) return;
+
+  if (!warpCtx) {
+    return;
+  }
+
 
   const dpr =
-    window.devicePixelRatio || 1;
+    window.devicePixelRatio ||
+    1;
 
   const w =
     window.innerWidth;
@@ -781,17 +1260,22 @@ function resizeWarpCanvas() {
   const h =
     window.innerHeight;
 
+
   warpCanvas.width =
     w * dpr;
 
   warpCanvas.height =
     h * dpr;
 
+
   warpCanvas.style.width =
-    w + 'px';
+    w +
+    'px';
 
   warpCanvas.style.height =
-    h + 'px';
+    h +
+    'px';
+
 
   warpCtx.setTransform(
     dpr,
@@ -803,13 +1287,21 @@ function resizeWarpCanvas() {
   );
 }
 
-function makeWarpStar(nearCenter) {
+
+function makeWarpStar(
+  nearCenter
+) {
+
   const roll =
     Math.random();
 
+
   return {
+
     angle:
-      Math.random() * Math.PI * 2,
+      Math.random() *
+      Math.PI *
+      2,
 
     r:
       nearCenter
@@ -831,28 +1323,54 @@ function makeWarpStar(nearCenter) {
   };
 }
 
-function initWarpStars(count) {
+
+function initWarpStars(
+  count
+) {
+
   warpMaxRadius =
     Math.hypot(
       window.innerWidth,
       window.innerHeight
-    ) / 2 * 1.05;
+    ) /
+    2 *
+    1.05;
+
 
   warpStars = [];
 
-  const total =
-    count || WARP_STAR_COUNT;
 
-  for (let i = 0; i < total; i++) {
+  const total =
+    count ||
+    WARP_STAR_COUNT;
+
+
+  for (
+    let i = 0;
+    i < total;
+    i++
+  ) {
+
     warpStars.push(
       makeWarpStar(false)
     );
   }
 }
 
-function warpFrame(now) {
+
+function warpFrame(
+  now
+) {
+
+  if (!warpCtx) {
+    return;
+  }
+
+
   const elapsed =
-    now - warpAnimStart;
+    now -
+    warpAnimStart;
+
 
   const accelProgress =
     Math.min(
@@ -861,13 +1379,16 @@ function warpFrame(now) {
       1
     );
 
+
   const eased =
     accelProgress *
     accelProgress;
 
+
   const speedFactor =
     0.35 +
     eased * 5.5;
+
 
   const w =
     window.innerWidth;
@@ -875,14 +1396,17 @@ function warpFrame(now) {
   const h =
     window.innerHeight;
 
+
   const cx =
     w / 2;
 
   const cy =
     h / 2;
 
+
   warpCtx.fillStyle =
     'rgba(6, 8, 24, 0.28)';
+
 
   warpCtx.fillRect(
     0,
@@ -891,48 +1415,66 @@ function warpFrame(now) {
     h
   );
 
+
   for (
     let i = 0;
     i < warpStars.length;
     i++
   ) {
+
     const star =
       warpStars[i];
+
 
     const delta =
       speedFactor *
       star.spd *
-      (2 + star.r * 0.045);
+      (
+        2 +
+        star.r * 0.045
+      );
+
 
     star.r += delta;
+
 
     if (
       star.r >
       warpMaxRadius
     ) {
+
       warpStars[i] =
         makeWarpStar(true);
 
       continue;
     }
 
+
     const ratio =
       star.r /
       warpMaxRadius;
 
+
     const x =
       cx +
-      Math.cos(star.angle) *
+      Math.cos(
+        star.angle
+      ) *
       star.r;
+
 
     const y =
       cy +
-      Math.sin(star.angle) *
+      Math.sin(
+        star.angle
+      ) *
       star.r;
+
 
     const size =
       0.6 +
       ratio * 3.6;
+
 
     const alpha =
       Math.min(
@@ -941,23 +1483,38 @@ function warpFrame(now) {
         ratio * 1.1
       );
 
+
     let color;
 
-    if (star.hue === 'gold') {
+
+    if (
+      star.hue ===
+      'gold'
+    ) {
+
       color =
         `rgba(255, 217, 102, ${alpha})`;
-    } else if (star.hue === 'teal') {
+
+    } else if (
+      star.hue ===
+      'teal'
+    ) {
+
       color =
         `rgba(79, 227, 193, ${alpha})`;
+
     } else {
+
       color =
         `rgba(255, 255, 255, ${alpha})`;
     }
+
 
     warpCtx.beginPath();
 
     warpCtx.fillStyle =
       color;
+
 
     warpCtx.arc(
       x,
@@ -967,8 +1524,10 @@ function warpFrame(now) {
       Math.PI * 2
     );
 
+
     warpCtx.fill();
   }
+
 
   warpRAF =
     requestAnimationFrame(
@@ -976,16 +1535,22 @@ function warpFrame(now) {
     );
 }
 
+
 function stopWarpAnimation() {
+
   if (warpRAF) {
+
     cancelAnimationFrame(
       warpRAF
     );
   }
 
+
   warpRAF = null;
 
+
   if (warpCtx) {
+
     warpCtx.clearRect(
       0,
       0,
@@ -995,31 +1560,166 @@ function stopWarpAnimation() {
   }
 }
 
-function beginGalaxyEntrance() {
-  if (state.transitioning) return;
 
-  state.transitioning = true;
+/* ============================================================
+   GALAXY ENTRANCE
+   ============================================================ */
+
+function beginGalaxyEntrance() {
+
+  if (
+    state.transitioning
+  ) {
+    return;
+  }
+
+
+  state.transitioning =
+    true;
+
 
   setDifficultyButtonsDisabled(
     true
   );
 
+
+  /*
+     Timer begins when the
+     mission actually starts.
+  */
+
   startRoundTimer();
+
 
   if (
     prefersReducedMotion ||
     !warpCtx
   ) {
+
     appShell.classList.add(
       'transition-hide'
     );
 
-    setTimeout(() => {
+
+    setTimeout(
+      () => {
+
+        startGame();
+
+        appShell.classList.remove(
+          'transition-hide'
+        );
+
+
+        state.transitioning =
+          false;
+
+
+        setDifficultyButtonsDisabled(
+          false
+        );
+
+      },
+      300
+    );
+
+
+    return;
+  }
+
+
+  appShell.classList.add(
+    'transition-hide'
+  );
+
+
+  document.body.classList.add(
+    'warping'
+  );
+
+
+  warpAccelMsActive =
+    WARP_ACCEL_MS;
+
+
+  initWarpStars(
+    WARP_STAR_COUNT
+  );
+
+
+  warpAnimStart =
+    performance.now();
+
+
+  warpCanvas.classList.add(
+    'active'
+  );
+
+
+  stopWarpAnimation();
+
+
+  warpRAF =
+    requestAnimationFrame(
+      warpFrame
+    );
+
+
+  setTimeout(
+    () => {
+
+      galaxyFlash.classList.remove(
+        'flash'
+      );
+
+      void galaxyFlash.offsetWidth;
+
+      galaxyFlash.classList.add(
+        'flash'
+      );
+
+    },
+    WARP_ACCEL_MS
+  );
+
+
+  setTimeout(
+    () => {
+
       startGame();
+
+    },
+    WARP_ACCEL_MS +
+    WARP_HOLD_MS
+  );
+
+
+  setTimeout(
+    () => {
 
       appShell.classList.remove(
         'transition-hide'
       );
+
+      warpCanvas.classList.remove(
+        'active'
+      );
+
+      document.body.classList.remove(
+        'warping'
+      );
+
+    },
+    WARP_ACCEL_MS +
+    WARP_HOLD_MS +
+    120
+  );
+
+
+  setTimeout(
+    () => {
+
+      stopWarpAnimation();
 
       state.transitioning =
         false;
@@ -1027,80 +1727,8 @@ function beginGalaxyEntrance() {
       setDifficultyButtonsDisabled(
         false
       );
-    }, 300);
 
-    return;
-  }
-
-  appShell.classList.add(
-    'transition-hide'
-  );
-
-  document.body.classList.add(
-    'warping'
-  );
-
-  warpAccelMsActive =
-    WARP_ACCEL_MS;
-
-  initWarpStars(
-    WARP_STAR_COUNT
-  );
-
-  warpAnimStart =
-    performance.now();
-
-  warpCanvas.classList.add(
-    'active'
-  );
-
-  stopWarpAnimation();
-
-  warpRAF =
-    requestAnimationFrame(
-      warpFrame
-    );
-
-  setTimeout(() => {
-    galaxyFlash.classList.remove(
-      'flash'
-    );
-
-    void galaxyFlash.offsetWidth;
-
-    galaxyFlash.classList.add(
-      'flash'
-    );
-  }, WARP_ACCEL_MS);
-
-  setTimeout(() => {
-    startGame();
-  }, WARP_ACCEL_MS + WARP_HOLD_MS);
-
-  setTimeout(() => {
-    appShell.classList.remove(
-      'transition-hide'
-    );
-
-    warpCanvas.classList.remove(
-      'active'
-    );
-
-    document.body.classList.remove(
-      'warping'
-    );
-  }, WARP_ACCEL_MS + WARP_HOLD_MS + 120);
-
-  setTimeout(() => {
-    stopWarpAnimation();
-
-    state.transitioning =
-      false;
-
-    setDifficultyButtonsDisabled(
-      false
-    );
-  },
+    },
     WARP_ACCEL_MS +
     WARP_HOLD_MS +
     120 +
@@ -1108,65 +1736,92 @@ function beginGalaxyEntrance() {
   );
 }
 
+
 function setDifficultyButtonsDisabled(
   disabled
 ) {
+
   difficultyButtons.forEach(
-    btn => {
-      btn.disabled =
+    button => {
+
+      button.disabled =
         disabled;
     }
   );
 }
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    QUESTION GALAXY TRANSITION
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function playQuestionWarpBurst(
   visibleMs
 ) {
-  if (!warpCtx) return;
+
+  if (!warpCtx) {
+    return;
+  }
+
 
   document.body.classList.add(
     'warping'
   );
 
+
   warpAccelMsActive =
     QUESTION_WARP_ACCEL_MS;
+
 
   initWarpStars(
     QUESTION_WARP_STAR_COUNT
   );
 
+
   warpAnimStart =
     performance.now();
 
+
   stopWarpAnimation();
+
 
   warpCanvas.classList.add(
     'active'
   );
+
 
   warpRAF =
     requestAnimationFrame(
       warpFrame
     );
 
-  setTimeout(() => {
-    warpCanvas.classList.remove(
-      'active'
-    );
 
-    document.body.classList.remove(
-      'warping'
-    );
-  }, visibleMs);
+  setTimeout(
+    () => {
 
-  setTimeout(() => {
-    stopWarpAnimation();
-  }, visibleMs + 650);
+      warpCanvas.classList.remove(
+        'active'
+      );
+
+      document.body.classList.remove(
+        'warping'
+      );
+
+    },
+    visibleMs
+  );
+
+
+  setTimeout(
+    () => {
+
+      stopWarpAnimation();
+
+    },
+    visibleMs + 650
+  );
 }
+
 
 function playGalaxyZoomTransition(
   exitEl,
@@ -1174,13 +1829,21 @@ function playGalaxyZoomTransition(
   onSwap,
   exitClass
 ) {
-  exitClass =
-    exitClass || 'q-exit';
 
-  if (prefersReducedMotion) {
+  exitClass =
+    exitClass ||
+    'q-exit';
+
+
+  if (
+    prefersReducedMotion
+  ) {
+
     onSwap();
+
     return;
   }
+
 
   playQuestionWarpBurst(
     QUESTION_EXIT_MS +
@@ -1188,57 +1851,84 @@ function playGalaxyZoomTransition(
     60
   );
 
-  exitEl.classList.remove(
-    'q-enter',
-    'q-exit',
-    'q-suck'
-  );
 
-  exitEl.classList.add(
-    exitClass
-  );
+  if (exitEl) {
 
-  setTimeout(() => {
-    onSwap();
-
-    if (
-      exitEl !== enterEl
-    ) {
-      exitEl.classList.remove(
-        exitClass
-      );
-    }
-
-    enterEl.classList.remove(
+    exitEl.classList.remove(
+      'q-enter',
       'q-exit',
-      'q-suck',
-      'q-enter'
+      'q-suck'
     );
 
-    enterEl.classList.add(
-      'q-enter'
+
+    exitEl.classList.add(
+      exitClass
     );
+  }
 
-    void enterEl.offsetWidth;
 
-    requestAnimationFrame(() => {
-      enterEl.classList.remove(
-        'q-enter'
-      );
-    });
-  }, QUESTION_EXIT_MS);
+  setTimeout(
+    () => {
+
+      onSwap();
+
+
+      if (
+        exitEl &&
+        exitEl !== enterEl
+      ) {
+
+        exitEl.classList.remove(
+          exitClass
+        );
+      }
+
+
+      if (enterEl) {
+
+        enterEl.classList.remove(
+          'q-exit',
+          'q-suck',
+          'q-enter'
+        );
+
+
+        enterEl.classList.add(
+          'q-enter'
+        );
+
+
+        void enterEl.offsetWidth;
+
+
+        requestAnimationFrame(
+          () => {
+
+            enterEl.classList.remove(
+              'q-enter'
+            );
+          }
+        );
+      }
+
+    },
+    QUESTION_EXIT_MS
+  );
 }
 
-/* ------------------------------------------------------------
-   MISSION TIMER
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   TIMER
+   ============================================================ */
 
 let gameTimerIntervalId =
   null;
 
+
 function formatTime(
   totalSeconds
 ) {
+
   const s =
     Math.max(
       0,
@@ -1247,13 +1937,16 @@ function formatTime(
       )
     );
 
+
   const m =
     Math.floor(
       s / 60
     );
 
+
   const sec =
     s % 60;
+
 
   return (
     m +
@@ -1265,16 +1958,22 @@ function formatTime(
   );
 }
 
+
 function startRoundTimer() {
+
   state.startTime =
     performance.now();
+
 
   state.elapsedSeconds =
     null;
 
+
   stopGameTimer();
 
+
   updateTimerDisplay();
+
 
   gameTimerIntervalId =
     setInterval(
@@ -1283,18 +1982,26 @@ function startRoundTimer() {
     );
 }
 
+
 function stopGameTimer() {
-  if (gameTimerIntervalId) {
+
+  if (
+    gameTimerIntervalId
+  ) {
+
     clearInterval(
       gameTimerIntervalId
     );
+
 
     gameTimerIntervalId =
       null;
   }
 }
 
+
 function updateTimerDisplay() {
+
   if (
     !timerPill ||
     state.startTime == null
@@ -1302,13 +2009,16 @@ function updateTimerDisplay() {
     return;
   }
 
+
   const liveSeconds =
     state.elapsedSeconds != null
       ? state.elapsedSeconds
       : (
           performance.now() -
           state.startTime
-        ) / 1000;
+        ) /
+        1000;
+
 
   timerPill.textContent =
     '⏱ ' +
@@ -1317,21 +2027,29 @@ function updateTimerDisplay() {
     );
 }
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    BEST SCORE
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function loadBestScore() {
+
   try {
+
     const raw =
       localStorage.getItem(
         BEST_SCORE_KEY
       );
 
-    if (!raw) return null;
+
+    if (!raw) {
+      return null;
+    }
+
 
     const parsed =
       JSON.parse(raw);
+
 
     if (
       typeof parsed.points !==
@@ -1341,8 +2059,7 @@ function loadBestScore() {
       return null;
     }
 
-    /* IMPORTANT:
-       Best score also resets at 00:00 JST. */
+
     if (
       parsed.dateKey !==
       getJstDateKey()
@@ -1350,49 +2067,68 @@ function loadBestScore() {
       return null;
     }
 
+
     return parsed;
-  } catch (e) {
+
+  } catch (error) {
+
     return null;
   }
 }
 
+
 function saveBestScore(
   points
 ) {
+
   try {
+
     localStorage.setItem(
       BEST_SCORE_KEY,
       JSON.stringify({
+
         points: points,
+
         dateKey:
           getJstDateKey(),
+
         savedAt:
           Date.now()
+
       })
     );
-  } catch (e) {
-    /* Ignore storage errors. */
+
+  } catch (error) {
+    /* Ignore */
   }
 }
 
-/* ------------------------------------------------------------
-   QUESTION SELECTION
-   ------------------------------------------------------------ */
 
-function shuffle(array) {
+/* ============================================================
+   QUESTION SELECTION
+   ============================================================ */
+
+function shuffle(
+  array
+) {
+
   const arr =
     array.slice();
 
+
   for (
-    let i = arr.length - 1;
+    let i =
+      arr.length - 1;
     i > 0;
     i--
   ) {
+
     const j =
       Math.floor(
         Math.random() *
         (i + 1)
       );
+
 
     [
       arr[i],
@@ -1403,16 +2139,21 @@ function shuffle(array) {
     ];
   }
 
+
   return arr;
 }
 
+
 function pickRoundQuestions() {
+
   const bank =
     QUESTION_BANKS[state.mode] ||
     QUESTION_BANKS.easy;
 
+
   const shuffledBank =
     shuffle(bank);
+
 
   return shuffledBank.slice(
     0,
@@ -1420,109 +2161,126 @@ function pickRoundQuestions() {
   );
 }
 
-/* ------------------------------------------------------------
-   SCREEN NAVIGATION
-   ------------------------------------------------------------ */
 
-function showScreen(name) {
-  Object.values(screens).forEach(
-    s => {
-      if (s) {
-        s.classList.remove(
+/* ============================================================
+   SCREEN NAVIGATION
+   ============================================================ */
+
+function showScreen(
+  name
+) {
+
+  Object.values(
+    screens
+  ).forEach(
+    screen => {
+
+      if (screen) {
+
+        screen.classList.remove(
           'active'
         );
       }
     }
   );
 
-  if (screens[name]) {
+
+  if (
+    screens[name]
+  ) {
+
     screens[name].classList.add(
       'active'
     );
   }
 }
 
-/* ------------------------------------------------------------
-   DAILY HOMEPAGE / CHECK-IN
-   ------------------------------------------------------------ */
 
-/*
-   This is the important new behavior.
-
-   Every time the player returns "home", they see:
-
-       Welcome back, NAME.
-       CHECK-IN
-
-   They do NOT go directly to START MISSION.
-
-   The nickname remains valid for the whole JST day.
-*/
+/* ============================================================
+   DAILY HOMEPAGE
+   ============================================================ */
 
 function showDailyHomepage() {
+
   const existing =
     loadNickname();
 
+
+  /*
+     No nickname today:
+     show nickname entry.
+  */
+
   if (!existing) {
-    /* The JST day has changed. */
-    state.nickname = '';
+
+    state.nickname =
+      '';
+
 
     if (nicknameInput) {
-      nicknameInput.value = '';
+
+      nicknameInput.value =
+        '';
     }
 
-    if (nicknameEntry) {
-      nicknameEntry.style.display =
-        'block';
-    }
-
-    if (nicknameWelcome) {
-      nicknameWelcome.style.display =
-        'none';
-    }
 
     if (nicknameSubmitBtn) {
+
       nicknameSubmitBtn.disabled =
         true;
     }
 
-    showScreen('nickname');
+
+    showScreen(
+      'nickname'
+    );
+
 
     return;
   }
 
+
+  /*
+     Nickname already exists today:
+     show CHECK-IN screen.
+  */
+
   state.nickname =
     existing;
 
-  if (nicknameEntry) {
-    nicknameEntry.style.display =
-      'none';
-  }
-
-  if (nicknameWelcome) {
-    nicknameWelcome.style.display =
-      'block';
-  }
 
   if (welcomeBackEl) {
+
     welcomeBackEl.innerHTML =
       `Welcome back, ${escapeHtml(existing)}.`;
   }
 
-  showScreen('nickname');
+
+  showScreen(
+    'checkin'
+  );
 }
 
-/* ------------------------------------------------------------
-   CONSTELLATION PROGRESS TRAIL
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   CONSTELLATION
+   ============================================================ */
 
 function renderConstellation() {
+
+  if (!constellationEl) {
+    return;
+  }
+
+
   const total =
     state.roundQuestions.length;
+
 
   const width = 600;
   const height = 54;
   const padding = 30;
+
 
   const step =
     total > 1
@@ -1533,75 +2291,114 @@ function renderConstellation() {
         (total - 1)
       : 0;
 
+
   const y =
     height / 2;
+
 
   let pathD =
     `M ${padding} ${y}`;
 
-  let nodesSvg = '';
+
+  let nodesSvg =
+    '';
+
 
   for (
     let i = 0;
     i < total;
     i++
   ) {
+
     const x =
       padding +
       step * i;
 
+
     if (i > 0) {
+
       pathD +=
         ` L ${x} ${y}`;
     }
 
+
     let cls =
       'constellation-node';
+
 
     if (
       i <
       state.results.length
     ) {
+
       cls +=
         state.results[i]
           ? ' done'
           : ' wrong-node';
+
     } else if (
       i ===
       state.currentIndex
     ) {
+
       cls +=
         ' current';
     }
 
+
     const r =
-      i === state.currentIndex &&
-      i >= state.results.length
+      i ===
+        state.currentIndex &&
+      i >=
+        state.results.length
         ? 8
         : 6;
+
 
     nodesSvg +=
       `<circle class="${cls}" cx="${x}" cy="${y}" r="${r}"></circle>`;
   }
 
+
   constellationEl.innerHTML = `
-    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
-      <path class="constellation-line" d="${pathD}"></path>
+
+    <svg
+      viewBox="0 0 ${width} ${height}"
+      preserveAspectRatio="xMidYMid meet"
+    >
+
+      <path
+        class="constellation-line"
+        d="${pathD}"
+      ></path>
+
       ${nodesSvg}
+
     </svg>
-    <div class="rocket" id="rocketIcon" aria-hidden="true">🚀</div>
+
+    <div
+      class="rocket"
+      id="rocketIcon"
+      aria-hidden="true"
+    >
+      🚀
+    </div>
+
   `;
+
 
   const rocket =
     document.getElementById(
       'rocketIcon'
     );
 
+
   const progressIndex =
     Math.min(
       state.currentIndex,
       total - 1
     );
+
 
   const xPercent =
     total > 1
@@ -1612,147 +2409,216 @@ function renderConstellation() {
               progressIndex
           ) /
           width
-        ) * 100
+        ) *
+        100
       : 50;
 
-  rocket.style.left =
-    xPercent + '%';
+
+  if (rocket) {
+
+    rocket.style.left =
+      xPercent +
+      '%';
+  }
 }
 
-/* ------------------------------------------------------------
-   GAME FLOW
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   START GAME
+   ============================================================ */
 
 function startGame() {
+
   state.roundQuestions =
     pickRoundQuestions();
 
-  state.currentIndex = 0;
 
-  state.score = 0;
+  state.currentIndex =
+    0;
 
-  state.results = [];
+
+  state.score =
+    0;
+
+
+  state.results =
+    [];
+
 
   modePill.textContent =
-    MODE_LABELS[state.mode] ||
+    MODE_LABELS[
+      state.mode
+    ] ||
     'EASY';
 
-  showScreen('game');
+
+  showScreen(
+    'game'
+  );
+
 
   renderQuestion();
 }
 
+
+/* ============================================================
+   CLEAR TIMERS
+   ============================================================ */
+
 function clearAutoAdvanceTimer() {
+
   if (
     state.autoAdvanceTimeoutId
   ) {
+
     clearTimeout(
       state.autoAdvanceTimeoutId
     );
+
 
     state.autoAdvanceTimeoutId =
       null;
   }
 }
 
+
 function clearAutoplaySecondTimer() {
+
   if (
     state.autoplaySecondTimeoutId
   ) {
+
     clearTimeout(
       state.autoplaySecondTimeoutId
     );
+
 
     state.autoplaySecondTimeoutId =
       null;
   }
 }
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    RENDER QUESTION
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function renderQuestion() {
+
   state.answeredCurrent =
     false;
+
 
   clearAutoAdvanceTimer();
 
   clearAutoplaySecondTimer();
 
+
   const total =
     state.roundQuestions.length;
+
 
   const q =
     state.roundQuestions[
       state.currentIndex
     ];
 
+
   questionCounter.textContent =
     `Question ${state.currentIndex + 1} / ${total}`;
+
 
   scoreCounter.textContent =
     `Score: ${state.score} / ${state.currentIndex}`;
 
+
   renderConstellation();
 
-  /* Reset audio */
+
+  /*
+     Reset audio.
+  */
+
   letterAudio.pause();
 
   letterAudio.currentTime =
     0;
 
+
   letterAudio.src =
     q.audio;
 
+
   letterAudio.onended =
     null;
+
 
   playAudioBtn.classList.remove(
     'playing'
   );
 
-  /* Reset feedback */
+
+  /*
+     Reset feedback.
+  */
+
   feedbackEl.textContent =
     '';
+
 
   feedbackEl.className =
     'feedback';
 
+
   nextBtn.style.display =
     'none';
 
-  /* Build answer buttons */
+
+  /*
+     Build answer buttons.
+  */
+
   optionsGrid.innerHTML =
     '';
 
+
   const shuffledOptions =
-    shuffle(q.options);
+    shuffle(
+      q.options
+    );
+
 
   shuffledOptions.forEach(
     letter => {
+
       const btn =
         document.createElement(
           'button'
         );
 
+
       btn.className =
         'option-btn';
+
 
       btn.type =
         'button';
 
+
       btn.textContent =
         letter;
+
 
       btn.setAttribute(
         'aria-label',
         `Answer ${letter}`
       );
 
+
       btn.addEventListener(
         'click',
         () => {
+
           handleAnswer(
             letter,
             btn,
@@ -1761,37 +2627,49 @@ function renderQuestion() {
         }
       );
 
+
       optionsGrid.appendChild(
         btn
       );
     }
   );
 
-  /* Automatically play twice */
+
+  /*
+     Automatically play twice.
+  */
+
   startAutoplaySequence();
 }
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    AUTOMATIC AUDIO ×2
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function startAutoplaySequence() {
+
   playAudioBtn.classList.add(
     'playing'
   );
 
+
   letterAudio.currentTime =
     0;
 
+
   const playPromise =
     letterAudio.play();
+
 
   if (
     playPromise &&
     playPromise.catch
   ) {
+
     playPromise.catch(
       () => {
+
         playAudioBtn.classList.remove(
           'playing'
         );
@@ -1799,11 +2677,14 @@ function startAutoplaySequence() {
     );
   }
 
+
   letterAudio.onended =
     () => {
+
       playAudioBtn.classList.remove(
         'playing'
       );
+
 
       if (
         state.answeredCurrent
@@ -1811,72 +2692,94 @@ function startAutoplaySequence() {
         return;
       }
 
+
       state.autoplaySecondTimeoutId =
-        setTimeout(() => {
-          if (
-            state.answeredCurrent
-          ) {
-            return;
-          }
+        setTimeout(
+          () => {
 
-          playAudioBtn.classList.add(
-            'playing'
-          );
+            if (
+              state.answeredCurrent
+            ) {
+              return;
+            }
 
-          letterAudio.currentTime =
-            0;
 
-          const secondPlayPromise =
-            letterAudio.play();
+            playAudioBtn.classList.add(
+              'playing'
+            );
 
-          if (
-            secondPlayPromise &&
-            secondPlayPromise.catch
-          ) {
-            secondPlayPromise.catch(
+
+            letterAudio.currentTime =
+              0;
+
+
+            const secondPlayPromise =
+              letterAudio.play();
+
+
+            if (
+              secondPlayPromise &&
+              secondPlayPromise.catch
+            ) {
+
+              secondPlayPromise.catch(
+                () => {
+
+                  playAudioBtn.classList.remove(
+                    'playing'
+                  );
+                }
+              );
+            }
+
+
+            letterAudio.onended =
               () => {
+
                 playAudioBtn.classList.remove(
                   'playing'
                 );
-              }
-            );
-          }
+              };
 
-          letterAudio.onended =
-            () => {
-              playAudioBtn.classList.remove(
-                'playing'
-              );
-            };
-        }, AUTOPLAY_GAP_MS);
+          },
+          AUTOPLAY_GAP_MS
+        );
     };
 }
 
-/* ------------------------------------------------------------
-   MANUAL PLAY SOUND
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   MANUAL AUDIO
+   ============================================================ */
 
 playAudioBtn.addEventListener(
   'click',
   () => {
+
     clearAutoplaySecondTimer();
+
 
     playAudioBtn.classList.add(
       'playing'
     );
 
+
     letterAudio.currentTime =
       0;
 
+
     const playPromise =
       letterAudio.play();
+
 
     if (
       playPromise &&
       playPromise.catch
     ) {
+
       playPromise.catch(
         () => {
+
           playAudioBtn.classList.remove(
             'playing'
           );
@@ -1884,8 +2787,10 @@ playAudioBtn.addEventListener(
       );
     }
 
+
     letterAudio.onended =
       () => {
+
         playAudioBtn.classList.remove(
           'playing'
         );
@@ -1893,46 +2798,50 @@ playAudioBtn.addEventListener(
   }
 );
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    ANSWER HANDLING
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function handleAnswer(
   selectedLetter,
   btnEl,
   correctLetter
 ) {
-  /* Prevent multiple answers */
+
+  /*
+     Prevent multiple answers.
+  */
+
   if (
     state.answeredCurrent
   ) {
     return;
   }
 
+
   state.answeredCurrent =
     true;
 
+
   clearAutoplaySecondTimer();
 
-  /*
-     IMPORTANT:
 
-     Supports BOTH:
+  /*
+     Supports:
 
        correctAnswer: "K"
 
-     and:
+     AND:
 
        correctAnswer: ["K", "C"]
-
-     Therefore, if K or C is selected,
-     either one receives the points.
   */
 
   const isMultipleCorrect =
     Array.isArray(
       correctLetter
     );
+
 
   const isCorrect =
     isMultipleCorrect
@@ -1942,61 +2851,83 @@ function handleAnswer(
       : selectedLetter ===
         correctLetter;
 
+
   state.results[
     state.currentIndex
   ] = isCorrect;
 
-  /* Disable all buttons */
+
+  /*
+     Disable every option.
+  */
+
   const allOptionButtons =
     optionsGrid.querySelectorAll(
       '.option-btn'
     );
 
-  allOptionButtons.forEach(
-    b => {
-      b.disabled = true;
 
-      /*
-         If there are multiple correct answers,
-         ALL correct buttons receive the correct styling.
-      */
+  allOptionButtons.forEach(
+    button => {
+
+      button.disabled =
+        true;
+
+
       const buttonIsCorrect =
         isMultipleCorrect
           ? correctLetter.includes(
-              b.textContent
+              button.textContent
             )
-          : b.textContent ===
+          : button.textContent ===
             correctLetter;
 
-      if (buttonIsCorrect) {
-        b.classList.add(
+
+      if (
+        buttonIsCorrect
+      ) {
+
+        button.classList.add(
           'correct'
         );
+
       } else if (
-        b === btnEl
+        button === btnEl
       ) {
-        b.classList.add(
+
+        button.classList.add(
           'incorrect'
         );
+
       } else {
-        b.classList.add(
+
+        button.classList.add(
           'dimmed'
         );
       }
     }
   );
 
-  /* Score */
+
+  /*
+     Score.
+  */
+
   if (isCorrect) {
+
     state.score++;
+
 
     feedbackEl.textContent =
       '✓ Correct!';
 
+
     feedbackEl.classList.add(
       'correct-text'
     );
+
   } else {
+
     const answerText =
       isMultipleCorrect
         ? correctLetter.join(
@@ -2004,107 +2935,152 @@ function handleAnswer(
           )
         : correctLetter;
 
+
     feedbackEl.textContent =
       `✗ Try again! It was "${answerText}".`;
+
 
     feedbackEl.classList.add(
       'incorrect-text'
     );
   }
 
+
   feedbackEl.classList.add(
     'show'
   );
 
+
   scoreCounter.textContent =
     `Score: ${state.score} / ${state.currentIndex + 1}`;
 
+
   renderConstellation();
+
+
+  /*
+     Determine whether this
+     was the final question.
+  */
 
   const total =
     state.roundQuestions.length;
+
 
   const isLastQuestion =
     state.currentIndex + 1 >=
     total;
 
+
   /*
-     Stop the timer immediately when
-     the final answer is selected.
+     Stop timer immediately
+     after final answer.
   */
+
   if (
     isLastQuestion &&
-    state.elapsedSeconds == null
+    state.elapsedSeconds == null &&
+    state.startTime != null
   ) {
+
     state.elapsedSeconds =
       (
         performance.now() -
         state.startTime
-      ) / 1000;
+      ) /
+      1000;
+
 
     stopGameTimer();
+
 
     updateTimerDisplay();
   }
 
+
   /*
-     Auto-advance after 2 seconds.
+     Next button.
   */
+
   nextBtn.textContent =
     isLastQuestion
       ? 'See Results →'
       : 'Next →';
 
-  /*
-     Keep the manual Next button available
-     as an optional early skip.
-  */
+
   nextBtn.style.display =
     'inline-block';
 
+
+  /*
+     Automatically advance.
+  */
+
   clearAutoAdvanceTimer();
 
+
   state.autoAdvanceTimeoutId =
-    setTimeout(() => {
-      advanceFromCurrentQuestion();
-    }, AUTO_ADVANCE_DELAY_MS);
+    setTimeout(
+      () => {
+
+        advanceFromCurrentQuestion();
+
+      },
+      AUTO_ADVANCE_DELAY_MS
+    );
 }
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    ADVANCE QUESTION
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function advanceFromCurrentQuestion() {
+
   if (
     state.transitioning
   ) {
     return;
   }
 
+
   clearAutoAdvanceTimer();
+
 
   state.transitioning =
     true;
 
+
   nextBtn.disabled =
     true;
 
+
   const total =
     state.roundQuestions.length;
+
 
   const isLastQuestion =
     state.currentIndex + 1 >=
     total;
 
+
   playGalaxyZoomTransition(
     questionContent,
+
     isLastQuestion
       ? resultsContent
       : questionContent,
+
     () => {
-      if (isLastQuestion) {
+
+      if (
+        isLastQuestion
+      ) {
+
         showResults();
+
       } else {
+
         state.currentIndex++;
 
         renderQuestion();
@@ -2112,67 +3088,89 @@ function advanceFromCurrentQuestion() {
     }
   );
 
-  setTimeout(() => {
-    state.transitioning =
-      false;
 
-    nextBtn.disabled =
-      false;
-  },
+  setTimeout(
+    () => {
+
+      state.transitioning =
+        false;
+
+      nextBtn.disabled =
+        false;
+
+    },
     QUESTION_EXIT_MS +
     QUESTION_ENTER_MS +
     60
   );
 }
 
+
 nextBtn.addEventListener(
   'click',
   () => {
+
     advanceFromCurrentQuestion();
+
   }
 );
 
-/* ------------------------------------------------------------
-   CHAMPION COUNTDOWN
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   RESULTS — COUNTDOWN
+   ============================================================ */
 
 let championCountdownIntervalId =
   null;
 
+
 function updateChampionCountdown() {
+
   if (
     !championCountdownEl
   ) {
     return;
   }
 
+
   const msLeft =
     msUntilNextJstMidnight();
+
 
   const totalMinutes =
     Math.max(
       0,
       Math.floor(
-        msLeft / 60000
+        msLeft /
+        60000
       )
     );
 
+
   const hours =
     Math.floor(
-      totalMinutes / 60
+      totalMinutes /
+      60
     );
 
+
   const minutes =
-    totalMinutes % 60;
+    totalMinutes %
+    60;
+
 
   championCountdownEl.textContent =
     `⏳ You have ${hours} hours ${minutes} minutes left to become the new CHAMPION!`;
 }
 
+
 function startChampionCountdown() {
+
   stopChampionCountdown();
 
+
   updateChampionCountdown();
+
 
   championCountdownIntervalId =
     setInterval(
@@ -2181,29 +3179,36 @@ function startChampionCountdown() {
     );
 }
 
+
 function stopChampionCountdown() {
+
   if (
     championCountdownIntervalId
   ) {
+
     clearInterval(
       championCountdownIntervalId
     );
+
 
     championCountdownIntervalId =
       null;
   }
 }
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    LEADERBOARD RENDERING
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function renderLeaderboard(
   mode,
   board
 ) {
+
   leaderboardTitleEl.textContent =
     `${MODE_LABELS[mode] || mode.toUpperCase()} LEADERBOARD`;
+
 
   const entries =
     sortedLeaderboardEntries(
@@ -2213,150 +3218,243 @@ function renderLeaderboard(
       LEADERBOARD_MAX_ROWS
     );
 
+
   if (
     entries.length === 0
   ) {
+
     leaderboardListEl.innerHTML =
-      '<li class="leaderboard-empty">Be the first Space Explorer on today\u2019s board!</li>';
+      '<li class="leaderboard-empty">Be the first Space Explorer on today’s board!</li>';
 
     return;
   }
 
+
   leaderboardListEl.innerHTML =
-    entries.map(
-      (entry, i) => {
-        const rank =
-          i + 1;
+    entries
+      .map(
+        (entry, i) => {
 
-        const isMe =
-          entry.nickname ===
-          state.nickname;
+          const rank =
+            i + 1;
 
-        const medal =
-          rank === 1
-            ? '🥇'
-            : rank === 2
-              ? '🥈'
-              : rank === 3
-                ? '🥉'
-                : String(rank);
 
-        return `
-          <li class="leaderboard-row rank-${rank}${isMe ? ' me' : ''}">
-            <span class="leaderboard-rank">${medal}</span>
-            <span class="leaderboard-name">${escapeHtml(entry.nickname)}${isMe ? ' (you)' : ''}</span>
-            <span class="leaderboard-meta">
-              <span class="lb-score">${entry.score} pts</span>
-              ${formatTime(entry.timeSeconds)}
-            </span>
-          </li>
-        `;
-      }
-    ).join('');
+          const isMe =
+            entry.nickname ===
+            state.nickname;
+
+
+          const medal =
+            rank === 1
+              ? '🥇'
+              : rank === 2
+                ? '🥈'
+                : rank === 3
+                  ? '🥉'
+                  : String(rank);
+
+
+          return `
+
+            <li
+              class="leaderboard-row rank-${rank}${isMe ? ' me' : ''}"
+            >
+
+              <span
+                class="leaderboard-rank"
+              >
+                ${medal}
+              </span>
+
+
+              <span
+                class="leaderboard-name"
+              >
+                ${escapeHtml(entry.nickname)}
+                ${isMe ? ' (you)' : ''}
+              </span>
+
+
+              <span
+                class="leaderboard-meta"
+              >
+
+                <span
+                  class="lb-score"
+                >
+                  ${entry.score} pts
+                </span>
+
+                ${formatTime(
+                  entry.timeSeconds
+                )}
+
+              </span>
+
+            </li>
+
+          `;
+        }
+      )
+      .join('');
 }
 
-function escapeHtml(str) {
+
+/* ============================================================
+   ESCAPE HTML
+   ============================================================ */
+
+function escapeHtml(
+  str
+) {
+
   const div =
     document.createElement(
       'div'
     );
 
+
   div.textContent =
     str;
+
 
   return div.innerHTML;
 }
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    RESULTS SCREEN
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function showResults() {
+
   const total =
     state.roundQuestions.length;
+
 
   const correctPoints =
     state.score *
     POINTS_PER_CORRECT_ANSWER;
+
 
   const timeTakenSeconds =
     state.elapsedSeconds != null
       ? state.elapsedSeconds
       : 0;
 
+
   const timeBonus =
     calcTimeBonus(
       timeTakenSeconds
     );
 
+
   const totalPoints =
     correctPoints +
     timeBonus;
 
+
+  /*
+     Score.
+  */
+
   resultsScore.textContent =
     `${totalPoints} POINTS`;
 
+
+  /*
+     Message.
+  */
+
   let message;
 
-  const ratio =
-    state.score / total;
 
-  if (ratio === 1) {
+  const ratio =
+    total > 0
+      ? state.score / total
+      : 0;
+
+
+  if (
+    ratio === 1
+  ) {
+
     message =
       'Perfect mission — you heard every letter!';
+
   } else if (
     ratio >= 0.7
   ) {
+
     message =
       'Awesome listening, space explorer!';
+
   } else if (
     ratio >= 0.4
   ) {
+
     message =
       'Nice work! Keep practicing those sounds.';
+
   } else {
+
     message =
-      'Good try! Let\u2019s blast off again and listen closely.';
+      'Good try! Let’s blast off again and listen closely.';
   }
+
 
   resultsMsg.textContent =
     message;
+
+
+  /*
+     Stars.
+  */
 
   const filled =
     Math.round(
       ratio * 5
     );
 
+
   resultsStars.textContent =
-    '⭐'.repeat(filled) +
+    '⭐'.repeat(
+      filled
+    ) +
     '☆'.repeat(
       5 - filled
     );
 
-  /* ----------------------------------------------------------
-     BEST SCORE
 
-     Uses JST.
-     ---------------------------------------------------------- */
+  /*
+     Best score.
+  */
 
   const previousBest =
     loadBestScore();
+
 
   const isNewBest =
     !previousBest ||
     totalPoints >
       previousBest.points;
 
-  if (isNewBest) {
+
+  if (
+    isNewBest
+  ) {
+
     saveBestScore(
       totalPoints
     );
   }
 
+
   const bestPoints =
     isNewBest
       ? totalPoints
       : previousBest.points;
+
 
   resultsBest.textContent =
     (
@@ -2367,14 +3465,16 @@ function showResults() {
     bestPoints +
     ' POINTS';
 
+
   resultsBest.classList.toggle(
     'new-best',
     isNewBest
   );
 
-  /* ----------------------------------------------------------
-     DAILY LEADERBOARD
-     ---------------------------------------------------------- */
+
+  /*
+     Leaderboard.
+  */
 
   const updatedBoard =
     recordLeaderboardResult(
@@ -2384,31 +3484,45 @@ function showResults() {
       timeTakenSeconds
     );
 
+
   renderLeaderboard(
     state.mode,
     updatedBoard
   );
 
+
   startChampionCountdown();
 
-  showScreen('results');
+
+  showScreen(
+    'results'
+  );
 }
 
-/* ------------------------------------------------------------
-   NICKNAME SCREEN
-   ------------------------------------------------------------ */
 
-function sanitizeNickname(raw) {
+/* ============================================================
+   NICKNAME INPUT
+   ============================================================ */
+
+function sanitizeNickname(
+  raw
+) {
+
   return raw
     .trim()
     .toUpperCase()
     .slice(0, 12);
 }
 
-/* Enable Continue button when nickname exists */
+
+/* ------------------------------------------------------------
+   Enable CONTINUE
+   ------------------------------------------------------------ */
+
 nicknameInput.addEventListener(
   'input',
   () => {
+
     nicknameSubmitBtn.disabled =
       sanitizeNickname(
         nicknameInput.value
@@ -2416,152 +3530,178 @@ nicknameInput.addEventListener(
   }
 );
 
-/* ------------------------------------------------------------
-   SUBMIT NEW NICKNAME
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   SUBMIT NICKNAME
+   ============================================================ */
 
 function submitNickname() {
+
   const nickname =
     sanitizeNickname(
       nicknameInput.value
     );
 
+
   if (!nickname) {
     return;
   }
 
+
   state.nickname =
     nickname;
+
 
   saveNickname(
     nickname
   );
 
+
   /*
      IMPORTANT:
 
-     After entering a nickname for the first time,
-     the player sees the same DAILY HOMEPAGE:
+     After entering a nickname,
+     go directly to START MISSION.
 
-         Welcome back, NAME.
-         CHECK-IN
-
-     They must click CHECK-IN to reach
-     START MISSION.
+     This matches the current
+     index.html.
   */
 
-  showDailyHomepage();
+  showScreen(
+    'start'
+  );
 }
 
-/* Button */
+
+/* ------------------------------------------------------------
+   CONTINUE BUTTON
+   ------------------------------------------------------------ */
+
 nicknameSubmitBtn.addEventListener(
   'click',
   submitNickname
 );
 
-/* Enter key */
+
+/* ------------------------------------------------------------
+   ENTER KEY
+   ------------------------------------------------------------ */
+
 nicknameInput.addEventListener(
   'keydown',
-  e => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
+  event => {
+
+    if (
+      event.key ===
+      'Enter'
+    ) {
+
+      event.preventDefault();
 
       submitNickname();
     }
   }
 );
 
-/* Native form submit */
+
+/* ------------------------------------------------------------
+   FORM SUBMIT
+   ------------------------------------------------------------ */
+
 nicknameForm.addEventListener(
   'submit',
-  e => {
-    e.preventDefault();
+  event => {
+
+    event.preventDefault();
 
     submitNickname();
   }
 );
 
-/* ------------------------------------------------------------
-   DAILY CHECK-IN BUTTON
-   ------------------------------------------------------------ */
 
-if (dailyCheckInBtn) {
-  dailyCheckInBtn.addEventListener(
-    'click',
-    () => {
-      /*
-         Check again that the nickname
-         is still valid for TODAY in JST.
+/* ============================================================
+   CHECK-IN SCREEN
+   ============================================================ */
 
-         This matters if someone leaves the
-         page open across midnight.
-      */
+checkinBtn.addEventListener(
+  'click',
+  () => {
 
-      const existing =
-        loadNickname();
+    /*
+       Re-check nickname in case
+       the date changed while the
+       page was open.
+    */
 
-      if (!existing) {
-        state.nickname = '';
+    const existing =
+      loadNickname();
 
-        showDailyHomepage();
 
-        return;
-      }
+    if (!existing) {
 
       state.nickname =
-        existing;
+        '';
 
-      showScreen('start');
+
+      showScreen(
+        'nickname'
+      );
+
+
+      return;
     }
-  );
-}
 
-/* ------------------------------------------------------------
-   INITIAL NICKNAME GATE
-   ------------------------------------------------------------ */
 
-function initNicknameGate() {
-  /*
-     If today's nickname already exists,
-     show:
+    state.nickname =
+      existing;
 
-         Welcome back, NAME.
-         CHECK-IN
 
-     NOT START MISSION.
-  */
+    showScreen(
+      'start'
+    );
+  }
+);
 
-  showDailyHomepage();
-}
 
-/* ------------------------------------------------------------
-   DIFFICULTY SCREEN
-   ------------------------------------------------------------ */
+/* ============================================================
+   START MISSION
+   ============================================================ */
 
 startBtn.addEventListener(
   'click',
   () => {
+
     showScreen(
       'difficulty'
     );
   }
 );
 
+
+/* ============================================================
+   DIFFICULTY SELECTION
+   ============================================================ */
+
 difficultyButtons.forEach(
-  btn => {
-    btn.addEventListener(
+  button => {
+
+    button.addEventListener(
       'click',
       () => {
+
         if (
           state.transitioning
         ) {
           return;
         }
 
+
         state.mode =
-          btn.getAttribute(
+          button.getAttribute(
             'data-mode'
-          ) || 'easy';
+          ) ||
+          'easy';
+
 
         beginGalaxyEntrance();
       }
@@ -2569,51 +3709,59 @@ difficultyButtons.forEach(
   }
 );
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    PLAY AGAIN
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 playAgainBtn.addEventListener(
   'click',
   () => {
+
     if (
       state.transitioning
     ) {
       return;
     }
 
+
     state.transitioning =
       true;
+
 
     playAgainBtn.disabled =
       true;
 
+
     stopChampionCountdown();
 
-    /*
-       Play Again goes to the
-       Difficulty Selection screen.
 
-       Nickname remains valid.
+    /*
+       Results → Difficulty
     */
 
     playGalaxyZoomTransition(
       resultsContent,
       startContent,
       () => {
+
         showScreen(
           'difficulty'
         );
       }
     );
 
-    setTimeout(() => {
-      state.transitioning =
-        false;
 
-      playAgainBtn.disabled =
-        false;
-    },
+    setTimeout(
+      () => {
+
+        state.transitioning =
+          false;
+
+        playAgainBtn.disabled =
+          false;
+
+      },
       QUESTION_EXIT_MS +
       QUESTION_ENTER_MS +
       60
@@ -2621,24 +3769,29 @@ playAgainBtn.addEventListener(
   }
 );
 
-/* ------------------------------------------------------------
-   BLACK HOLE — RETURN TO DAILY HOMEPAGE
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   BLACK HOLE — RETURN TO CHECK-IN
+   ============================================================ */
 
 blackholeBtn.addEventListener(
   'click',
   () => {
+
     if (
       state.transitioning
     ) {
       return;
     }
 
+
     state.transitioning =
       true;
 
+
     blackholeBtn.disabled =
       true;
+
 
     clearAutoAdvanceTimer();
 
@@ -2646,35 +3799,39 @@ blackholeBtn.addEventListener(
 
     stopGameTimer();
 
+
     letterAudio.pause();
 
+
     /*
-       IMPORTANT:
+       Return to the DAILY
+       CHECK-IN screen.
 
-       The black hole now returns to:
-
-           Welcome back, NAME.
-           CHECK-IN
-
-       rather than directly to START MISSION.
+       The nickname remains saved.
     */
 
     playGalaxyZoomTransition(
       questionContent,
-      nicknameContent,
+      null,
       () => {
+
         showDailyHomepage();
+
       },
       'q-suck'
     );
 
-    setTimeout(() => {
-      state.transitioning =
-        false;
 
-      blackholeBtn.disabled =
-        false;
-    },
+    setTimeout(
+      () => {
+
+        state.transitioning =
+          false;
+
+        blackholeBtn.disabled =
+          false;
+
+      },
       QUESTION_EXIT_MS +
       QUESTION_ENTER_MS +
       60
@@ -2682,238 +3839,328 @@ blackholeBtn.addEventListener(
   }
 );
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    SHARE BUTTON
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 function showShareFeedback(
   message,
   durationMs
 ) {
+
   const original =
     shareBtn.textContent;
+
 
   shareBtn.textContent =
     message;
 
+
   shareBtn.disabled =
     true;
 
+
   setTimeout(
     () => {
+
       shareBtn.textContent =
         original;
 
       shareBtn.disabled =
         false;
+
     },
-    durationMs || 2000
+    durationMs ||
+    2000
   );
 }
 
-if (shareBtn) {
-  shareBtn.addEventListener(
-    'click',
-    async () => {
-      const shareData = {
-        title:
-          document.title,
 
-        text:
-          'Come play the Galaxy Alphabet Quiz with me! 🚀',
+shareBtn.addEventListener(
+  'click',
+  async () => {
 
-        url:
-          window.location.href
-      };
+    const shareData = {
 
-      if (
-        navigator.share
-      ) {
-        try {
-          await navigator.share(
-            shareData
-          );
-        } catch (err) {
-          /* Student cancelled share. */
-        }
+      title:
+        document.title,
+
+      text:
+        'Come play the Galaxy Alphabet Quiz with me! 🚀',
+
+      url:
+        window.location.href
+    };
+
+
+    /*
+       Native mobile share.
+    */
+
+    if (
+      navigator.share
+    ) {
+
+      try {
+
+        await navigator.share(
+          shareData
+        );
+
+      } catch (error) {
+
+        /*
+           User cancelled sharing.
+           Do nothing.
+        */
+      }
+
+
+      return;
+    }
+
+
+    /*
+       Clipboard fallback.
+    */
+
+    if (
+      navigator.clipboard &&
+      navigator.clipboard.writeText
+    ) {
+
+      try {
+
+        await navigator.clipboard.writeText(
+          shareData.url
+        );
+
+
+        showShareFeedback(
+          '✅ Link Copied!'
+        );
+
 
         return;
+
+      } catch (error) {
+
+        /* Fall through */
       }
-
-      if (
-        navigator.clipboard &&
-        navigator.clipboard.writeText
-      ) {
-        try {
-          await navigator.clipboard.writeText(
-            shareData.url
-          );
-
-          showShareFeedback(
-            '✅ Link Copied!'
-          );
-
-          return;
-        } catch (err) {
-          /* Fall through. */
-        }
-      }
-
-      window.prompt(
-        'Copy this link to share:',
-        shareData.url
-      );
     }
-  );
-}
 
-/* ------------------------------------------------------------
-   SPACE GUN CLICK SOUND
-   ------------------------------------------------------------ */
+
+    /*
+       Final fallback.
+    */
+
+    window.prompt(
+      'Copy this link to share:',
+      shareData.url
+    );
+  }
+);
+
+
+/* ============================================================
+   BUTTON CLICK SOUND
+   ============================================================ */
 
 let clickSoundCtx =
   null;
 
+
 function playClickSound() {
+
   const AudioContextClass =
     window.AudioContext ||
     window.webkitAudioContext;
 
-  if (!AudioContextClass) {
+
+  if (
+    !AudioContextClass
+  ) {
     return;
   }
 
-  if (!clickSoundCtx) {
+
+  if (
+    !clickSoundCtx
+  ) {
+
     clickSoundCtx =
       new AudioContextClass();
   }
+
 
   if (
     clickSoundCtx.state ===
     'suspended'
   ) {
+
     clickSoundCtx.resume();
   }
+
 
   const ctx =
     clickSoundCtx;
 
+
   const now =
     ctx.currentTime;
+
 
   const osc =
     ctx.createOscillator();
 
+
   const gain =
     ctx.createGain();
 
+
   osc.type =
     'square';
+
 
   osc.frequency.setValueAtTime(
     1100,
     now
   );
 
+
   osc.frequency.exponentialRampToValueAtTime(
     120,
     now + 0.15
   );
+
 
   gain.gain.setValueAtTime(
     0.16,
     now
   );
 
+
   gain.gain.exponentialRampToValueAtTime(
     0.001,
     now + 0.16
   );
 
-  osc.connect(gain);
+
+  osc.connect(
+    gain
+  );
+
 
   gain.connect(
     ctx.destination
   );
 
-  osc.start(now);
+
+  osc.start(
+    now
+  );
+
 
   osc.stop(
     now + 0.18
   );
 }
 
+
 document.addEventListener(
   'click',
-  e => {
-    const btn =
-      e.target.closest(
+  event => {
+
+    const button =
+      event.target.closest(
         'button'
       );
 
+
     if (
-      btn &&
-      !btn.disabled
+      button &&
+      !button.disabled
     ) {
+
       playClickSound();
     }
   },
   true
 );
 
-/* ------------------------------------------------------------
+
+/* ============================================================
    DAILY MIDNIGHT CHECK
-   ------------------------------------------------------------
-
-   If the webpage remains open through 00:00 JST,
-   the old nickname is no longer valid.
-
-   We don't forcibly interrupt a game that is already
-   being played. Instead, when the player next returns
-   home/checks in, the new day is detected and a new
-   nickname can be entered.
-   ------------------------------------------------------------ */
+   ============================================================ */
 
 let lastKnownJstDate =
   getJstDateKey();
 
+
 setInterval(
   () => {
+
     const currentJstDate =
       getJstDateKey();
+
 
     if (
       currentJstDate !==
       lastKnownJstDate
     ) {
+
       lastKnownJstDate =
         currentJstDate;
 
-      /*
-         Do not interrupt an active mission.
 
-         The nickname will be rechecked when
-         the player returns to the homepage.
+      /*
+         Don't interrupt an active
+         mission.
+
+         The nickname will be
+         checked when the player
+         returns to the homepage.
       */
 
       stopChampionCountdown();
     }
+
   },
   30000
 );
 
-/* ------------------------------------------------------------
-   INIT
-   ------------------------------------------------------------ */
+
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
 
 buildStarField();
 
 setupWarpCanvas();
 
-initNicknameGate();
 
-/* Ambient effects */
-if (!prefersReducedMotion) {
+/*
+   Decide which screen to show.
+
+   New day / no nickname:
+       nickname screen
+
+   Existing nickname:
+       daily check-in screen
+*/
+
+showDailyHomepage();
+
+
+/*
+   Ambient effects.
+*/
+
+if (
+  !prefersReducedMotion
+) {
+
   scheduleShootingStars();
 
   scheduleFloatingSatellites();
