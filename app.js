@@ -7,30 +7,30 @@
    Settings you CAN safely change below:
 
      QUESTIONS_PER_GAME       : how many questions are played each round
-     STAR_COUNT                : how many background stars are drawn
-     WARP_*                    : timing/density of the big galaxy-entrance
-                                  hyperspace sequence (mission launch)
-     QUESTION_WARP_*           : timing/density of the shorter galaxy zoom
-                                  that plays between every question
-     SHOOTING_STAR_*           : how often shooting stars streak by, and
-                                  how many can be on screen at once
-     FLOATING_SATELLITE_*      : how often 🛰️ satellites drift across the
-                                  screen, and how many can be on screen at once
-     AUTO_ADVANCE_DELAY_MS     : how long feedback shows before auto-advancing
-     AUTOPLAY_GAP_MS           : gap between the two automatic audio plays
-     calcTimeBonus()           : the time-bonus point table for scoring
-     BEST_SCORE_KEY            : the localStorage key the best score is
-                                  saved under (resets daily at local midnight)
-     LEADERBOARD_MAX_ROWS      : how many rows show on each leaderboard
+     STAR_COUNT               : how many background stars are drawn
+     WARP_*                   : timing/density of the big galaxy-entrance
+                                 hyperspace sequence (mission launch)
+     QUESTION_WARP_*          : timing/density of the shorter galaxy zoom
+                                 that plays between every question
+     SHOOTING_STAR_*          : how often shooting stars streak by, and
+                                 how many can be on screen at once
+     FLOATING_SATELLITE_*     : how often satellites drift across the
+                                 screen, and how many can be on screen
+     AUTO_ADVANCE_DELAY_MS    : how long feedback shows before
+                                 auto-advancing
+     AUTOPLAY_GAP_MS          : gap between the two automatic audio plays
+     calcTimeBonus()          : the time-bonus point table for scoring
+     BEST_SCORE_KEY           : localStorage key for best score
+     LEADERBOARD_MAX_ROWS     : how many rows show on leaderboard
    ============================================================ */
 
-const QUESTIONS_PER_GAME = 7; // <-- change this to play more/fewer questions per game
-const STAR_COUNT = 90; // <-- change this to make the sky sparser/denser
+const QUESTIONS_PER_GAME = 7;
+const STAR_COUNT = 90;
 
-/* Ambient shooting stars & floating satellites — these play
-   continuously throughout the WHOLE site (every screen), independent
-   of the hyperspace transitions below. Each spawns on a random delay
-   somewhere between its MIN and MAX, forever. */
+/* ------------------------------------------------------------
+   AMBIENT SHOOTING STARS & SATELLITES
+   ------------------------------------------------------------ */
+
 const SHOOTING_STAR_MIN_DELAY_MS = 2200;
 const SHOOTING_STAR_MAX_DELAY_MS = 5200;
 const SHOOTING_STAR_MAX_CONCURRENT = 3;
@@ -39,29 +39,43 @@ const FLOATING_SATELLITE_MIN_DELAY_MS = 5000;
 const FLOATING_SATELLITE_MAX_DELAY_MS = 11000;
 const FLOATING_SATELLITE_MAX_CONCURRENT = 3;
 
-/* Galaxy entrance transition timing */
+/* ------------------------------------------------------------
+   GALAXY ENTRANCE TRANSITION
+   ------------------------------------------------------------ */
+
 const WARP_STAR_COUNT = 220;
 const WARP_ACCEL_MS = 1600;
 const WARP_HOLD_MS = 250;
 const WARP_EXIT_MS = 650;
 
-/* Question-to-question galaxy zoom transition */
+/* ------------------------------------------------------------
+   QUESTION-TO-QUESTION GALAXY TRANSITION
+   ------------------------------------------------------------ */
+
 const QUESTION_WARP_STAR_COUNT = 70;
 const QUESTION_WARP_ACCEL_MS = 450;
 const QUESTION_EXIT_MS = 320;
 const QUESTION_ENTER_MS = 360;
 
-/* Auto-advance */
+/* ------------------------------------------------------------
+   AUTO ADVANCE
+   ------------------------------------------------------------ */
+
 const AUTO_ADVANCE_DELAY_MS = 2000;
 
-/* Auto-play-twice */
+/* ------------------------------------------------------------
+   AUTOMATIC AUDIO PLAYBACK
+   ------------------------------------------------------------ */
+
 const AUTOPLAY_GAP_MS = 2000;
 
-/* Scoring & best-score persistence */
+/* ------------------------------------------------------------
+   SCORING
+   ------------------------------------------------------------ */
+
 const POINTS_PER_CORRECT_ANSWER = 100;
 const BEST_SCORE_KEY = 'galaxyAlphabetQuiz.bestScore.v1';
 
-/* Time-bonus table */
 function calcTimeBonus(seconds) {
   if (seconds < 20) return 300;
   if (seconds < 25) return 200;
@@ -77,11 +91,26 @@ const prefersReducedMotion =
 
 /* ------------------------------------------------------------
    NICKNAME + LEADERBOARD PERSISTENCE
+
+   Everything uses JAPAN STANDARD TIME.
+
+   Nickname:
+   - entered once per JST calendar day
+   - remains valid until 23:59:59 JST
+   - expires automatically at 00:00 JST
+
+   Leaderboards:
+   - separate for EASY / MEDIUM / HARD
+   - reset by JST date
+
+   Best score:
+   - also reset by JST date
    ------------------------------------------------------------ */
 
 const NICKNAME_KEY = 'galaxyAlphabetQuiz.nickname.v1';
 const LEADERBOARD_KEY_PREFIX = 'galaxyAlphabetQuiz.leaderboard.';
 const LEADERBOARD_MAX_ROWS = 5;
+
 const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
 
 const MODE_LABELS = {
@@ -90,8 +119,13 @@ const MODE_LABELS = {
   hard: 'HARD'
 };
 
+/* ------------------------------------------------------------
+   JST DATE HELPERS
+   ------------------------------------------------------------ */
+
 function getJstDateKey(date) {
   const now = date || new Date();
+
   const jst = new Date(now.getTime() + JST_OFFSET_MS);
 
   const y = jst.getUTCFullYear();
@@ -103,19 +137,26 @@ function getJstDateKey(date) {
 
 function msUntilNextJstMidnight() {
   const now = new Date();
+
   const jstNow = new Date(now.getTime() + JST_OFFSET_MS);
 
-  const jstMidnight = new Date(Date.UTC(
-    jstNow.getUTCFullYear(),
-    jstNow.getUTCMonth(),
-    jstNow.getUTCDate() + 1,
-    0,
-    0,
-    0
-  ));
+  const jstMidnight = new Date(
+    Date.UTC(
+      jstNow.getUTCFullYear(),
+      jstNow.getUTCMonth(),
+      jstNow.getUTCDate() + 1,
+      0,
+      0,
+      0
+    )
+  );
 
   return jstMidnight.getTime() - jstNow.getTime();
 }
+
+/* ------------------------------------------------------------
+   NICKNAME
+   ------------------------------------------------------------ */
 
 function loadNickname() {
   try {
@@ -133,6 +174,8 @@ function loadNickname() {
       return null;
     }
 
+    /* IMPORTANT:
+       Nickname expires according to JAPAN TIME. */
     if (parsed.dateKey !== getJstDateKey()) {
       return null;
     }
@@ -153,9 +196,21 @@ function saveNickname(nickname) {
       })
     );
   } catch (e) {
-    // Storage unavailable
+    /* Storage unavailable — game can still run. */
   }
 }
+
+function clearNickname() {
+  try {
+    localStorage.removeItem(NICKNAME_KEY);
+  } catch (e) {
+    /* Ignore storage errors. */
+  }
+}
+
+/* ------------------------------------------------------------
+   LEADERBOARD
+   ------------------------------------------------------------ */
 
 function loadLeaderboard(mode) {
   const key = LEADERBOARD_KEY_PREFIX + mode + '.v1';
@@ -175,7 +230,7 @@ function loadLeaderboard(mode) {
       }
     }
   } catch (e) {
-    // fall through
+    /* Fall through to a fresh board. */
   }
 
   return {
@@ -190,7 +245,7 @@ function saveLeaderboard(mode, board) {
   try {
     localStorage.setItem(key, JSON.stringify(board));
   } catch (e) {
-    // Storage unavailable
+    /* Storage unavailable. */
   }
 }
 
@@ -297,6 +352,16 @@ const nicknameSubmitBtn =
 
 const welcomeBackEl =
   document.getElementById('welcomeBack');
+
+/* New nickname/check-in elements */
+const nicknameEntry =
+  document.getElementById('nicknameEntry');
+
+const nicknameWelcome =
+  document.getElementById('nicknameWelcome');
+
+const dailyCheckInBtn =
+  document.getElementById('dailyCheckInBtn');
 
 const startBtn =
   document.getElementById('startBtn');
@@ -476,25 +541,28 @@ function spawnShootingStar() {
 
   const isNear = Math.random() < 0.3;
 
-  const length = isNear
-    ? randRange(55, 90)
-    : randRange(22, 42);
+  const length =
+    isNear
+      ? randRange(55, 90)
+      : randRange(22, 42);
 
-  const distance = isNear
-    ? randRange(150, 230)
-    : randRange(80, 150);
+  const distance =
+    isNear
+      ? randRange(150, 230)
+      : randRange(80, 150);
 
-  const duration = isNear
-    ? randRange(550, 850)
-    : randRange(420, 680);
+  const duration =
+    isNear
+      ? randRange(550, 850)
+      : randRange(420, 680);
 
-  const peakOpacity = isNear
-    ? 1
-    : randRange(0.4, 0.65);
+  const peakOpacity =
+    isNear
+      ? 1
+      : randRange(0.4, 0.65);
 
-  const thickness = isNear
-    ? 2.2
-    : 1.2;
+  const thickness =
+    isNear ? 2.2 : 1.2;
 
   const startTop =
     randRange(-5, 55);
@@ -538,10 +606,13 @@ function spawnShootingStar() {
 
   activeShootingStarCount++;
 
-  el.addEventListener('animationend', () => {
-    el.remove();
-    activeShootingStarCount--;
-  });
+  el.addEventListener(
+    'animationend',
+    () => {
+      el.remove();
+      activeShootingStarCount--;
+    }
+  );
 
   ambientLayer.appendChild(el);
 }
@@ -647,10 +718,13 @@ function spawnFloatingSatellite() {
 
   activeSatelliteCount++;
 
-  el.addEventListener('animationend', () => {
-    el.remove();
-    activeSatelliteCount--;
-  });
+  el.addEventListener(
+    'animationend',
+    () => {
+      el.remove();
+      activeSatelliteCount--;
+    }
+  );
 
   ambientLayer.appendChild(el);
 }
@@ -677,6 +751,7 @@ let warpStars = [];
 let warpMaxRadius = 0;
 let warpRAF = null;
 let warpAnimStart = 0;
+
 let warpAccelMsActive =
   WARP_ACCEL_MS;
 
@@ -729,7 +804,8 @@ function resizeWarpCanvas() {
 }
 
 function makeWarpStar(nearCenter) {
-  const roll = Math.random();
+  const roll =
+    Math.random();
 
   return {
     angle:
@@ -743,7 +819,8 @@ function makeWarpStar(nearCenter) {
           0.5,
 
     spd:
-      0.6 + Math.random() * 1.4,
+      0.6 +
+      Math.random() * 1.4,
 
     hue:
       roll < 0.14
@@ -779,7 +856,8 @@ function warpFrame(now) {
 
   const accelProgress =
     Math.min(
-      elapsed / warpAccelMsActive,
+      elapsed /
+      warpAccelMsActive,
       1
     );
 
@@ -788,7 +866,8 @@ function warpFrame(now) {
     accelProgress;
 
   const speedFactor =
-    0.35 + eased * 5.5;
+    0.35 +
+    eased * 5.5;
 
   const w =
     window.innerWidth;
@@ -899,7 +978,9 @@ function warpFrame(now) {
 
 function stopWarpAnimation() {
   if (warpRAF) {
-    cancelAnimationFrame(warpRAF);
+    cancelAnimationFrame(
+      warpRAF
+    );
   }
 
   warpRAF = null;
@@ -1030,14 +1111,16 @@ function beginGalaxyEntrance() {
 function setDifficultyButtonsDisabled(
   disabled
 ) {
-  difficultyButtons.forEach(btn => {
-    btn.disabled =
-      disabled;
-  });
+  difficultyButtons.forEach(
+    btn => {
+      btn.disabled =
+        disabled;
+    }
+  );
 }
 
 /* ------------------------------------------------------------
-   QUESTION-TO-QUESTION GALAXY TRANSITION
+   QUESTION GALAXY TRANSITION
    ------------------------------------------------------------ */
 
 function playQuestionWarpBurst(
@@ -1118,7 +1201,9 @@ function playGalaxyZoomTransition(
   setTimeout(() => {
     onSwap();
 
-    if (exitEl !== enterEl) {
+    if (
+      exitEl !== enterEl
+    ) {
       exitEl.classList.remove(
         exitClass
       );
@@ -1163,7 +1248,9 @@ function formatTime(
     );
 
   const m =
-    Math.floor(s / 60);
+    Math.floor(
+      s / 60
+    );
 
   const sec =
     s % 60;
@@ -1171,7 +1258,10 @@ function formatTime(
   return (
     m +
     ':' +
-    String(sec).padStart(2, '0')
+    String(sec).padStart(
+      2,
+      '0'
+    )
   );
 }
 
@@ -1222,34 +1312,14 @@ function updateTimerDisplay() {
 
   timerPill.textContent =
     '⏱ ' +
-    formatTime(liveSeconds);
+    formatTime(
+      liveSeconds
+    );
 }
 
 /* ------------------------------------------------------------
    BEST SCORE
    ------------------------------------------------------------ */
-
-function getTodayDateKey() {
-  const d =
-    new Date();
-
-  const y =
-    d.getFullYear();
-
-  const m =
-    String(
-      d.getMonth() + 1
-    ).padStart(2, '0');
-
-  const day =
-    String(
-      d.getDate()
-    ).padStart(2, '0');
-
-  return (
-    `${y}-${m}-${day}`
-  );
-}
 
 function loadBestScore() {
   try {
@@ -1271,9 +1341,11 @@ function loadBestScore() {
       return null;
     }
 
+    /* IMPORTANT:
+       Best score also resets at 00:00 JST. */
     if (
       parsed.dateKey !==
-      getTodayDateKey()
+      getJstDateKey()
     ) {
       return null;
     }
@@ -1284,20 +1356,22 @@ function loadBestScore() {
   }
 }
 
-function saveBestScore(points) {
+function saveBestScore(
+  points
+) {
   try {
     localStorage.setItem(
       BEST_SCORE_KEY,
       JSON.stringify({
         points: points,
         dateKey:
-          getTodayDateKey(),
+          getJstDateKey(),
         savedAt:
           Date.now()
       })
     );
   } catch (e) {
-    // Storage unavailable
+    /* Ignore storage errors. */
   }
 }
 
@@ -1351,16 +1425,91 @@ function pickRoundQuestions() {
    ------------------------------------------------------------ */
 
 function showScreen(name) {
-  Object.values(screens)
-    .forEach(s =>
-      s.classList.remove(
-        'active'
-      )
-    );
-
-  screens[name].classList.add(
-    'active'
+  Object.values(screens).forEach(
+    s => {
+      if (s) {
+        s.classList.remove(
+          'active'
+        );
+      }
+    }
   );
+
+  if (screens[name]) {
+    screens[name].classList.add(
+      'active'
+    );
+  }
+}
+
+/* ------------------------------------------------------------
+   DAILY HOMEPAGE / CHECK-IN
+   ------------------------------------------------------------ */
+
+/*
+   This is the important new behavior.
+
+   Every time the player returns "home", they see:
+
+       Welcome back, NAME.
+       CHECK-IN
+
+   They do NOT go directly to START MISSION.
+
+   The nickname remains valid for the whole JST day.
+*/
+
+function showDailyHomepage() {
+  const existing =
+    loadNickname();
+
+  if (!existing) {
+    /* The JST day has changed. */
+    state.nickname = '';
+
+    if (nicknameInput) {
+      nicknameInput.value = '';
+    }
+
+    if (nicknameEntry) {
+      nicknameEntry.style.display =
+        'block';
+    }
+
+    if (nicknameWelcome) {
+      nicknameWelcome.style.display =
+        'none';
+    }
+
+    if (nicknameSubmitBtn) {
+      nicknameSubmitBtn.disabled =
+        true;
+    }
+
+    showScreen('nickname');
+
+    return;
+  }
+
+  state.nickname =
+    existing;
+
+  if (nicknameEntry) {
+    nicknameEntry.style.display =
+      'none';
+  }
+
+  if (nicknameWelcome) {
+    nicknameWelcome.style.display =
+      'block';
+  }
+
+  if (welcomeBackEl) {
+    welcomeBackEl.innerHTML =
+      `Welcome back, ${escapeHtml(existing)}.`;
+  }
+
+  showScreen('nickname');
 }
 
 /* ------------------------------------------------------------
@@ -1377,7 +1526,10 @@ function renderConstellation() {
 
   const step =
     total > 1
-      ? (width - padding * 2) /
+      ? (
+          width -
+          padding * 2
+        ) /
         (total - 1)
       : 0;
 
@@ -1475,14 +1627,11 @@ function startGame() {
   state.roundQuestions =
     pickRoundQuestions();
 
-  state.currentIndex =
-    0;
+  state.currentIndex = 0;
 
-  state.score =
-    0;
+  state.score = 0;
 
-  state.results =
-    [];
+  state.results = [];
 
   modePill.textContent =
     MODE_LABELS[state.mode] ||
@@ -1519,6 +1668,10 @@ function clearAutoplaySecondTimer() {
   }
 }
 
+/* ------------------------------------------------------------
+   RENDER QUESTION
+   ------------------------------------------------------------ */
+
 function renderQuestion() {
   state.answeredCurrent =
     false;
@@ -1543,6 +1696,7 @@ function renderQuestion() {
 
   renderConstellation();
 
+  /* Reset audio */
   letterAudio.pause();
 
   letterAudio.currentTime =
@@ -1558,6 +1712,7 @@ function renderQuestion() {
     'playing'
   );
 
+  /* Reset feedback */
   feedbackEl.textContent =
     '';
 
@@ -1567,6 +1722,7 @@ function renderQuestion() {
   nextBtn.style.display =
     'none';
 
+  /* Build answer buttons */
   optionsGrid.innerHTML =
     '';
 
@@ -1596,12 +1752,13 @@ function renderQuestion() {
 
       btn.addEventListener(
         'click',
-        () =>
+        () => {
           handleAnswer(
             letter,
             btn,
             q.correctAnswer
-          )
+          );
+        }
       );
 
       optionsGrid.appendChild(
@@ -1610,11 +1767,12 @@ function renderQuestion() {
     }
   );
 
+  /* Automatically play twice */
   startAutoplaySequence();
 }
 
 /* ------------------------------------------------------------
-   AUTOMATIC AUDIO PLAYBACK
+   AUTOMATIC AUDIO ×2
    ------------------------------------------------------------ */
 
 function startAutoplaySequence() {
@@ -1632,11 +1790,13 @@ function startAutoplaySequence() {
     playPromise &&
     playPromise.catch
   ) {
-    playPromise.catch(() => {
-      playAudioBtn.classList.remove(
-        'playing'
-      );
-    });
+    playPromise.catch(
+      () => {
+        playAudioBtn.classList.remove(
+          'playing'
+        );
+      }
+    );
   }
 
   letterAudio.onended =
@@ -1693,7 +1853,7 @@ function startAutoplaySequence() {
 }
 
 /* ------------------------------------------------------------
-   MANUAL AUDIO BUTTON
+   MANUAL PLAY SOUND
    ------------------------------------------------------------ */
 
 playAudioBtn.addEventListener(
@@ -1715,11 +1875,13 @@ playAudioBtn.addEventListener(
       playPromise &&
       playPromise.catch
     ) {
-      playPromise.catch(() => {
-        playAudioBtn.classList.remove(
-          'playing'
-        );
-      });
+      playPromise.catch(
+        () => {
+          playAudioBtn.classList.remove(
+            'playing'
+          );
+        }
+      );
     }
 
     letterAudio.onended =
@@ -1733,14 +1895,6 @@ playAudioBtn.addEventListener(
 
 /* ------------------------------------------------------------
    ANSWER HANDLING
-   IMPORTANT:
-   correctAnswer can be:
-     "K"
-   OR:
-     ["K", "C"]
-
-   When it is an array, ANY answer inside the array
-   is accepted as correct.
    ------------------------------------------------------------ */
 
 function handleAnswer(
@@ -1748,8 +1902,10 @@ function handleAnswer(
   btnEl,
   correctLetter
 ) {
-  // Prevent multiple submissions
-  if (state.answeredCurrent) {
+  /* Prevent multiple answers */
+  if (
+    state.answeredCurrent
+  ) {
     return;
   }
 
@@ -1759,32 +1915,38 @@ function handleAnswer(
   clearAutoplaySecondTimer();
 
   /*
-    Support both:
+     IMPORTANT:
 
-      correctAnswer: "K"
+     Supports BOTH:
 
-    and:
+       correctAnswer: "K"
 
-      correctAnswer: ["K", "C"]
+     and:
+
+       correctAnswer: ["K", "C"]
+
+     Therefore, if K or C is selected,
+     either one receives the points.
   */
-  const correctAnswers =
-    Array.isArray(correctLetter)
-      ? correctLetter
-      : [correctLetter];
 
-  /*
-    ANY answer contained in correctAnswers
-    is considered correct.
-  */
-  const isCorrect =
-    correctAnswers.includes(
-      selectedLetter
+  const isMultipleCorrect =
+    Array.isArray(
+      correctLetter
     );
+
+  const isCorrect =
+    isMultipleCorrect
+      ? correctLetter.includes(
+          selectedLetter
+        )
+      : selectedLetter ===
+        correctLetter;
 
   state.results[
     state.currentIndex
   ] = isCorrect;
 
+  /* Disable all buttons */
   const allOptionButtons =
     optionsGrid.querySelectorAll(
       '.option-btn'
@@ -1795,38 +1957,28 @@ function handleAnswer(
       b.disabled = true;
 
       /*
-        Highlight ALL correct answers.
-
-        Example:
-        correctAnswer: ["K", "C"]
-
-        Both K and C receive the
-        "correct" class.
+         If there are multiple correct answers,
+         ALL correct buttons receive the correct styling.
       */
-      if (
-        correctAnswers.includes(
-          b.textContent
-        )
-      ) {
+      const buttonIsCorrect =
+        isMultipleCorrect
+          ? correctLetter.includes(
+              b.textContent
+            )
+          : b.textContent ===
+            correctLetter;
+
+      if (buttonIsCorrect) {
         b.classList.add(
           'correct'
         );
-      }
-
-      /*
-        If the player's selected answer
-        was wrong, highlight it as incorrect.
-      */
-      else if (b === btnEl) {
+      } else if (
+        b === btnEl
+      ) {
         b.classList.add(
           'incorrect'
         );
-      }
-
-      /*
-        Everything else is dimmed.
-      */
-      else {
+      } else {
         b.classList.add(
           'dimmed'
         );
@@ -1834,10 +1986,7 @@ function handleAnswer(
     }
   );
 
-  /* ----------------------------------------------------------
-     SCORE
-     ---------------------------------------------------------- */
-
+  /* Score */
   if (isCorrect) {
     state.score++;
 
@@ -1848,8 +1997,15 @@ function handleAnswer(
       'correct-text'
     );
   } else {
+    const answerText =
+      isMultipleCorrect
+        ? correctLetter.join(
+            ' / '
+          )
+        : correctLetter;
+
     feedbackEl.textContent =
-      `✗ Try again! The answer was "${correctAnswers.join(' or ')}".`;
+      `✗ Try again! It was "${answerText}".`;
 
     feedbackEl.classList.add(
       'incorrect-text'
@@ -1873,8 +2029,8 @@ function handleAnswer(
     total;
 
   /*
-    Stop the mission timer the instant
-    the final question is answered.
+     Stop the timer immediately when
+     the final answer is selected.
   */
   if (
     isLastQuestion &&
@@ -1892,15 +2048,17 @@ function handleAnswer(
   }
 
   /*
-    The player can still manually press Next,
-    but the game automatically advances after
-    AUTO_ADVANCE_DELAY_MS.
+     Auto-advance after 2 seconds.
   */
   nextBtn.textContent =
     isLastQuestion
       ? 'See Results →'
       : 'Next →';
 
+  /*
+     Keep the manual Next button available
+     as an optional early skip.
+  */
   nextBtn.style.display =
     'inline-block';
 
@@ -1913,11 +2071,13 @@ function handleAnswer(
 }
 
 /* ------------------------------------------------------------
-   ADVANCE TO NEXT QUESTION / RESULTS
+   ADVANCE QUESTION
    ------------------------------------------------------------ */
 
 function advanceFromCurrentQuestion() {
-  if (state.transitioning) {
+  if (
+    state.transitioning
+  ) {
     return;
   }
 
@@ -1980,7 +2140,9 @@ let championCountdownIntervalId =
   null;
 
 function updateChampionCountdown() {
-  if (!championCountdownEl) {
+  if (
+    !championCountdownEl
+  ) {
     return;
   }
 
@@ -2051,7 +2213,9 @@ function renderLeaderboard(
       LEADERBOARD_MAX_ROWS
     );
 
-  if (entries.length === 0) {
+  if (
+    entries.length === 0
+  ) {
     leaderboardListEl.innerHTML =
       '<li class="leaderboard-empty">Be the first Space Explorer on today\u2019s board!</li>';
 
@@ -2080,13 +2244,9 @@ function renderLeaderboard(
         return `
           <li class="leaderboard-row rank-${rank}${isMe ? ' me' : ''}">
             <span class="leaderboard-rank">${medal}</span>
-            <span class="leaderboard-name">
-              ${escapeHtml(entry.nickname)}${isMe ? ' (you)' : ''}
-            </span>
+            <span class="leaderboard-name">${escapeHtml(entry.nickname)}${isMe ? ' (you)' : ''}</span>
             <span class="leaderboard-meta">
-              <span class="lb-score">
-                ${entry.score} pts
-              </span>
+              <span class="lb-score">${entry.score} pts</span>
               ${formatTime(entry.timeSeconds)}
             </span>
           </li>
@@ -2115,15 +2275,6 @@ function showResults() {
   const total =
     state.roundQuestions.length;
 
-  /*
-    Correct-answer points:
-    7 questions × 100 = maximum 700 points.
-
-    Time bonus:
-    maximum 300 points.
-
-    Maximum total = 1000 points.
-  */
   const correctPoints =
     state.score *
     POINTS_PER_CORRECT_ANSWER;
@@ -2153,10 +2304,14 @@ function showResults() {
   if (ratio === 1) {
     message =
       'Perfect mission — you heard every letter!';
-  } else if (ratio >= 0.7) {
+  } else if (
+    ratio >= 0.7
+  ) {
     message =
       'Awesome listening, space explorer!';
-  } else if (ratio >= 0.4) {
+  } else if (
+    ratio >= 0.4
+  ) {
     message =
       'Nice work! Keep practicing those sounds.';
   } else {
@@ -2174,11 +2329,16 @@ function showResults() {
 
   resultsStars.textContent =
     '⭐'.repeat(filled) +
-    '☆'.repeat(5 - filled);
+    '☆'.repeat(
+      5 - filled
+    );
 
-  /*
-    Personal best score.
-  */
+  /* ----------------------------------------------------------
+     BEST SCORE
+
+     Uses JST.
+     ---------------------------------------------------------- */
+
   const previousBest =
     loadBestScore();
 
@@ -2212,10 +2372,10 @@ function showResults() {
     isNewBest
   );
 
-  /*
-    Daily leaderboard for the mode
-    just played.
-  */
+  /* ----------------------------------------------------------
+     DAILY LEADERBOARD
+     ---------------------------------------------------------- */
+
   const updatedBoard =
     recordLeaderboardResult(
       state.mode,
@@ -2231,9 +2391,7 @@ function showResults() {
 
   startChampionCountdown();
 
-  showScreen(
-    'results'
-  );
+  showScreen('results');
 }
 
 /* ------------------------------------------------------------
@@ -2247,6 +2405,7 @@ function sanitizeNickname(raw) {
     .slice(0, 12);
 }
 
+/* Enable Continue button when nickname exists */
 nicknameInput.addEventListener(
   'input',
   () => {
@@ -2256,6 +2415,10 @@ nicknameInput.addEventListener(
       ).length === 0;
   }
 );
+
+/* ------------------------------------------------------------
+   SUBMIT NEW NICKNAME
+   ------------------------------------------------------------ */
 
 function submitNickname() {
   const nickname =
@@ -2274,16 +2437,29 @@ function submitNickname() {
     nickname
   );
 
-  showScreen(
-    'start'
-  );
+  /*
+     IMPORTANT:
+
+     After entering a nickname for the first time,
+     the player sees the same DAILY HOMEPAGE:
+
+         Welcome back, NAME.
+         CHECK-IN
+
+     They must click CHECK-IN to reach
+     START MISSION.
+  */
+
+  showDailyHomepage();
 }
 
+/* Button */
 nicknameSubmitBtn.addEventListener(
   'click',
   submitNickname
 );
 
+/* Enter key */
 nicknameInput.addEventListener(
   'keydown',
   e => {
@@ -2295,6 +2471,7 @@ nicknameInput.addEventListener(
   }
 );
 
+/* Native form submit */
 nicknameForm.addEventListener(
   'submit',
   e => {
@@ -2304,25 +2481,57 @@ nicknameForm.addEventListener(
   }
 );
 
+/* ------------------------------------------------------------
+   DAILY CHECK-IN BUTTON
+   ------------------------------------------------------------ */
+
+if (dailyCheckInBtn) {
+  dailyCheckInBtn.addEventListener(
+    'click',
+    () => {
+      /*
+         Check again that the nickname
+         is still valid for TODAY in JST.
+
+         This matters if someone leaves the
+         page open across midnight.
+      */
+
+      const existing =
+        loadNickname();
+
+      if (!existing) {
+        state.nickname = '';
+
+        showDailyHomepage();
+
+        return;
+      }
+
+      state.nickname =
+        existing;
+
+      showScreen('start');
+    }
+  );
+}
+
+/* ------------------------------------------------------------
+   INITIAL NICKNAME GATE
+   ------------------------------------------------------------ */
+
 function initNicknameGate() {
-  const existing =
-    loadNickname();
+  /*
+     If today's nickname already exists,
+     show:
 
-  if (existing) {
-    state.nickname =
-      existing;
+         Welcome back, NAME.
+         CHECK-IN
 
-    welcomeBackEl.textContent =
-      `Welcome back, ${existing}! 👋`;
+     NOT START MISSION.
+  */
 
-    showScreen(
-      'start'
-    );
-  } else {
-    showScreen(
-      'nickname'
-    );
-  }
+  showDailyHomepage();
 }
 
 /* ------------------------------------------------------------
@@ -2381,6 +2590,13 @@ playAgainBtn.addEventListener(
 
     stopChampionCountdown();
 
+    /*
+       Play Again goes to the
+       Difficulty Selection screen.
+
+       Nickname remains valid.
+    */
+
     playGalaxyZoomTransition(
       resultsContent,
       startContent,
@@ -2406,7 +2622,7 @@ playAgainBtn.addEventListener(
 );
 
 /* ------------------------------------------------------------
-   BLACK HOLE BUTTON
+   BLACK HOLE — RETURN TO DAILY HOMEPAGE
    ------------------------------------------------------------ */
 
 blackholeBtn.addEventListener(
@@ -2432,13 +2648,22 @@ blackholeBtn.addEventListener(
 
     letterAudio.pause();
 
+    /*
+       IMPORTANT:
+
+       The black hole now returns to:
+
+           Welcome back, NAME.
+           CHECK-IN
+
+       rather than directly to START MISSION.
+    */
+
     playGalaxyZoomTransition(
       questionContent,
-      startContent,
+      nicknameContent,
       () => {
-        showScreen(
-          'start'
-        );
+        showDailyHomepage();
       },
       'q-suck'
     );
@@ -2474,13 +2699,16 @@ function showShareFeedback(
   shareBtn.disabled =
     true;
 
-  setTimeout(() => {
-    shareBtn.textContent =
-      original;
+  setTimeout(
+    () => {
+      shareBtn.textContent =
+        original;
 
-    shareBtn.disabled =
-      false;
-  }, durationMs || 2000);
+      shareBtn.disabled =
+        false;
+    },
+    durationMs || 2000
+  );
 }
 
 if (shareBtn) {
@@ -2506,7 +2734,7 @@ if (shareBtn) {
             shareData
           );
         } catch (err) {
-          // User cancelled
+          /* Student cancelled share. */
         }
 
         return;
@@ -2527,7 +2755,7 @@ if (shareBtn) {
 
           return;
         } catch (err) {
-          // fall through
+          /* Fall through. */
         }
       }
 
@@ -2602,17 +2830,13 @@ function playClickSound() {
     now + 0.16
   );
 
-  osc.connect(
-    gain
-  );
+  osc.connect(gain);
 
   gain.connect(
     ctx.destination
   );
 
-  osc.start(
-    now
-  );
+  osc.start(now);
 
   osc.stop(
     now + 0.18
@@ -2638,6 +2862,47 @@ document.addEventListener(
 );
 
 /* ------------------------------------------------------------
+   DAILY MIDNIGHT CHECK
+   ------------------------------------------------------------
+
+   If the webpage remains open through 00:00 JST,
+   the old nickname is no longer valid.
+
+   We don't forcibly interrupt a game that is already
+   being played. Instead, when the player next returns
+   home/checks in, the new day is detected and a new
+   nickname can be entered.
+   ------------------------------------------------------------ */
+
+let lastKnownJstDate =
+  getJstDateKey();
+
+setInterval(
+  () => {
+    const currentJstDate =
+      getJstDateKey();
+
+    if (
+      currentJstDate !==
+      lastKnownJstDate
+    ) {
+      lastKnownJstDate =
+        currentJstDate;
+
+      /*
+         Do not interrupt an active mission.
+
+         The nickname will be rechecked when
+         the player returns to the homepage.
+      */
+
+      stopChampionCountdown();
+    }
+  },
+  30000
+);
+
+/* ------------------------------------------------------------
    INIT
    ------------------------------------------------------------ */
 
@@ -2647,9 +2912,8 @@ setupWarpCanvas();
 
 initNicknameGate();
 
-if (
-  !prefersReducedMotion
-) {
+/* Ambient effects */
+if (!prefersReducedMotion) {
   scheduleShootingStars();
 
   scheduleFloatingSatellites();
