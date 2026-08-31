@@ -2,58 +2,66 @@
 
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
-<title>S.P.A.C.E. ALPHABETS</title>
-<link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
+  >
+  <title>S.P.A.C.E. ALPHABETS</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <!-- Decorative background layers -->
+  <!-- Background -->
 
   <div class="sky"></div>
   <div class="nebula"></div>
   <div class="stars" id="starField" aria-hidden="true"></div>
-
-  <!-- Ambient floating satellites + shooting stars -->
-
   <div class="ambient-layer" id="ambientLayer" aria-hidden="true"></div>
 
-  <!-- Hyperspace transition canvas -->
+<canvas
+id="warpCanvas"
+class="warp-canvas"
+aria-hidden="true"
 
-<canvas id="warpCanvas" class="warp-canvas" aria-hidden="true"></canvas>
+> </canvas>
 
-  <!-- Galaxy arrival flash -->
-
-  <div id="galaxyFlash" class="galaxy-flash" aria-hidden="true"></div>
+  <div
+    id="galaxyFlash"
+    class="galaxy-flash"
+    aria-hidden="true"
+  ></div>
 
   <main class="app" id="appShell">
-    <div class="card">
 
 ```
-  <!-- ============================================================
-       NICKNAME SCREEN
+<div class="card">
 
-       Shown only when there is NO nickname stored for today.
 
-       Once the player enters a nickname, it is remembered until
-       23:59:59 JST. The next time they open/return to the homepage
-       during the same day, they will see the CHECK-IN screen
-       instead of this screen.
-       ============================================================ -->
+  <!-- ======================================================
+       FIRST LOGIN — NICKNAME
+       ====================================================== -->
 
-  <section id="nicknameScreen" class="screen active start-screen">
+  <section
+    id="nicknameScreen"
+    class="screen active start-screen"
+  >
 
-    <div class="question-content" id="nicknameContent">
+    <div
+      class="question-content"
+      id="nicknameContent"
+    >
 
       <div class="brand">
-        <div class="brand-emoji" aria-hidden="true">🧑‍🚀</div>
+        <div class="brand-emoji" aria-hidden="true">
+          🧑‍🚀
+        </div>
 
         <h1 class="title">
-  GALAXY CHECK-IN<br>
-  <I>Prepare for launch...</I>
-</h1>
+          GALAXY CHECK-IN<br>
+          <i>Prepare for launch...</i>
+        </h1>
       </div>
 
       <p class="subtitle">
@@ -75,12 +83,12 @@
           placeholder="e.g. STARFOX123"
           aria-label="Space Explorer nickname"
           autocomplete="off"
-        />
+        >
 
         <button
           id="nicknameSubmitBtn"
           class="btn btn-primary btn-lg btn-block"
-          type="button"
+          type="submit"
           disabled
         >
           🚀 Continue
@@ -93,20 +101,9 @@
   </section>
 
 
-  <!-- ============================================================
-       DAILY CHECK-IN / HOMEPAGE
-
-       This is the page the player returns to throughout the day.
-
-       Example:
-
-       Welcome back, STARFOX123!
-
-       CHECK-IN
-
-       Clicking CHECK-IN takes the player to the START MISSION
-       page.
-       ============================================================ -->
+  <!-- ======================================================
+       DAILY CHECK-IN — RETURNING PLAYER
+       ====================================================== -->
 
   <section
     id="checkinScreen"
@@ -133,7 +130,6 @@
 
       </div>
 
-
       <p
         class="welcome-back"
         id="welcomeBack"
@@ -141,12 +137,10 @@
         Welcome back!
       </p>
 
-
       <p class="subtitle">
         宇宙探検の準備はできた？<br>
         さあ、チェックインしよう！
       </p>
-
 
       <div
         class="start-illustration"
@@ -157,15 +151,13 @@
         <span>✨</span>
       </div>
 
-
       <button
         id="checkinBtn"
         class="btn btn-primary btn-lg btn-block"
         type="button"
       >
-        🚀 CHECK-IN
+        🚀 CONTINUE
       </button>
-
 
       <button
         id="shareBtn"
@@ -180,13 +172,9 @@
   </section>
 
 
-  <!-- ============================================================
-       START MISSION SCREEN
-
-       The player reaches this page AFTER pressing CHECK-IN.
-
-       From here they proceed to choose their difficulty.
-       ============================================================ -->
+  <!-- ======================================================
+       START MISSION PAGE
+       ====================================================== -->
 
   <section
     id="startScreen"
@@ -214,12 +202,17 @@
 
       </div>
 
+      <p
+        class="welcome-back"
+        id="startWelcome"
+      >
+        Welcome!
+      </p>
 
       <p class="subtitle">
         聞こえた音はどのアルファベット？<br>
         さあ、見つけよう！
       </p>
-
 
       <div
         class="start-illustration"
@@ -229,7 +222,6 @@
         <span>🪐</span>
         <span>✨</span>
       </div>
-
 
       <button
         id="startBtn"
@@ -244,9 +236,9 @@
   </section>
 
 
-  <!-- ============================================================
-       DIFFICULTY SELECT SCREEN
-       ============================================================ -->
+  <!-- ======================================================
+       DIFFICULTY
+       ====================================================== -->
 
   <section
     id="difficultyScreen"
@@ -274,11 +266,9 @@
 
       </div>
 
-
       <p class="subtitle">
         レベルをえらんでね
       </p>
-
 
       <div class="difficulty-grid">
 
@@ -293,7 +283,6 @@
           </span>
         </button>
 
-
         <button
           class="btn btn-primary btn-block difficulty-btn"
           type="button"
@@ -304,7 +293,6 @@
             Phonics &amp; blends
           </span>
         </button>
-
 
         <button
           class="btn btn-primary btn-block difficulty-btn"
@@ -324,9 +312,9 @@
   </section>
 
 
-  <!-- ============================================================
-       GAME SCREEN
-       ============================================================ -->
+  <!-- ======================================================
+       GAME
+       ====================================================== -->
 
   <section
     id="gameScreen"
@@ -338,15 +326,14 @@
 
       <div class="header-group">
 
-        <!-- Black hole = return to homepage/check-in -->
         <div class="blackhole-wrap">
 
           <button
             id="blackholeBtn"
             class="blackhole-btn"
             type="button"
-            aria-label="Leave the mission and return to the home screen"
-            title="Return to home screen"
+            aria-label="Return to home"
+            title="Return to home"
           ></button>
 
           <span
@@ -357,7 +344,6 @@
           </span>
 
         </div>
-
 
         <span
           class="pill"
@@ -378,14 +364,12 @@
           EASY
         </span>
 
-
         <span
           class="pill timer-pill"
           id="timerPill"
         >
           ⏱ 0:00
         </span>
-
 
         <span
           class="pill score-pill"
@@ -399,17 +383,12 @@
     </div>
 
 
-    <!-- Constellation progress trail -->
     <div
       class="constellation"
       id="constellation"
       aria-hidden="true"
     ></div>
 
-
-    <!-- ============================================================
-         CURRENT QUESTION
-         ============================================================ -->
 
     <div
       class="question-content"
@@ -420,14 +399,12 @@
         Which letter did you hear?
       </p>
 
-
       <button
         id="playAudioBtn"
         class="audio-btn"
         type="button"
         aria-label="Play the letter sound"
       >
-
         <span
           class="speaker-icon"
           aria-hidden="true"
@@ -438,25 +415,19 @@
         <span>
           Play Sound
         </span>
-
       </button>
 
-
-      <!-- Hidden native audio element -->
       <audio
         id="letterAudio"
         preload="none"
       ></audio>
 
-
-      <!-- Answer choices generated by app.js -->
       <div
         class="options-grid"
         id="optionsGrid"
         role="group"
         aria-label="Answer choices"
       ></div>
-
 
       <p
         class="feedback"
@@ -483,9 +454,9 @@
   </section>
 
 
-  <!-- ============================================================
-       RESULTS SCREEN
-       ============================================================ -->
+  <!-- ======================================================
+       RESULTS
+       ====================================================== -->
 
   <section
     id="resultsScreen"
@@ -504,11 +475,9 @@
         🎉
       </div>
 
-
       <h2>
         Great Job, Space Explorer!
       </h2>
-
 
       <p
         class="results-score"
@@ -517,19 +486,16 @@
         0 POINTS
       </p>
 
-
       <p
         class="results-msg"
         id="resultsMsg"
       ></p>
-
 
       <div
         class="results-stars"
         id="resultsStars"
         aria-hidden="true"
       ></div>
-
 
       <p
         class="results-best"
@@ -539,7 +505,6 @@
       </p>
 
 
-      <!-- Daily leaderboard -->
       <div
         class="leaderboard"
         id="leaderboard"
@@ -550,14 +515,12 @@
           id="championCountdown"
         ></p>
 
-
         <h3
           class="leaderboard-title"
           id="leaderboardTitle"
         >
           EASY LEADERBOARD
         </h3>
-
 
         <ol
           class="leaderboard-list"
@@ -584,15 +547,7 @@
 
   </main>
 
-  <!-- ================================================================
-       JAVASCRIPT
-       ================================================================ -->
-
-  <!-- Question banks -->
-
   <script src="questions.js"></script>
-
-  <!-- Game logic -->
 
   <script src="app.js"></script>
 
