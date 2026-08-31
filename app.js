@@ -460,14 +460,14 @@ storageSet(
 NICKNAME_KEY,
 JSON.stringify({
 
-```
+
   nickname: nickname,
 
   dateKey:
     getJstDateKey()
 
 })
-```
+
 
 );
 
@@ -486,7 +486,7 @@ return null;
 
 try {
 
-```
+
 const data =
   JSON.parse(raw);
 
@@ -523,17 +523,17 @@ if (
 return sanitizeNickname(
   data.nickname
 );
-```
+
 
 } catch (error) {
 
-```
+
 storageRemove(
   NICKNAME_KEY
 );
 
 return null;
-```
+
 
 }
 
@@ -550,7 +550,7 @@ screens
 ).forEach(
 screen => {
 
-```
+
   if (!screen) {
     return;
   }
@@ -560,7 +560,7 @@ screen => {
   );
 
 }
-```
+
 
 );
 
@@ -569,11 +569,11 @@ screens[name];
 
 if (target) {
 
-```
+
 target.classList.add(
   'active'
 );
-```
+
 
 }
 
@@ -591,15 +591,15 @@ loadNickname();
 /*
 FIRST VISIT OF THE DAY
 
-```
+
 No nickname exists.
-```
+
 
 */
 
 if (!nickname) {
 
-```
+
 state.nickname = '';
 
 nicknameInput.value = '';
@@ -616,16 +616,16 @@ setTimeout(
 );
 
 return;
-```
+
 
 }
 
 /*
 RETURNING PLAYER
 
-```
+
 Nickname already exists today.
-```
+
 
 */
 
@@ -659,11 +659,11 @@ nicknameInput.value
 
 if (!nickname) {
 
-```
+
 nicknameInput.focus();
 
 return;
-```
+
 
 }
 
@@ -688,11 +688,11 @@ startWelcomeEl.textContent =
 /*
 FIRST LOGIN:
 
-```
+
 NICKNAME
    ↓
 START MISSION PAGE
-```
+
 
 */
 
@@ -708,7 +708,7 @@ nicknameInput.addEventListener(
 'input',
 () => {
 
-```
+
 const nickname =
   sanitizeNickname(
     nicknameInput.value
@@ -716,7 +716,7 @@ const nickname =
 
 nicknameSubmitBtn.disabled =
   nickname.length === 0;
-```
+
 
 }
 );
@@ -730,7 +730,7 @@ nicknameInput.addEventListener(
 'keydown',
 event => {
 
-```
+
 if (
   event.key === 'Enter'
 ) {
@@ -740,7 +740,7 @@ if (
   submitNickname();
 
 }
-```
+
 
 }
 );
@@ -753,7 +753,7 @@ checkinBtn.addEventListener(
 'click',
 () => {
 
-```
+
 /*
   Re-check localStorage.
 
@@ -804,7 +804,7 @@ startWelcomeEl.textContent =
 */
 
 showScreen('start');
-```
+
 
 }
 );
@@ -817,7 +817,7 @@ startBtn.addEventListener(
 'click',
 () => {
 
-```
+
 if (
   state.transitioning
 ) {
@@ -853,7 +853,7 @@ state.transitioning =
 showScreen(
   'difficulty'
 );
-```
+
 
 }
 );
@@ -873,7 +873,7 @@ i > 0;
 i--
 ) {
 
-```
+
 const j =
   Math.floor(
     Math.random() *
@@ -888,7 +888,7 @@ const j =
   result[j],
   result[i]
 ];
-```
+
 
 }
 
@@ -905,11 +905,11 @@ function pickRoundQuestions() {
 /*
 questions.js must contain:
 
-```
+
   QUESTION_BANKS.easy
   QUESTION_BANKS.medium
   QUESTION_BANKS.hard
-```
+
 
 */
 
@@ -918,13 +918,13 @@ typeof QUESTION_BANKS ===
 'undefined'
 ) {
 
-```
+
 console.error(
   'QUESTION_BANKS is missing. Check questions.js.'
 );
 
 return [];
-```
+
 
 }
 
@@ -962,7 +962,7 @@ disabled;
 difficultyButtons.forEach(
 button => {
 
-```
+
 button.addEventListener(
   'click',
   () => {
@@ -983,7 +983,7 @@ button.addEventListener(
 
   }
 );
-```
+
 
 }
 );
@@ -1048,14 +1048,14 @@ if (
 gameTimerIntervalId !== null
 ) {
 
-```
+
 clearInterval(
   gameTimerIntervalId
 );
 
 gameTimerIntervalId =
   null;
-```
+
 
 }
 
@@ -1164,7 +1164,7 @@ Math.random();
 
 return {
 
-```
+
 angle:
   Math.random() *
   Math.PI *
@@ -1189,7 +1189,7 @@ hue:
       roll < 0.26
         ? 'teal'
         : 'white'
-```
+
 
 };
 
@@ -1211,11 +1211,11 @@ i < count;
 i++
 ) {
 
-```
+
 warpStars.push(
   makeWarpStar(false)
 );
-```
+
 
 }
 
@@ -1271,7 +1271,7 @@ height
 warpStars.forEach(
 (star, index) => {
 
-```
+
   const delta =
     speedFactor *
     star.spd *
@@ -1372,7 +1372,7 @@ warpStars.forEach(
   warpCtx.fill();
 
 }
-```
+
 
 );
 
@@ -1389,11 +1389,11 @@ if (
 warpRAF !== null
 ) {
 
-```
+
 cancelAnimationFrame(
   warpRAF
 );
-```
+
 
 }
 
@@ -1401,14 +1401,14 @@ warpRAF = null;
 
 if (warpCtx) {
 
-```
+
 warpCtx.clearRect(
   0,
   0,
   warpCanvas.width,
   warpCanvas.height
 );
-```
+
 
 }
 
@@ -1449,7 +1449,7 @@ if (
 !warpCtx
 ) {
 
-```
+
 startGame();
 
 state.transitioning =
@@ -1460,7 +1460,7 @@ setDifficultyButtonsDisabled(
 );
 
 return;
-```
+
 
 }
 
@@ -1470,7 +1470,7 @@ window.matchMedia(
 ).matches
 ) {
 
-```
+
 startGame();
 
 state.transitioning =
@@ -1481,7 +1481,7 @@ setDifficultyButtonsDisabled(
 );
 
 return;
-```
+
 
 }
 
@@ -1517,7 +1517,7 @@ warpFrame
 setTimeout(
 () => {
 
-```
+
   if (!galaxyFlash) {
     return;
   }
@@ -1534,27 +1534,27 @@ setTimeout(
 
 },
 WARP_ACCEL_MS
-```
+
 
 );
 
 setTimeout(
 () => {
 
-```
+
   startGame();
 
 },
 WARP_ACCEL_MS +
 WARP_HOLD_MS
-```
+
 
 );
 
 setTimeout(
 () => {
 
-```
+
   appShell.classList.remove(
     'transition-hide'
   );
@@ -1571,14 +1571,14 @@ setTimeout(
 WARP_ACCEL_MS +
 WARP_HOLD_MS +
 120
-```
+
 
 );
 
 setTimeout(
 () => {
 
-```
+
   stopWarpAnimation();
 
   state.transitioning =
@@ -1593,7 +1593,7 @@ WARP_ACCEL_MS +
 WARP_HOLD_MS +
 120 +
 WARP_EXIT_MS
-```
+
 
 );
 
@@ -1615,7 +1615,7 @@ if (
 state.roundQuestions.length === 0
 ) {
 
-```
+
 console.error(
   'No questions available for this mode.'
 );
@@ -1625,7 +1625,7 @@ stopGameTimer();
 showScreen('difficulty');
 
 return;
-```
+
 
 }
 
@@ -1687,7 +1687,7 @@ warpFrame
 setTimeout(
 () => {
 
-```
+
   warpCanvas.classList.remove(
     'active'
   );
@@ -1698,19 +1698,19 @@ setTimeout(
 
 },
 visibleMs
-```
+
 
 );
 
 setTimeout(
 () => {
 
-```
+
   stopWarpAnimation();
 
 },
 visibleMs + 650
-```
+
 
 );
 
@@ -1730,11 +1730,11 @@ window.matchMedia(
 
 if (reducedMotion) {
 
-```
+
 onSwap();
 
 return;
-```
+
 
 }
 
@@ -1746,7 +1746,7 @@ QUESTION_ENTER_MS -
 
 if (exitEl) {
 
-```
+
 exitEl.classList.remove(
   'q-enter',
   'q-exit',
@@ -1757,14 +1757,14 @@ exitEl.classList.remove(
 exitEl.classList.add(
   exitClass
 );
-```
+
 
 }
 
 setTimeout(
 () => {
 
-```
+
   onSwap();
 
 
@@ -1811,7 +1811,7 @@ setTimeout(
 
 },
 QUESTION_EXIT_MS
-```
+
 
 );
 
@@ -1827,14 +1827,14 @@ if (
 state.autoAdvanceTimeoutId !== null
 ) {
 
-```
+
 clearTimeout(
   state.autoAdvanceTimeoutId
 );
 
 state.autoAdvanceTimeoutId =
   null;
-```
+
 
 }
 
@@ -1846,14 +1846,14 @@ if (
 state.autoplaySecondTimeoutId !== null
 ) {
 
-```
+
 clearTimeout(
   state.autoplaySecondTimeoutId
 );
 
 state.autoplaySecondTimeoutId =
   null;
-```
+
 
 }
 
@@ -1905,7 +1905,7 @@ i < total;
 i++
 ) {
 
-```
+
 const x =
   padding +
   step * i;
@@ -1950,13 +1950,13 @@ const radius =
 
 nodes +=
   `<circle class="${cls}" cx="${x}" cy="${y}" r="${radius}"></circle>`;
-```
+
 
 }
 
 constellationEl.innerHTML = `
 
-```
+
 <svg
   viewBox="0 0 ${width} ${height}"
   preserveAspectRatio="xMidYMid meet"
@@ -1978,7 +1978,7 @@ constellationEl.innerHTML = `
 >
   🚀
 </div>
-```
+
 
 `;
 
@@ -2010,10 +2010,10 @@ width
 
 if (rocket) {
 
-```
+
 rocket.style.left =
   `${xPercent}%`;
-```
+
 
 }
 
@@ -2038,11 +2038,11 @@ state.currentIndex
 
 if (!q) {
 
-```
+
 showResults();
 
 return;
-```
+
 
 }
 
@@ -2060,11 +2060,11 @@ renderConstellation();
 /*
 AUDIO
 
-```
+
 questions.js should provide:
 
   audio: "audio/example.mp3"
-```
+
 
 */
 
@@ -2099,7 +2099,7 @@ Array.isArray(q.options)
 shuffle(options).forEach(
 option => {
 
-```
+
   const button =
     document.createElement(
       'button'
@@ -2141,7 +2141,7 @@ option => {
   );
 
 }
-```
+
 
 );
 
@@ -2162,9 +2162,9 @@ console.warn(
 'No audio file assigned to this question.'
 );
 
-```
+
 return;
-```
+
 
 }
 
@@ -2182,7 +2182,7 @@ promise &&
 typeof promise.catch === 'function'
 ) {
 
-```
+
 promise.catch(
   error => {
 
@@ -2197,20 +2197,20 @@ promise.catch(
 
   }
 );
-```
+
 
 }
 
 letterAudio.onended =
 () => {
 
-```
+
   playAudioBtn.classList.remove(
     'playing'
   );
 
 };
-```
+
 
 }
 
@@ -2227,7 +2227,7 @@ playCurrentAudio();
 letterAudio.onended =
 () => {
 
-```
+
   playAudioBtn.classList.remove(
     'playing'
   );
@@ -2258,7 +2258,7 @@ letterAudio.onended =
     );
 
 };
-```
+
 
 }
 
@@ -2266,11 +2266,11 @@ playAudioBtn.addEventListener(
 'click',
 () => {
 
-```
+
 clearAutoplaySecondTimer();
 
 playCurrentAudio();
-```
+
 
 }
 );
@@ -2319,7 +2319,7 @@ optionsGrid.querySelectorAll(
 buttons.forEach(
 button => {
 
-```
+
   button.disabled =
     true;
 
@@ -2360,13 +2360,13 @@ button => {
   }
 
 }
-```
+
 
 );
 
 if (isCorrect) {
 
-```
+
 state.score++;
 
 
@@ -2376,11 +2376,11 @@ feedbackEl.textContent =
 feedbackEl.classList.add(
   'correct-text'
 );
-```
+
 
 } else {
 
-```
+
 const answer =
   multipleCorrect
     ? correct.join(' / ')
@@ -2393,7 +2393,7 @@ feedbackEl.textContent =
 feedbackEl.classList.add(
   'incorrect-text'
 );
-```
+
 
 }
 
@@ -2420,7 +2420,7 @@ isLast &&
 state.startTime !== null
 ) {
 
-```
+
 state.elapsedSeconds =
   (
     performance.now() -
@@ -2431,7 +2431,7 @@ state.elapsedSeconds =
 stopGameTimer();
 
 updateTimerDisplay();
-```
+
 
 }
 
@@ -2490,7 +2490,7 @@ isLast
 : questionContent,
 () => {
 
-```
+
   if (isLast) {
 
     showResults();
@@ -2504,14 +2504,14 @@ isLast
   }
 
 }
-```
+
 
 );
 
 setTimeout(
 () => {
 
-```
+
   state.transitioning =
     false;
 
@@ -2522,7 +2522,7 @@ setTimeout(
 QUESTION_EXIT_MS +
 QUESTION_ENTER_MS +
 60
-```
+
 
 );
 
@@ -2550,7 +2550,7 @@ return null;
 
 try {
 
-```
+
 const data =
   JSON.parse(raw);
 
@@ -2572,13 +2572,13 @@ if (
 
 
 return data;
-```
+
 
 } catch (error) {
 
-```
+
 return null;
-```
+
 
 }
 
@@ -2594,7 +2594,7 @@ storageSet(
 BEST_SCORE_KEY,
 JSON.stringify({
 
-```
+
   points: points,
 
   correctAnswers:
@@ -2610,7 +2610,7 @@ JSON.stringify({
     Date.now()
 
 })
-```
+
 
 );
 
@@ -2638,7 +2638,7 @@ leaderboardKey(mode)
 
 if (!raw) {
 
-```
+
 return {
 
   dateKey:
@@ -2647,13 +2647,13 @@ return {
   entries: []
 
 };
-```
+
 
 }
 
 try {
 
-```
+
 const data =
   JSON.parse(raw);
 
@@ -2688,11 +2688,11 @@ return {
       : []
 
 };
-```
+
 
 } catch (error) {
 
-```
+
 return {
 
   dateKey:
@@ -2701,7 +2701,7 @@ return {
   entries: []
 
 };
-```
+
 
 }
 
@@ -2731,13 +2731,13 @@ loadLeaderboard(mode);
 
 const candidate = {
 
-```
+
 nickname,
 
 score,
 
 timeSeconds
-```
+
 
 };
 
@@ -2752,15 +2752,15 @@ if (
 existingIndex === -1
 ) {
 
-```
+
 board.entries.push(
   candidate
 );
-```
+
 
 } else {
 
-```
+
 const existing =
   board.entries[
     existingIndex
@@ -2786,7 +2786,7 @@ if (better) {
     candidate;
 
 }
-```
+
 
 }
 
@@ -2808,7 +2808,7 @@ return board.entries
 .sort(
 (a, b) => {
 
-```
+
     if (
       b.score !==
       a.score
@@ -2829,7 +2829,7 @@ return board.entries
 
   }
 );
-```
+
 
 }
 
@@ -2874,7 +2874,7 @@ if (
 entries.length === 0
 ) {
 
-```
+
 leaderboardListEl.innerHTML =
   `
   <li class="leaderboard-empty">
@@ -2883,7 +2883,7 @@ leaderboardListEl.innerHTML =
   `;
 
 return;
-```
+
 
 }
 
@@ -2892,7 +2892,7 @@ entries
 .map(
 (entry, index) => {
 
-```
+
       const rank =
         index + 1;
 
@@ -2952,7 +2952,7 @@ entries
     }
   )
   .join('');
-```
+
 
 }
 
@@ -2997,35 +2997,35 @@ if (
 ratio === 1
 ) {
 
-```
+
 message =
   'Perfect mission — you heard every letter!';
-```
+
 
 } else if (
 ratio >= 0.7
 ) {
 
-```
+
 message =
   'Awesome listening, space explorer!';
-```
+
 
 } else if (
 ratio >= 0.4
 ) {
 
-```
+
 message =
   'Nice work! Keep practicing those sounds.';
-```
+
 
 } else {
 
-```
+
 message =
   'Good try! Let’s blast off again and listen closely.';
-```
+
 
 }
 
@@ -3055,13 +3055,13 @@ previousBest.points;
 
 if (isNewBest) {
 
-```
+
 saveBestScore(
   totalPoints,
   state.score,
   timeTaken
 );
-```
+
 
 }
 
@@ -3158,14 +3158,14 @@ if (
 championCountdownIntervalId !== null
 ) {
 
-```
+
 clearInterval(
   championCountdownIntervalId
 );
 
 championCountdownIntervalId =
   null;
-```
+
 
 }
 
@@ -3179,7 +3179,7 @@ playAgainBtn.addEventListener(
 'click',
 () => {
 
-```
+
 if (
   state.transitioning
 ) {
@@ -3225,7 +3225,7 @@ setTimeout(
   QUESTION_ENTER_MS +
   60
 );
-```
+
 
 }
 );
@@ -3238,7 +3238,7 @@ blackholeBtn.addEventListener(
 'click',
 () => {
 
-```
+
 if (
   state.transitioning
 ) {
@@ -3297,7 +3297,7 @@ setTimeout(
   QUESTION_ENTER_MS +
   60
 );
-```
+
 
 }
 );
@@ -3323,7 +3323,7 @@ true;
 setTimeout(
 () => {
 
-```
+
   shareBtn.textContent =
     original;
 
@@ -3332,7 +3332,7 @@ setTimeout(
 
 },
 duration
-```
+
 
 );
 
@@ -3342,7 +3342,7 @@ shareBtn.addEventListener(
 'click',
 async () => {
 
-```
+
 const shareData = {
 
   title:
@@ -3406,7 +3406,7 @@ window.prompt(
   'Copy this link to share:',
   shareData.url
 );
-```
+
 
 }
 );
@@ -3430,10 +3430,10 @@ return;
 
 if (!clickSoundCtx) {
 
-```
+
 clickSoundCtx =
   new AudioContextClass();
-```
+
 
 }
 
@@ -3442,9 +3442,9 @@ clickSoundCtx.state ===
 'suspended'
 ) {
 
-```
+
 clickSoundCtx.resume();
-```
+
 
 }
 
@@ -3498,7 +3498,7 @@ document.addEventListener(
 'click',
 event => {
 
-```
+
 const button =
   event.target.closest(
     'button'
@@ -3513,7 +3513,7 @@ if (
   playClickSound();
 
 }
-```
+
 
 },
 true
@@ -3541,7 +3541,7 @@ i < STAR_COUNT;
 i++
 ) {
 
-```
+
 const star =
   document.createElement(
     'div'
@@ -3614,7 +3614,7 @@ star.style.setProperty(
 fragment.appendChild(
   star
 );
-```
+
 
 }
 
@@ -3718,13 +3718,13 @@ el.addEventListener(
 'animationend',
 () => {
 
-```
+
   el.remove();
 
   activeShootingStars--;
 
 }
-```
+
 
 );
 
@@ -3739,7 +3739,7 @@ function scheduleShootingStars() {
 setTimeout(
 () => {
 
-```
+
   spawnShootingStar();
 
   scheduleShootingStars();
@@ -3749,7 +3749,7 @@ randRange(
   SHOOTING_STAR_MIN_DELAY_MS,
   SHOOTING_STAR_MAX_DELAY_MS
 )
-```
+
 
 );
 
@@ -3817,13 +3817,13 @@ el.addEventListener(
 'animationend',
 () => {
 
-```
+
   el.remove();
 
   activeSatellites--;
 
 }
-```
+
 
 );
 
@@ -3838,7 +3838,7 @@ function scheduleFloatingSatellites() {
 setTimeout(
 () => {
 
-```
+
   spawnFloatingSatellite();
 
   scheduleFloatingSatellites();
@@ -3848,7 +3848,7 @@ randRange(
   FLOATING_SATELLITE_MIN_DELAY_MS,
   FLOATING_SATELLITE_MAX_DELAY_MS
 )
-```
+
 
 );
 
@@ -3864,7 +3864,7 @@ getJstDateKey();
 setInterval(
 () => {
 
-```
+
 const current =
   getJstDateKey();
 
@@ -3894,7 +3894,7 @@ lastKnownJstDate =
 
 
 stopChampionCountdown();
-```
+
 
 },
 30000
