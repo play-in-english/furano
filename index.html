@@ -1,91 +1,195 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8" /> <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" /> <title>S.P.A.C.E. ALPHABETS</title> <link rel="stylesheet" href="style.css" /> </head> <body> <!-- decorative background layers (see style.css / app.js for star generation) --> <div class="sky"></div> <div class="nebula"></div> <div class="stars" id="starField" aria-hidden="true"></div> <!-- Ambient floating satellites + shooting stars — plays continuously throughout the whole site (start screen, quiz, results), not just during transitions. Elements are created/removed by app.js; this is just their container. --> <div class="ambient-layer" id="ambientLayer" aria-hidden="true"></div> <!-- Hyperspace canvas: draws the flying-through-the-galaxy transition when the student clicks "Start Mission". Invisible/idle otherwise. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<title>Galaxy Alphabet Quiz</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
-<canvas id="warpCanvas" class="warp-canvas" aria-hidden="true"></canvas>
+  <!-- decorative background layers (see style.css / app.js for star generation) -->
+  <div class="sky"></div>
+  <div class="nebula"></div>
+  <div class="stars" id="starField" aria-hidden="true"></div>
 
-<!-- Brief bright/glowy flash as the student "arrives" in the galaxy --> <div id="galaxyFlash" class="galaxy-flash" aria-hidden="true"></div> <main class="app" id="appShell"> <div class="card">
-  <!-- ============================================================
-       START SCREEN
-       ============================================================ -->
-  <section id="startScreen" class="screen active start-screen">
-    <div class="question-content" id="startContent">
-      <div class="brand">
-        <div class="brand-emoji" aria-hidden="true">🚀</div>
-        <h1 class="title">S.P.A.C.E.<br>ALPHABETS</h1>
-      </div>
-      <p class="subtitle">
+  <!-- Ambient floating satellites + shooting stars — plays continuously
+       throughout the whole site (all screens), not just during
+       transitions. Elements are created/removed by app.js; this is
+       just their container. -->
+  <div class="ambient-layer" id="ambientLayer" aria-hidden="true"></div>
 
-聞こえた音はどのアルファベット？<br>
-さあ、見つけよう！
+  <!-- Hyperspace canvas: draws the flying-through-the-galaxy transition
+       when the student picks a difficulty and launches the mission.
+       Invisible/idle otherwise. -->
+  <canvas id="warpCanvas" class="warp-canvas" aria-hidden="true"></canvas>
 
-</p> <div class="start-illustration" aria-hidden="true"> <span>⭐</span><span>🪐</span><span>✨</span> </div> <button id="startBtn" class="btn btn-primary btn-lg btn-block">🚀 Start Mission</button> <button id="shareBtn" class="btn btn-secondary btn-block start-secondary-btn" type="button">📤 Share with a Friend</button> </div> </section>
-  <!-- ============================================================
-       GAME SCREEN
-       ============================================================ -->
-  <section id="gameScreen" class="screen" aria-live="polite">
-    <div class="game-header">
-      <div class="header-group">
-        <!-- Black hole "return home" button. Clicking it during the
-             game abandons the current round and takes the student
-             back to the very first screen. -->
-        <div class="blackhole-wrap">
-          <button id="blackholeBtn" class="blackhole-btn" type="button"
-      aria-label="Leave the mission and return to the home screen"
-      title="Return to home screen"></button>
-          <span class="blackhole-label" aria-hidden="true">最初からやり直す！</span>
+  <!-- Brief bright/glowy flash as the student "arrives" in the galaxy -->
+  <div id="galaxyFlash" class="galaxy-flash" aria-hidden="true"></div>
+
+  <main class="app" id="appShell">
+    <div class="card">
+
+      <!-- ============================================================
+           NICKNAME SCREEN (shown first, once per JST calendar day)
+           ============================================================ -->
+      <section id="nicknameScreen" class="screen active start-screen">
+        <div class="question-content" id="nicknameContent">
+          <div class="brand">
+            <div class="brand-emoji" aria-hidden="true">🧑‍🚀</div>
+            <h1 class="title">SPACE EXPLORER<br>SIGN-IN</h1>
+          </div>
+          <p class="subtitle">
+            きょう使う「宇宙探検家」の名前を入力してね！<br>
+            (この名前は今日1日だけ使えます)
+          </p>
+          <form id="nicknameForm" class="nickname-form" autocomplete="off">
+            <input
+              id="nicknameInput"
+              class="nickname-input"
+              type="text"
+              maxlength="12"
+              placeholder="e.g. STARFOX"
+              aria-label="Space Explorer nickname"
+              autocomplete="off"
+            />
+            <button id="nicknameSubmitBtn" class="btn btn-primary btn-lg btn-block" type="submit" disabled>
+              🚀 Continue
+            </button>
+          </form>
         </div>
-        <span class="pill" id="questionCounter">Question 1 / 7</span>
-      </div>
-      <div class="header-group">
-        <span class="pill timer-pill" id="timerPill">⏱ 0:00</span>
-        <span class="pill score-pill" id="scoreCounter">Score: 0 / 0</span>
-      </div>
+      </section>
+
+      <!-- ============================================================
+           START SCREEN
+           ============================================================ -->
+      <section id="startScreen" class="screen start-screen">
+        <div class="question-content" id="startContent">
+          <div class="brand">
+            <div class="brand-emoji" aria-hidden="true">🚀</div>
+            <h1 class="title">S.P.A.C.E.<br>ALPHABET</h1>
+          </div>
+          <p class="welcome-back" id="welcomeBack" aria-hidden="true"></p>
+          <p class="subtitle">
+  聞こえた音はどのアルファベット？<br>
+  さあ、見つけよう！
+</p>
+          <div class="start-illustration" aria-hidden="true">
+            <span>⭐</span><span>🪐</span><span>✨</span>
+          </div>
+          <button id="startBtn" class="btn btn-primary btn-lg btn-block">🚀 Start Mission</button>
+          <button id="shareBtn" class="btn btn-secondary btn-block start-secondary-btn" type="button">📤 Share with a Friend</button>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           DIFFICULTY SELECT SCREEN
+           ============================================================ -->
+      <section id="difficultyScreen" class="screen start-screen">
+        <div class="question-content" id="difficultyContent">
+          <div class="brand">
+            <div class="brand-emoji" aria-hidden="true">🛰️</div>
+            <h1 class="title">CHOOSE YOUR<br>MISSION LEVEL</h1>
+          </div>
+          <p class="subtitle">レベルをえらんでね</p>
+          <div class="difficulty-grid">
+            <button class="btn btn-primary btn-block difficulty-btn" type="button" data-mode="easy">
+              🌱 EASY<span class="difficulty-sub">Letter sounds</span>
+            </button>
+            <button class="btn btn-primary btn-block difficulty-btn" type="button" data-mode="medium">
+              🔥 MEDIUM<span class="difficulty-sub">Phonics &amp; blends</span>
+            </button>
+            <button class="btn btn-primary btn-block difficulty-btn" type="button" data-mode="hard">
+              ⚡ HARD<span class="difficulty-sub">Words &amp; spelling</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           GAME SCREEN
+           ============================================================ -->
+      <section id="gameScreen" class="screen" aria-live="polite">
+        <div class="game-header">
+          <div class="header-group">
+            <!-- Black hole "return home" button. Clicking it during the
+                 game abandons the current round and takes the student
+                 back to the start screen. -->
+            <div class="blackhole-wrap">
+              <button id="blackholeBtn" class="blackhole-btn" type="button"
+          aria-label="Leave the mission and return to the home screen"
+          title="Return to home screen"></button>
+              <span class="blackhole-label" aria-hidden="true">最初からやり直す！</span>
+            </div>
+            <span class="pill" id="questionCounter">Question 1 / 7</span>
+          </div>
+          <div class="header-group">
+            <span class="pill" id="modePill">EASY</span>
+            <span class="pill timer-pill" id="timerPill">⏱ 0:00</span>
+            <span class="pill score-pill" id="scoreCounter">Score: 0 / 0</span>
+          </div>
+        </div>
+
+        <!-- Constellation progress trail (signature visual element) -->
+        <div class="constellation" id="constellation" aria-hidden="true"></div>
+
+        <!-- Everything specific to the CURRENT question lives inside this
+             wrapper. app.js animates it (zooms/fades) whenever the student
+             moves to a new question — see the "QUESTION-TO-QUESTION GALAXY
+             TRANSITION" section in app.js. -->
+        <div class="question-content" id="questionContent">
+          <p class="prompt">Which letter did you hear?</p>
+
+          <button id="playAudioBtn" class="audio-btn" type="button" aria-label="Play the letter sound">
+            <span class="speaker-icon" aria-hidden="true">🔊</span>
+            <span>Play Sound</span>
+          </button>
+
+          <!-- hidden native audio element the JS controls -->
+          <audio id="letterAudio" preload="none"></audio>
+
+          <div class="options-grid" id="optionsGrid" role="group" aria-label="Answer choices"></div>
+
+          <p class="feedback" id="feedback" role="status"></p>
+        </div>
+
+        <div class="next-wrap">
+          <button id="nextBtn" class="btn btn-secondary" style="display:none;">Next →</button>
+        </div>
+      </section>
+
+      <!-- ============================================================
+           RESULTS SCREEN
+           ============================================================ -->
+      <section id="resultsScreen" class="screen results-screen">
+        <!-- Wrapped the same way as questionContent so the final
+             "arrival" into the results screen gets the same galaxy
+             zoom treatment as every question-to-question jump. -->
+        <div class="question-content" id="resultsContent">
+          <div class="results-emoji" aria-hidden="true">🎉</div>
+          <h2>Great Job, Space Explorer!</h2>
+          <p class="results-score" id="resultsScore">0 POINTS</p>
+          <p class="results-msg" id="resultsMsg"></p>
+          <div class="results-stars" id="resultsStars" aria-hidden="true"></div>
+          <p class="results-best" id="resultsBest">🏆 Best: 0 POINTS</p>
+
+          <!-- Daily leaderboard for whichever mode was just played -->
+          <div class="leaderboard" id="leaderboard">
+            <p class="leaderboard-countdown" id="championCountdown"></p>
+            <h3 class="leaderboard-title" id="leaderboardTitle">EASY LEADERBOARD</h3>
+            <ol class="leaderboard-list" id="leaderboardList"></ol>
+          </div>
+
+          <button id="playAgainBtn" class="btn btn-primary btn-lg btn-block">🔄 Play Again</button>
+        </div>
+      </section>
+
     </div>
+  </main>
 
-    <!-- Constellation progress trail (signature visual element) -->
-    <div class="constellation" id="constellation" aria-hidden="true"></div>
-
-    <!-- Everything specific to the CURRENT question lives inside this
-         wrapper. app.js animates it (zooms/fades) whenever the student
-         moves to a new question — see the "QUESTION-TO-QUESTION GALAXY
-         TRANSITION" section in app.js. -->
-    <div class="question-content" id="questionContent">
-      <p class="prompt">Which letter did you hear?</p>
-
-      <button id="playAudioBtn" class="audio-btn" type="button" aria-label="Play the letter sound">
-        <span class="speaker-icon" aria-hidden="true">🔊</span>
-        <span>Play Sound</span>
-      </button>
-
-      <!-- hidden native audio element the JS controls -->
-      <audio id="letterAudio" preload="none"></audio>
-
-      <div class="options-grid" id="optionsGrid" role="group" aria-label="Answer choices"></div>
-
-      <p class="feedback" id="feedback" role="status"></p>
-    </div>
-
-    <div class="next-wrap">
-      <button id="nextBtn" class="btn btn-secondary" style="display:none;">Next →</button>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       RESULTS SCREEN
-       ============================================================ -->
-  <section id="resultsScreen" class="screen results-screen">
-    <!-- Wrapped the same way as questionContent so the final
-         "arrival" into the results screen gets the same galaxy
-         zoom treatment as every question-to-question jump. -->
-    <div class="question-content" id="resultsContent">
-      <div class="results-emoji" aria-hidden="true">🎉</div>
-      <h2>Great Job, Space Explorer!</h2>
-      <p class="results-score" id="resultsScore">0 POINTS</p>
-      <p class="results-msg" id="resultsMsg"></p>
-      <div class="results-stars" id="resultsStars" aria-hidden="true"></div>
-      <p class="results-best" id="resultsBest">🏆 Best: 0 POINTS</p>
-      <button id="playAgainBtn" class="btn btn-primary btn-lg btn-block">🔄 Play Again</button>
-    </div>
-  </section>
-
-</div>
-</main> <!-- Question data lives here — edit questions.js to add/change questions --> <script src="questions.js"></script> <!-- Game logic — see comments inside for what's safe to tweak --> <script src="app.js"></script> </body> </html>
+  <!-- Question data lives here — edit questions.js to add/change questions -->
+  <script src="questions.js"></script>
+  <!-- Game logic — see comments inside for what's safe to tweak -->
+  <script src="app.js"></script>
+</body>
+</html>
