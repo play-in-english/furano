@@ -1218,13 +1218,37 @@ nicknameInput.addEventListener('input', () => {
   nicknameSubmitBtn.disabled = sanitizeNickname(nicknameInput.value).length === 0;
 });
 
-nicknameForm.addEventListener('submit', (e) => {
-  e.preventDefault();
+// Shared logic for confirming the nickname, reached through three
+// independent paths below (button click, Enter key, and native form
+// submit) so this keeps working even in restrictive/sandboxed page
+// previews that silently block native <form> submission.
+function submitNickname() {
   const nickname = sanitizeNickname(nicknameInput.value);
   if (!nickname) return;
   state.nickname = nickname;
   saveNickname(nickname);
   showScreen('start');
+}
+
+// Path 1: clicking the Continue button directly (it's type="button",
+// not type="submit", specifically so it never depends on the <form>'s
+// native submit behavior at all).
+nicknameSubmitBtn.addEventListener('click', submitNickname);
+
+// Path 2: pressing Enter while focused in the nickname field.
+nicknameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    submitNickname();
+  }
+});
+
+// Path 3: if the form is ever submitted natively some other way
+// (e.g. an on-screen keyboard's "Go" button), handle it the same way
+// rather than letting the browser navigate/reload the page.
+nicknameForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  submitNickname();
 });
 
 // Decide the very first screen: skip straight to Start if today's
