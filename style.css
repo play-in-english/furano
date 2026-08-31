@@ -1,871 +1,569 @@
-/* ============================================================
-   ALPHABET LISTENING QUIZ — STYLES
-   ============================================================
-   Galaxy / night-sky theme. Structure:
-   1. Tokens (colors, fonts, spacing)
-   2. Background (sky, stars, nebula)
-   3. Layout & shell
-   4. Screens (start / game / results)
-   5. Components (buttons, progress trail, feedback)
-   6. Responsive
-   7. Motion / accessibility
-   ============================================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap');
-
-/* ---------- 1. Tokens ---------- */
-:root {
-  --sky-deep: #05060f;
-  --sky-navy: #0b0e2b;
-  --sky-navy-2: #131947;
-  --nebula-violet: #7c5cff;
-  --nebula-pink: #ff6fb0;
-  --star-gold: #ffd966;
-  --comet-teal: #4fe3c1;
-  --ink-light: #f4f2ff;
-  --ink-soft: #c7c9ec;
-  --success: #4fe3c1;
-  --success-glow: rgba(79, 227, 193, 0.45);
-  --error: #ff6f91;
-  --error-glow: rgba(255, 111, 145, 0.45);
-
-  --font-display: "Baloo 2", "Trebuchet MS", sans-serif;
-  --font-body: "Nunito", "Trebuchet MS", sans-serif;
-
-  --radius-md: 18px;
-  --radius-sm: 12px;
-}
-
-* { box-sizing: border-box; }
-
-html, body {
-  height: 100%;
-}
-
-body {
-  margin: 0;
-  /* Fallbacks first, then modern dynamic-viewport units so the layout
-     fits the ACTUAL visible area on phones/tablets — accounting for
-     browser chrome (address bars, home indicator) and updating live
-     when a window is resized, rotated, or toggled to fullscreen. */
-  min-height: 100vh;
-  min-height: 100svh;
-  min-height: 100dvh;
-  font-family: var(--font-body);
-  color: var(--ink-light);
-  background: var(--sky-deep);
-  overflow-x: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Keep content clear of iPhone notches / home indicator / Android
-     gesture bars in any orientation, while never going below 16px. */
-  padding: max(16px, env(safe-area-inset-top))
-           max(16px, env(safe-area-inset-right))
-           max(16px, env(safe-area-inset-bottom))
-           max(16px, env(safe-area-inset-left));
-}
-
-/* ---------- 2. Background: sky, stars, nebula ---------- */
-.sky {
-  position: fixed;
-  inset: 0;
-  z-index: -3;
-  background:
-    radial-gradient(ellipse at 20% 15%, rgba(124, 92, 255, 0.16), transparent 55%),
-    radial-gradient(ellipse at 82% 78%, rgba(255, 111, 176, 0.12), transparent 50%),
-    radial-gradient(ellipse at 50% 100%, rgba(79, 227, 193, 0.08), transparent 60%),
-    linear-gradient(180deg, var(--sky-deep) 0%, var(--sky-navy) 55%, #0a0d2a 100%);
-}
-
-/* soft drifting nebula clouds, purely decorative */
-.nebula {
-  position: fixed;
-  inset: -10%;
-  z-index: -2;
-  pointer-events: none;
-  background:
-    radial-gradient(600px 400px at 15% 25%, rgba(124, 92, 255, 0.14), transparent 60%),
-    radial-gradient(500px 380px at 85% 20%, rgba(255, 111, 176, 0.10), transparent 60%),
-    radial-gradient(700px 500px at 60% 90%, rgba(79, 227, 193, 0.08), transparent 60%);
-  filter: blur(6px);
-  animation: driftNebula 50s ease-in-out infinite alternate;
-  transition: opacity .8s ease, filter .8s ease, transform .8s ease;
-}
-
-/* Nebula blooms brighter and more saturated during the galaxy-entry
-   transition, then settles back down once the quiz appears. */
-body.warping .nebula {
-  opacity: 1;
-  filter: blur(14px) saturate(1.6);
-  transform: scale(1.08);
-}
-
-@keyframes driftNebula {
-  0%   { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(-2%, 2%) scale(1.05); }
-}
-
-/* star field: layered dots via box-shadow, generated in JS onto this canvas-free layer */
-.stars {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  transition: opacity .5s ease;
-}
-
-/* While the hyperspace transition plays, fade the calm twinkling
-   field out — the warp canvas takes over the star show. */
-body.warping .stars {
-  opacity: 0;
-}
-
-.star {
-  position: absolute;
-  border-radius: 50%;
-  background: #fff;
-  opacity: 0.6;
-  animation: twinkle linear infinite;
-}
-
-.star.big {
-  box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.8);
-}
-
-@keyframes twinkle {
-  0%, 100% { opacity: var(--min-o, 0.25); transform: scale(1); }
-  50%      { opacity: var(--max-o, 0.95); transform: scale(1.25); }
-}
-
-/* ---------- 2a. Ambient floating satellites & shooting stars ----------
-   Continuous background flourishes — separate from the hyperspace
-   warp system entirely. Elements are spawned/removed by app.js on a
-   loose random schedule and play throughout the whole site: start
-   screen, quiz, and results alike. Sits with the other purely-
-   decorative background layers (behind the quiz UI), same as .stars. */
-.ambient-layer {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
-  overflow: hidden;
-}
-
-/* A shooting star: a short fading streak (the "extending line" of
-   its path) that shoots across the screen at a random angle/spot
-   and disappears. The rotate+translateX combo below (with a FIXED
-   rotation angle set via --angle) is what makes it travel in a
-   straight line at that angle — see spawnShootingStar() in app.js.
-   Sizes/opacity vary per star via inline --peak-opacity and
-   height/width, so some read as small & distant, others as bigger
-   and unmistakably obvious — see the two "far"/"near" tiers in
-   spawnShootingStar(). */
-.shooting-star {
-  position: absolute;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.85) 75%, #fff 100%);
-  border-radius: 999px;
-  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.65));
-  transform-origin: left center;
-  opacity: 0;
-  pointer-events: none;
-  animation-name: shootingStarMove;
-  animation-timing-function: linear;
-  animation-fill-mode: forwards;
-}
-
-@keyframes shootingStarMove {
-  0%   { transform: rotate(var(--angle)) translateX(0); opacity: 0; }
-  8%   { opacity: var(--peak-opacity, 1); }
-  75%  { opacity: var(--peak-opacity, 1); }
-  100% { transform: rotate(var(--angle)) translateX(var(--distance)); opacity: 0; }
-}
-
-/* A slow-drifting satellite (🛰️) — an ISS-style flourish that cruises
-   calmly across part of the screen and gently tumbles as it goes.
-   Its drift path (--dx/--dy) and its spin (--spin) are independent:
-   writing translate() BEFORE rotate() in the transform means the
-   translate happens in screen space regardless of rotation, so the
-   satellite moves in a straight line while separately spinning in
-   place. */
-.floating-satellite {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-  filter: drop-shadow(0 0 8px rgba(199, 201, 236, 0.4));
-  animation-name: floatingSatelliteDrift;
-  animation-timing-function: ease-in-out;
-  animation-fill-mode: forwards;
-  will-change: transform, opacity;
-}
-
-@keyframes floatingSatelliteDrift {
-  0% {
-    transform: translate(0, 0) rotate(0deg) scale(0.85);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.85;
-  }
-  50% {
-    transform:
-      translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5))
-      rotate(calc(var(--spin) * 0.5))
-      scale(1);
-    opacity: 0.85;
-  }
-  80% {
-    opacity: 0.85;
-  }
-  100% {
-    transform: translate(var(--dx), var(--dy)) rotate(var(--spin)) scale(0.85);
-    opacity: 0;
-  }
-}
-
-/* Pause (rather than hide) ambient flourishes during a hyperspace
-   burst so they don't visually compete with the more intense warp
-   canvas — they simply resume once the transition finishes. */
-body.warping .shooting-star,
-body.warping .floating-satellite {
-  animation-play-state: paused;
-}
-
-@keyframes floatY {
-  0%   { transform: translateY(0); }
-  50%  { transform: translateY(-8px); }
-  100% { transform: translateY(0); }
-}
-
-/* ---------- 2b. Galaxy entrance transition ---------- */
-
-/* Full-screen canvas the JS draws the hyperspace star streak
-   animation onto. Sits above the calm background layers but below
-   the quiz card, and is fully transparent/inert until "active". */
-.warp-canvas {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .6s ease;
-}
-
-.warp-canvas.active {
-  opacity: 1;
-}
-
-/* Soft bright bloom that pulses once as the student "arrives" in
-   the galaxy, right after the hyperspace burst. */
-.galaxy-flash {
-  position: fixed;
-  inset: 0;
-  z-index: 1;
-  pointer-events: none;
-  opacity: 0;
-  background:
-    radial-gradient(circle at 50% 50%,
-      rgba(255, 255, 255, 0.85) 0%,
-      rgba(255, 217, 102, 0.45) 22%,
-      rgba(124, 92, 255, 0.35) 45%,
-      rgba(5, 6, 15, 0) 72%);
-}
-
-.galaxy-flash.flash {
-  animation: galaxyFlashPulse 1100ms ease-out forwards;
-}
-
-@keyframes galaxyFlashPulse {
-  0%   { opacity: 0; }
-  35%  { opacity: 0.9; }
-  100% { opacity: 0; }
-}
-
-/* The quiz shell fades/shrinks away as hyperspace begins, then
-   fades/grows back in once the galaxy-entry flash has passed. */
-.app {
-  position: relative;
-  z-index: 2;
-  transition: opacity .6s ease, transform .6s ease;
-  /* No card background anymore, so text needs its own contrast
-     against the starfield/nebula. text-shadow is inherited, so this
-     one declaration covers every heading, label, and button below. */
-  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.8);
-}
-
-.app.transition-hide {
-  opacity: 0;
-  transform: scale(0.94);
-  pointer-events: none;
-}
-
-/* While a hyperspace burst plays (big entrance or a between-question
-   hop), the whole app subtly scales up in step with the stars
-   rushing outward — so the UI feels like it's traveling with the
-   galaxy rather than sitting still on top of it. */
-body.warping .app:not(.transition-hide) {
-  transform: scale(1.035);
-}
-
-/* ---------- 3. Layout & shell ---------- */
-.app {
-  width: 100%;
-  max-width: 640px;
-  /* Never let the app shell exceed the visible viewport height,
-     whatever device or window size it's viewed at. */
-  max-height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.card {
-  position: relative;
-  width: 100%;
-  /* No panel/box here on purpose — content floats directly over the
-     galaxy background so it feels like part of the scene rather than
-     a UI card sitting on top of it. Text/buttons keep their own
-     shadows and solid backgrounds for readability instead. */
-  padding: clamp(20px, 4vw, 36px) clamp(18px, 4vw, 32px) clamp(18px, 4vw, 32px);
-  animation: floatY 7s ease-in-out infinite;
-  /* If content is ever taller than the available space (very short
-     landscape windows), scroll instead of clipping off-screen. This
-     is a functional safety net only — there's no visible boundary. */
-  max-height: min(860px, 96svh, 96dvh);
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.screen { display: none; }
-.screen.active { display: block; }
-
-h1, h2, h3 {
-  font-family: var(--font-display);
-  margin: 0;
-}
-
-/* ---------- 4. Start Screen ---------- */
-.start-screen {
-  text-align: center;
-}
-
-.brand {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 6px;
-}
-
-.brand-emoji {
-  font-size: 56px;
-  filter: drop-shadow(0 0 18px rgba(255, 217, 102, 0.5));
-  animation: floatY 4.5s ease-in-out infinite;
-}
-
-.title {
-  font-size: clamp(28px, 6vw, 38px);
-  font-weight: 800;
-  line-height: 1.15;
-  color: #ffffff;
-}
-
-.subtitle {
-  color: var(--ink-soft);
-  font-size: 16px;
-  font-weight: 600;
-  margin-top: 6px;
-  line-height: 1.5;
-}
-
-.start-illustration {
-  margin: 22px 0;
-  font-size: 40px;
-  display: flex;
-  justify-content: center;
-  gap: 14px;
-}
-.start-illustration span { animation: floatY 3.6s ease-in-out infinite; }
-.start-illustration span:nth-child(2) { animation-delay: .6s; }
-.start-illustration span:nth-child(3) { animation-delay: 1.2s; }
-
-/* Secondary action under the main Start Mission button (e.g. Share) */
-.start-secondary-btn {
-  margin-top: 14px;
-}
-
-/* ---------- 5. Buttons ---------- */
-.btn {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 18px;
-  border: none;
-  border-radius: 999px;
-  cursor: pointer;
-  padding: 16px 32px;
-  color: var(--sky-deep);
-  background: linear-gradient(135deg, var(--star-gold), #ffb84f);
-  box-shadow: 0 0 0 rgba(255, 217, 102, 0), 0 10px 24px rgba(255, 184, 79, 0.28);
-  transition: transform .15s ease, box-shadow .25s ease, filter .15s ease;
-  /* Removes the ~300ms tap delay and stops accidental double-tap
-     zoom on iOS/Android when kids tap quickly. */
-  touch-action: manipulation;
-}
-
-.btn:hover { transform: translateY(-2px); filter: brightness(1.05); }
-.btn:active { transform: translateY(0); }
-
-.btn:focus-visible {
-  outline: 3px solid var(--comet-teal);
-  outline-offset: 3px;
-}
-
-.btn:disabled {
-  opacity: 0.65;
-  cursor: default;
-  transform: none;
-}
-
-.btn-primary {
-  box-shadow: 0 0 24px rgba(255, 217, 102, 0.35), 0 12px 26px rgba(0, 0, 0, 0.35);
-}
-
-.btn-secondary {
-  background: linear-gradient(135deg, var(--nebula-violet), #5a3fd6);
-  color: #fff;
-  box-shadow: 0 0 24px rgba(124, 92, 255, 0.35), 0 12px 26px rgba(0, 0, 0, 0.35);
-}
-
-.btn-block { width: 100%; }
-
-.btn-lg {
-  font-size: 20px;
-  padding: 18px 36px;
-}
-
-/* Replay audio button */
-.audio-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  margin: 6px auto 4px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 19px;
-  color: var(--sky-deep);
-  background: radial-gradient(circle at 30% 30%, #fff, var(--comet-teal) 70%);
-  border: none;
-  border-radius: 999px;
-  padding: 20px 34px;
-  cursor: pointer;
-  box-shadow: 0 0 0 6px rgba(79, 227, 193, 0.12), 0 14px 30px rgba(79, 227, 193, 0.3);
-  transition: transform .15s ease, box-shadow .2s ease;
-}
-.audio-btn:hover { transform: scale(1.03); }
-.audio-btn:active { transform: scale(0.98); }
-.audio-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-
-.audio-btn .speaker-icon {
-  font-size: 24px;
-  animation: pulseIcon 1.6s ease-in-out infinite;
-}
-@keyframes pulseIcon {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.15); }
-}
-
-.audio-btn.playing {
-  box-shadow: 0 0 0 10px rgba(79, 227, 193, 0.18), 0 14px 30px rgba(79, 227, 193, 0.45);
-}
-
-/* ---------- Game screen ---------- */
-.game-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
-  font-family: var(--font-display);
-  font-weight: 700;
-  color: var(--ink-soft);
-  font-size: 14px;
-  letter-spacing: .02em;
-  gap: 10px;
-}
-
-.header-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0; /* lets pill text truncate/wrap instead of overflowing */
-}
-
-.pill {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  padding: 6px 14px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.pill.score-pill { color: var(--star-gold); }
-.pill.timer-pill { color: var(--comet-teal); }
-
-/* Black hole "return home" button — beside the question counter,
-   with a small Japanese caption underneath explaining what it does.
-   A dark event horizon with a slowly-spinning swirl of galaxy colors
-   for its accretion disk. Clicking it during the game sends the
-   student back to the very first screen (see blackholeBtn's click
-   handler in app.js). */
-.blackhole-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  flex: none;
-}
-
-.blackhole-label {
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 1.1;
-  color: var(--ink-soft);
-  white-space: nowrap;
-  letter-spacing: 0;
-}
-
-.blackhole-btn {
-  --bh-size: 34px;
-  flex: none;
-  width: var(--bh-size);
-  height: var(--bh-size);
-  padding: 0;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
-  background:
-    radial-gradient(circle at 50% 50%, #000 0 34%, transparent 36%),
-    conic-gradient(from 0deg, var(--nebula-violet), var(--star-gold), var(--nebula-pink), var(--comet-teal), var(--nebula-violet));
-  box-shadow: 0 0 10px rgba(124, 92, 255, 0.55), 0 0 3px rgba(0, 0, 0, 0.7) inset;
-  animation: blackholeSpin 6s linear infinite;
-  touch-action: manipulation;
-  transition: box-shadow .2s ease, transform .15s ease;
-}
-
-.blackhole-btn:hover { transform: scale(1.08); }
-.blackhole-btn:active { transform: scale(0.95); }
-
-.blackhole-btn:focus-visible {
-  outline: 2px solid var(--comet-teal);
-  outline-offset: 3px;
-}
-
-.blackhole-btn:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-@keyframes blackholeSpin {
-  to { transform: rotate(360deg); }
-}
-
-/* Constellation progress trail — the signature element:
-   each answered question lights up a star on the trail the
-   rocket travels along toward the finish. */
-.constellation {
-  position: relative;
-  height: 54px;
-  margin: 4px 0 22px;
-}
-
-.constellation svg { width: 100%; height: 100%; display: block; }
-
-.constellation-line {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.14);
-  stroke-width: 2;
-  stroke-dasharray: 4 6;
-}
-
-.constellation-node {
-  fill: rgba(255, 255, 255, 0.2);
-  stroke: rgba(255, 255, 255, 0.35);
-  stroke-width: 1;
-  transition: fill .3s ease, stroke .3s ease, r .3s ease;
-}
-
-.constellation-node.done {
-  fill: var(--star-gold);
-  stroke: var(--star-gold);
-  filter: drop-shadow(0 0 6px rgba(255, 217, 102, 0.9));
-}
-
-.constellation-node.wrong-node {
-  fill: var(--error);
-  stroke: var(--error);
-  filter: drop-shadow(0 0 6px rgba(255, 111, 145, 0.9));
-}
-
-.constellation-node.current {
-  fill: var(--comet-teal);
-  stroke: var(--comet-teal);
-  filter: drop-shadow(0 0 8px rgba(79, 227, 193, 0.9));
-}
-
-.rocket {
-  position: absolute;
-  top: -6px;
-  font-size: 22px;
-  transform: translateX(-50%) rotate(90deg);
-  transition: left .5s cubic-bezier(.4,1.4,.5,1);
-  filter: drop-shadow(0 0 8px rgba(255, 217, 102, 0.7));
-}
-
-.prompt {
-  text-align: center;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 17px;
-  color: var(--ink-soft);
-  margin: 4px 0 18px;
-}
-
-/* ---------- Question-to-question galaxy zoom transition ----------
-   Wraps the prompt/audio button/options/feedback for one question.
-   app.js toggles q-exit / q-enter on this element so each question
-   moves the SAME way the hyperspace stars do: the outgoing question
-   rushes bigger/brighter and blurs past the viewer (like something
-   flying past at warp speed), and the next one starts tiny and far
-   away, then zooms up to size as it "arrives" — so the content and
-   the starfield feel like one continuous flight rather than a card
-   fading in place while the background does its own thing.
-   NOTE: the 360ms duration here is referenced by QUESTION_TRANSITION_MS
-   in app.js — keep them in sync if you change either one. */
-.question-content {
-  /* Ease-out: fast at first, settling gently — used when arriving
-     (q-enter is removed and it eases back to full size). */
-  transition: opacity 360ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 360ms cubic-bezier(0.16, 1, 0.3, 1),
-              filter 360ms ease-out;
-}
-
-.question-content.q-exit {
-  /* Ease-in: starts slow, accelerates away — matches stars
-     speeding up as they rush toward the edges of the screen. */
-  transition: opacity 320ms cubic-bezier(0.7, 0, 0.84, 0),
-              transform 320ms cubic-bezier(0.7, 0, 0.84, 0),
-              filter 320ms ease-in;
-  opacity: 0;
-  transform: scale(1.4);
-  filter: blur(5px);
-}
-
-/* Used instead of q-exit specifically when leaving via the black
-   hole button: content shrinks and spins down to a point and blurs
-   away, like it's being pulled in and spaghettified — the opposite
-   feel of q-exit's "flying past the camera" look. */
-.question-content.q-suck {
-  transition: opacity 320ms cubic-bezier(0.55, 0, 1, 0.45),
-              transform 320ms cubic-bezier(0.55, 0, 1, 0.45),
-              filter 320ms ease-in;
-  opacity: 0;
-  transform: scale(0.15) rotate(35deg);
-  filter: blur(3px);
-}
-
-.question-content.q-enter {
-  /* Snapped to instantly (no transition) right after the content is
-     swapped, so it starts small/far/blurred with nothing to animate
-     FROM — then this class is removed a frame later, letting the
-     base .question-content transition above ease it up to full size. */
-  transition: none;
-  opacity: 0;
-  transform: scale(0.35) translateY(10px);
-  filter: blur(6px);
-}
-
-.options-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: 16px;
-  margin-bottom: 8px;
-}
-
-.option-btn {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(32px, 8vw, 42px);
-  color: var(--ink-light);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-  border: 2px solid rgba(255, 255, 255, 0.14);
-  border-radius: var(--radius-md);
-  padding: clamp(14px, 3vh, 22px) 10px;
-  min-height: 44px; /* comfortable tap target on all touch devices */
-  cursor: pointer;
-  transition: transform .15s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
-  touch-action: manipulation;
-}
-
-.option-btn:hover:not(:disabled) {
-  transform: translateY(-3px);
-  border-color: var(--comet-teal);
-  box-shadow: 0 0 20px rgba(79, 227, 193, 0.25);
-}
-
-.option-btn:focus-visible {
-  outline: 3px solid var(--comet-teal);
-  outline-offset: 3px;
-}
-
-.option-btn:disabled { cursor: default; }
-
-.option-btn.correct {
-  background: linear-gradient(160deg, rgba(79, 227, 193, 0.35), rgba(79, 227, 193, 0.12));
-  border-color: var(--success);
-  box-shadow: 0 0 26px var(--success-glow);
-  animation: pop .35s ease;
-}
-
-.option-btn.incorrect {
-  background: linear-gradient(160deg, rgba(255, 111, 145, 0.35), rgba(255, 111, 145, 0.12));
-  border-color: var(--error);
-  box-shadow: 0 0 26px var(--error-glow);
-  animation: shake .4s ease;
-}
-
-.option-btn.dimmed { opacity: 0.45; }
-
-@keyframes pop {
-  0% { transform: scale(1); }
-  40% { transform: scale(1.08); }
-  100% { transform: scale(1); }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-6px); }
-  75% { transform: translateX(6px); }
-}
-
-.feedback {
-  min-height: 34px;
-  text-align: center;
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 20px;
-  margin: 10px 0 4px;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity .25s ease, transform .25s ease;
-}
-
-.feedback.show { opacity: 1; transform: translateY(0); }
-.feedback.correct-text { color: var(--success); }
-.feedback.incorrect-text { color: var(--error); }
-
-.next-wrap {
-  display: flex;
-  justify-content: center;
-  margin-top: 14px;
-  min-height: 60px;
-}
-
-/* ---------- Results screen ---------- */
-.results-screen { text-align: center; }
-
-.results-emoji {
-  font-size: 60px;
-  margin-bottom: 6px;
-  animation: floatY 4s ease-in-out infinite;
-}
-
-.results-score {
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(30px, 7vw, 40px);
-  margin: 6px 0 4px;
-  color: #ffffff;
-}
-
-.results-msg {
-  color: var(--ink-soft);
-  font-weight: 700;
-  margin-bottom: 22px;
-}
-
-.results-stars {
-  font-size: 30px;
-  letter-spacing: 6px;
-  margin: 14px 0 24px;
-}
-
-.results-best {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 16px;
-  color: var(--star-gold);
-  margin: 0 0 22px;
-}
-
-.results-best.new-best {
-  color: #ffffff;
-  text-shadow: 0 0 12px rgba(255, 217, 102, 0.8);
-}
-
-/* ---------- 6. Responsive ---------- */
-
-/* Phones (portrait) — iPhone SE through Pro Max, small Android phones */
-@media (max-width: 480px) {
-  .options-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-  .audio-btn { padding: 14px 24px; font-size: 17px; }
-  .brand-emoji { font-size: 46px; }
-  .start-illustration { font-size: 32px; margin: 16px 0; }
-}
-
-/* Tablets — iPad portrait/landscape and similarly sized Android tablets */
-@media (min-width: 600px) and (max-width: 1024px) {
-  .app { max-width: 560px; }
-}
-
-/* Short viewports — phones in landscape, minimized/split-screen desktop
-   windows, or fullscreen on a small display. Trims vertical space so
-   everything fits without the card overflowing the screen. */
-@media (max-height: 560px) {
-  .card { animation: none; } /* stop the float bob so it doesn't fight with scrolling */
-  .brand-emoji { font-size: 36px; }
-  .title { font-size: clamp(22px, 5vw, 30px); }
-  .subtitle { font-size: 14px; margin-top: 4px; }
-  .start-illustration { display: none; }
-  .audio-btn { padding: 12px 22px; font-size: 16px; }
-  .option-btn { font-size: clamp(24px, 6vw, 34px); }
-  .constellation { height: 40px; margin-bottom: 14px; }
-  .results-emoji { font-size: 40px; }
-}
-
-/* Very short viewports — e.g. a small phone in landscape */
-@media (max-height: 400px) {
-  .card { padding-top: 14px; padding-bottom: 14px; }
-  .brand { gap: 4px; }
-  .prompt { margin: 2px 0 10px; font-size: 15px; }
-}
-
-/* ---------- 7. Motion & accessibility ---------- */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden;
-  clip: rect(0,0,0,0);
-  white-space: nowrap;
-  border: 0;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"
+  />
+  <title>S.P.A.C.E. ALPHABETS</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ============================================================
+       GALAXY BACKGROUND
+       ============================================================ -->
+  <div class="sky"></div>
+  <div class="nebula"></div>
+  <div class="stars" id="starField" aria-hidden="true"></div>
+
+  <div
+    class="ambient-layer"
+    id="ambientLayer"
+    aria-hidden="true"
+  ></div>
+
+  <canvas
+    id="warpCanvas"
+    class="warp-canvas"
+    aria-hidden="true"
+  ></canvas>
+
+  <div
+    id="galaxyFlash"
+    class="galaxy-flash"
+    aria-hidden="true"
+  ></div>
+
+
+  <!-- ============================================================
+       MAIN APPLICATION
+       ============================================================ -->
+  <main class="app" id="appShell">
+
+    <div class="card">
+
+
+      <!-- ==========================================================
+           NICKNAME SCREEN
+           ========================================================== -->
+      <section
+        id="nicknameScreen"
+        class="screen active nickname-screen"
+      >
+
+        <div class="question-content" id="nicknameContent">
+
+          <div class="nickname-rocket" aria-hidden="true">
+            🚀
+          </div>
+
+          <h1 class="welcome-title">
+            WELCOME,<br>
+            SPACE EXPLORER!
+          </h1>
+
+          <p class="nickname-intro">
+            Before your mission begins,<br>
+            tell us your explorer name.
+          </p>
+
+          <div class="nickname-form">
+
+            <label for="nicknameInput" class="nickname-label">
+              Your Space Explorer Name
+            </label>
+
+            <input
+              id="nicknameInput"
+              class="nickname-input"
+              type="text"
+              maxlength="15"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="Enter your nickname"
+            />
+
+            <p
+              id="nicknameError"
+              class="nickname-error"
+              role="alert"
+            ></p>
+
+            <button
+              id="nicknameBtn"
+              class="btn btn-primary btn-lg btn-block"
+              type="button"
+            >
+              🚀 Enter the Galaxy
+            </button>
+
+          </div>
+
+          <p class="nickname-reset-note">
+            Your explorer name stays active until midnight in Japan.
+          </p>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==========================================================
+           START SCREEN
+           ========================================================== -->
+      <section
+        id="startScreen"
+        class="screen start-screen"
+      >
+
+        <div class="question-content" id="startContent">
+
+          <div class="brand">
+
+            <div
+              class="brand-emoji"
+              aria-hidden="true"
+            >
+              🚀
+            </div>
+
+            <h1 class="title">
+              S.P.A.C.E.<br>
+              ALPHABETS
+            </h1>
+
+          </div>
+
+          <p
+            class="player-welcome"
+            id="playerWelcome"
+          ></p>
+
+          <p class="subtitle">
+            聞こえた音はどのアルファベット？<br>
+            さあ、見つけよう！
+          </p>
+
+
+          <!-- MODE SELECTION -->
+          <div class="mode-section">
+
+            <p class="mode-title">
+              Choose Your Mission
+            </p>
+
+            <div
+              class="mode-grid"
+              id="modeGrid"
+            >
+
+              <button
+                class="mode-btn mode-easy selected"
+                data-mode="easy"
+                type="button"
+              >
+                <span class="mode-icon">🌟</span>
+                <span class="mode-name">EASY</span>
+                <span class="mode-description">
+                  Alphabet Sounds
+                </span>
+              </button>
+
+              <button
+                class="mode-btn mode-medium"
+                data-mode="medium"
+                type="button"
+              >
+                <span class="mode-icon">🚀</span>
+                <span class="mode-name">MEDIUM</span>
+                <span class="mode-description">
+                  Phonics &amp; Blends
+                </span>
+              </button>
+
+              <button
+                class="mode-btn mode-hard"
+                data-mode="hard"
+                type="button"
+              >
+                <span class="mode-icon">🌌</span>
+                <span class="mode-name">HARD</span>
+                <span class="mode-description">
+                  Words &amp; Spelling
+                </span>
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div
+            class="start-illustration"
+            aria-hidden="true"
+          >
+            <span>⭐</span>
+            <span>🪐</span>
+            <span>✨</span>
+          </div>
+
+
+          <button
+            id="startBtn"
+            class="btn btn-primary btn-lg btn-block"
+            type="button"
+          >
+            🚀 Start Mission
+          </button>
+
+
+          <button
+            id="changeNicknameBtn"
+            class="btn btn-secondary btn-block change-name-btn"
+            type="button"
+          >
+            👤 Change Explorer Name
+          </button>
+
+
+          <button
+            id="shareBtn"
+            class="btn btn-secondary btn-block start-secondary-btn"
+            type="button"
+          >
+            📤 Share with a Friend
+          </button>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==========================================================
+           GAME SCREEN
+           ========================================================== -->
+      <section
+        id="gameScreen"
+        class="screen"
+        aria-live="polite"
+      >
+
+        <div class="game-header">
+
+          <div class="header-group">
+
+            <div class="blackhole-wrap">
+
+              <button
+                id="blackholeBtn"
+                class="blackhole-btn"
+                type="button"
+                aria-label="Leave the mission and return to the home screen"
+                title="Return to home screen"
+              ></button>
+
+              <span
+                class="blackhole-label"
+                aria-hidden="true"
+              >
+                最初からやり直す！
+              </span>
+
+            </div>
+
+            <span
+              class="pill"
+              id="modePill"
+            >
+              EASY
+            </span>
+
+            <span
+              class="pill"
+              id="questionCounter"
+            >
+              Question 1 / 7
+            </span>
+
+          </div>
+
+
+          <div class="header-group">
+
+            <span
+              class="pill timer-pill"
+              id="timerPill"
+            >
+              ⏱ 0:00
+            </span>
+
+            <span
+              class="pill score-pill"
+              id="scoreCounter"
+            >
+              Score: 0 / 0
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <!-- CONSTELLATION -->
+        <div
+          class="constellation"
+          id="constellation"
+          aria-hidden="true"
+        ></div>
+
+
+        <!-- CURRENT QUESTION -->
+        <div
+          class="question-content"
+          id="questionContent"
+        >
+
+          <p class="prompt">
+            Which letter did you hear?
+          </p>
+
+
+          <button
+            id="playAudioBtn"
+            class="audio-btn"
+            type="button"
+            aria-label="Play the letter sound"
+          >
+            <span
+              class="speaker-icon"
+              aria-hidden="true"
+            >
+              🔊
+            </span>
+
+            <span>
+              Play Sound
+            </span>
+          </button>
+
+
+          <audio
+            id="letterAudio"
+            preload="auto"
+          ></audio>
+
+
+          <p
+            id="autoPlayStatus"
+            class="auto-play-status"
+            aria-live="polite"
+          ></p>
+
+
+          <div
+            class="options-grid"
+            id="optionsGrid"
+            role="group"
+            aria-label="Answer choices"
+          ></div>
+
+
+          <p
+            class="feedback"
+            id="feedback"
+            role="status"
+          ></p>
+
+        </div>
+
+      </section>
+
+
+      <!-- ==========================================================
+           RESULTS SCREEN
+           ========================================================== -->
+      <section
+        id="resultsScreen"
+        class="screen results-screen"
+      >
+
+        <div
+          class="question-content"
+          id="resultsContent"
+        >
+
+          <div
+            class="results-emoji"
+            aria-hidden="true"
+          >
+            🎉
+          </div>
+
+          <p
+            class="results-player"
+            id="resultsPlayer"
+          ></p>
+
+          <p
+            class="results-mode"
+            id="resultsMode"
+          >
+            EASY MISSION
+          </p>
+
+          <h2>
+            Mission Complete!
+          </h2>
+
+
+          <p
+            class="results-score"
+            id="resultsScore"
+          >
+            0 POINTS
+          </p>
+
+
+          <p
+            class="results-time"
+            id="resultsTime"
+          >
+            ⏱ Time: 0:00
+          </p>
+
+
+          <p
+            class="results-msg"
+            id="resultsMsg"
+          ></p>
+
+
+          <div
+            class="results-stars"
+            id="resultsStars"
+            aria-hidden="true"
+          ></div>
+
+
+          <p
+            class="results-best"
+            id="resultsBest"
+          >
+            🏆 Today's Best: 0 POINTS
+          </p>
+
+
+          <!-- ======================================================
+               LEADERBOARDS
+               ====================================================== -->
+
+          <div class="leaderboard-section">
+
+            <div class="leaderboard-heading">
+
+              <span class="trophy-icon">
+                🏆
+              </span>
+
+              <h3>
+                DAILY CHAMPIONS
+              </h3>
+
+            </div>
+
+
+            <p
+              class="champion-countdown"
+              id="championCountdown"
+            >
+              You have 00h 00m left to become the new CHAMPION
+            </p>
+
+
+            <!-- EASY -->
+            <div class="leaderboard-card easy-board">
+
+              <div class="leaderboard-title">
+                <span>🌟</span>
+                <span>EASY</span>
+              </div>
+
+              <div
+                id="easyLeaderboard"
+                class="leaderboard-list"
+              ></div>
+
+            </div>
+
+
+            <!-- MEDIUM -->
+            <div class="leaderboard-card medium-board">
+
+              <div class="leaderboard-title">
+                <span>🚀</span>
+                <span>MEDIUM</span>
+              </div>
+
+              <div
+                id="mediumLeaderboard"
+                class="leaderboard-list"
+              ></div>
+
+            </div>
+
+
+            <!-- HARD -->
+            <div class="leaderboard-card hard-board">
+
+              <div class="leaderboard-title">
+                <span>🌌</span>
+                <span>HARD</span>
+              </div>
+
+              <div
+                id="hardLeaderboard"
+                class="leaderboard-list"
+              ></div>
+
+            </div>
+
+          </div>
+
+
+          <button
+            id="playAgainBtn"
+            class="btn btn-primary btn-lg btn-block"
+            type="button"
+          >
+            🔄 Play Again
+          </button>
+
+
+          <button
+            id="resultsHomeBtn"
+            class="btn btn-secondary btn-block"
+            type="button"
+          >
+            🏠 Return Home
+          </button>
+
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+
+  <!-- ============================================================
+       DATA + GAME LOGIC
+       ============================================================ -->
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
