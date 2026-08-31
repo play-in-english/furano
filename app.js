@@ -55,34 +55,34 @@ const QUESTION_EXIT_MS  = 320;  // outgoing question rushing/blurring past (matc
 const QUESTION_ENTER_MS = 360;  // incoming question easing in from the distance (matches base CSS)
 
 /* Scoring & best-score persistence.
-   Total score for a round = (correct answers × 100) + a time bonus
-   looked up from calcTimeBonus() below. The best score is saved in
-   the browser's localStorage, but only counts for the CURRENT
-   calendar day: it resets automatically at local midnight (00:00),
-   because it's stored alongside the date it was set on, and any
-   record from a previous date is treated as if it doesn't exist. */
+   Total score for a round = (correct answers × 100) + a time bonus.
+   The best score is saved in the browser's localStorage, but only
+   counts for the CURRENT calendar day. */
+
 const POINTS_PER_CORRECT_ANSWER = 100;
 const BEST_SCORE_KEY = 'galaxyAlphabetQuiz.bestScore.v1';
 
-// Time-bonus table (seconds taken to answer all 7 questions → bonus
-// points). Ranges are inclusive of their lower bound. Edit the
-// numbers here to change the scoring — order doesn't matter to the
-// function, just keep the ranges the way you want them read.
+// Time-bonus table:
+// Time taken to answer all 7 questions → bonus points.
+//
+// 45 seconds or more → 20 points
+// 40–44 seconds      → 40 points
+// 35–39 seconds      → 60 points
+// 30–34 seconds      → 80 points
+// 25–29 seconds      → 100 points
+// 20–24 seconds      → 200 points
+// Under 20 seconds   → 300 points
 function calcTimeBonus(seconds) {
-  if (seconds < 40) return 300;   // under 40s
-  if (seconds < 50) return 150;   // 40–49s
-  if (seconds < 60) return 80;    // 50–59s
-  if (seconds < 70) return 100;   // 60–69s
-  if (seconds < 80) return 75;    // 70–79s
-  if (seconds < 90) return 55;    // 80–89s
-  if (seconds < 100) return 35;   // 90–99s
-  if (seconds < 110) return 30;   // 100–109s
-  if (seconds < 120) return 20;   // 110–119s
-  return 10;                      // 120s or more
+  if (seconds < 20) return 300;  // under 20s
+  if (seconds < 25) return 200;  // 20–24s
+  if (seconds < 30) return 100;  // 25–29s
+  if (seconds < 35) return 80;   // 30–34s
+  if (seconds < 40) return 60;   // 35–39s
+  if (seconds < 45) return 40;   // 40–44s
+  return 20;                      // 45s or more
 }
 
 const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
 /* ------------------------------------------------------------
    STATE
    ------------------------------------------------------------ */
