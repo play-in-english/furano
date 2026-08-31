@@ -1,4182 +1,1067 @@
 /* ============================================================
-   S.P.A.C.E. ALPHABETS — GAME LOGIC
+   ALPHABET LISTENING QUIZ — GAME LOGIC
    ============================================================
+   You generally should NOT need to edit this file to update
+   quiz content — that all lives in questions.js.
 
-   FEATURES
-   ------------------------------------------------------------
-   • Daily nickname
-   • EASY / MEDIUM / HARD modes
-   • 50 questions per mode
-   • 7 random questions per game
-   • Automatic question transition after 2 seconds
-   • Automatic audio playback twice
-   • 2-second gap between automatic audio plays
-   • Manual "Play Sound" button
-   • Mission timer
-   • Maximum score = 1000
-   • Daily best score
-   • Daily leaderboards
-   • Japan-time midnight reset
-   • Daily champion countdown
+   Settings you CAN safely change below:
+   - QUESTIONS_PER_GAME   : how many questions are played each round
+   - STAR_COUNT           : how many background stars are drawn
+   - WARP_*               : timing/density of the big galaxy-entrance
+                            hyperspace sequence (Start Mission)
+   - QUESTION_WARP_*      : timing/density of the shorter galaxy zoom
+                            that plays between every question
+   - SHOOTING_STAR_*      : how often shooting stars streak by, and
+                            how many can be on screen at once
+   - FLOATING_SATELLITE_* : how often 🛰️ satellites drift across the
+                            screen, and how many can be on screen at once
+   - calcTimeBonus()      : the time-bonus point table for scoring
+   - BEST_SCORE_KEY       : the localStorage key the best score is
+                            saved under (resets daily at local midnight)
    ============================================================ */
 
+const QUESTIONS_PER_GAME = 7; // <-- change this to play more/fewer questions per game
+const STAR_COUNT = 90;        // <-- change this to make the sky sparser/denser
 
-/* ============================================================
-   1. GAME SETTINGS
-   ============================================================ */
-
-const QUESTIONS_PER_GAME = 7;
-
-const STAR_COUNT = 90;
-
-const POINTS_PER_CORRECT_ANSWER = 100;
-
-
-/* ------------------------------------------------------------
-   Audio
-   ------------------------------------------------------------ */
-
-const AUTO_AUDIO_GAP_MS = 2000;
-
-
-/* ------------------------------------------------------------
-   Automatic next question
-   ------------------------------------------------------------ */
-
-const AUTO_NEXT_DELAY_MS = 2000;
-
-
-/* ------------------------------------------------------------
-   Warp effects
-   ------------------------------------------------------------ */
-
-const WARP_STAR_COUNT = 220;
-
-const WARP_ACCEL_MS = 1600;
-
-const WARP_HOLD_MS = 250;
-
-const WARP_EXIT_MS = 650;
-
-
-const QUESTION_WARP_STAR_COUNT = 70;
-
-const QUESTION_WARP_ACCEL_MS = 450;
-
-const QUESTION_EXIT_MS = 320;
-
-const QUESTION_ENTER_MS = 360;
-
-
-/* ------------------------------------------------------------
-   Ambient effects
-   ------------------------------------------------------------ */
-
+/* Ambient shooting stars & floating satellites — these play
+   continuously throughout the WHOLE site (start screen, quiz,
+   results), independent of the hyperspace transitions below. Each
+   spawns on a random delay somewhere between its MIN and MAX,
+   forever. */
 const SHOOTING_STAR_MIN_DELAY_MS = 2200;
-
 const SHOOTING_STAR_MAX_DELAY_MS = 5200;
-
-const SHOOTING_STAR_MAX_CONCURRENT = 3;
-
-
+const SHOOTING_STAR_MAX_CONCURRENT = 3; // never more than this many streaking at once
 const FLOATING_SATELLITE_MIN_DELAY_MS = 5000;
-
 const FLOATING_SATELLITE_MAX_DELAY_MS = 11000;
+const FLOATING_SATELLITE_MAX_CONCURRENT = 3; // never more than this many on screen at once
 
-const FLOATING_SATELLITE_MAX_CONCURRENT = 3;
+/* Galaxy entrance transition timing (all in milliseconds).
+   Feel free to tune these — see beginGalaxyEntrance() below for how
+   they fit together. */
+const WARP_STAR_COUNT = 220;   // how many streaking stars during hyperspace
+const WARP_ACCEL_MS   = 1600;  // time to accelerate to full hyperspace speed
+const WARP_HOLD_MS    = 250;   // brief hold at top speed before the flash
+const WARP_EXIT_MS    = 650;   // fade from warp back into the quiz
 
+/* Question-to-question galaxy zoom transition (a shorter, lighter
+   version of the same hyperspace effect, replayed every time the
+   student moves to a new question). NOTE: QUESTION_EXIT_MS and
+   QUESTION_ENTER_MS must match the transition durations set on
+   .question-content / .question-content.q-exit in style.css — keep
+   all three in sync if you change any of them. */
+const QUESTION_WARP_STAR_COUNT = 70;   // fewer stars than the big entrance
+const QUESTION_WARP_ACCEL_MS   = 450;  // quick ramp — this is a short hop, not a full jump
+const QUESTION_EXIT_MS  = 320;  // outgoing question rushing/blurring past (matches CSS q-exit)
+const QUESTION_ENTER_MS = 360;  // incoming question easing in from the distance (matches base CSS)
 
-/* ============================================================
-   2. STORAGE KEYS
-   ============================================================ */
+/* Scoring & best-score persistence.
+   Total score for a round = (correct answers × 100) + a time bonus
+   looked up from calcTimeBonus() below. The best score is saved in
+   the browser's localStorage, but only counts for the CURRENT
+   calendar day: it resets automatically at local midnight (00:00),
+   because it's stored alongside the date it was set on, and any
+   record from a previous date is treated as if it doesn't exist. */
+const POINTS_PER_CORRECT_ANSWER = 100;
+const BEST_SCORE_KEY = 'galaxyAlphabetQuiz.bestScore.v1';
 
-const NICKNAME_STORAGE_KEY =
-  'galaxyAlphabetQuiz.nickname.v2';
-
-const NICKNAME_DATE_KEY =
-  'galaxyAlphabetQuiz.nicknameDate.v2';
-
-const LEADERBOARD_STORAGE_KEY =
-  'galaxyAlphabetQuiz.leaderboards.v2';
-
-const BEST_SCORE_KEY =
-  'galaxyAlphabetQuiz.bestScore.v2';
-
-
-/* ============================================================
-   3. TIME BONUS
-   ============================================================
-
-   7 correct answers = 700 points.
-
-   Maximum possible time bonus = 300.
-
-   Therefore maximum possible score = 1000.
-   ============================================================ */
-
+// Time-bonus table (seconds taken to answer all 7 questions → bonus
+// points). Ranges are inclusive of their lower bound. Edit the
+// numbers here to change the scoring — order doesn't matter to the
+// function, just keep the ranges the way you want them read.
 function calcTimeBonus(seconds) {
-
-  if (seconds < 20) return 300;
-
-  if (seconds < 25) return 200;
-
-  if (seconds < 30) return 100;
-
-  if (seconds < 35) return 80;
-
-  if (seconds < 40) return 60;
-
-  if (seconds < 45) return 40;
-
-  return 20;
+  if (seconds < 40) return 300;   // under 40s
+  if (seconds < 50) return 150;   // 40–49s
+  if (seconds < 60) return 80;    // 50–59s
+  if (seconds < 70) return 100;   // 60–69s
+  if (seconds < 80) return 75;    // 70–79s
+  if (seconds < 90) return 55;    // 80–89s
+  if (seconds < 100) return 35;   // 90–99s
+  if (seconds < 110) return 30;   // 100–109s
+  if (seconds < 120) return 20;   // 110–119s
+  return 10;                      // 120s or more
 }
 
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-/* ============================================================
-   4. JAPAN DATE / TIME
-   ============================================================ */
-
-/*
-   IMPORTANT:
-
-   We deliberately use Asia/Tokyo rather than the player's
-   computer timezone.
-
-   This means the daily nickname and leaderboard reset at
-   Japanese midnight.
-*/
-
-function getJapanDateParts() {
-
-  const formatter =
-    new Intl.DateTimeFormat(
-      'en-US',
-      {
-        timeZone: 'Asia/Tokyo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-        hour12: false
-      }
-    );
-
-  const parts =
-    formatter.formatToParts(new Date());
-
-  const result = {};
-
-  parts.forEach(part => {
-
-    if (part.type !== 'literal') {
-      result[part.type] = part.value;
-    }
-
-  });
-
-  return result;
-}
-
-
-function getJapanDateKey() {
-
-  const p = getJapanDateParts();
-
-  return `${p.year}-${p.month}-${p.day}`;
-}
-
-
-/*
-   Returns milliseconds remaining until the next
-   00:00:00 in Japan.
-
-   Using UTC calculation with Japan's current UTC offset
-   keeps this correct for Japan Standard Time.
-*/
-
-function getMillisecondsUntilJapanMidnight() {
-
-  const now = new Date();
-
-  const parts =
-    getJapanDateParts();
-
-  const year =
-    Number(parts.year);
-
-  const month =
-    Number(parts.month);
-
-  const day =
-    Number(parts.day);
-
-  /*
-     Japan is UTC+9 and does not use daylight saving time.
-  */
-
-  const japanMidnightAsUTC =
-    Date.UTC(
-      year,
-      month - 1,
-      day + 1,
-      0,
-      0,
-      0
-    );
-
-  const japanMidnightReal =
-    japanMidnightAsUTC - (9 * 60 * 60 * 1000);
-
-  return Math.max(
-    0,
-    japanMidnightReal - now.getTime()
-  );
-}
-
-
-function formatCountdown(milliseconds) {
-
-  const totalSeconds =
-    Math.max(
-      0,
-      Math.floor(milliseconds / 1000)
-    );
-
-  const hours =
-    Math.floor(totalSeconds / 3600);
-
-  const minutes =
-    Math.floor(
-      (totalSeconds % 3600) / 60
-    );
-
-  const seconds =
-    totalSeconds % 60;
-
-  return (
-    String(hours).padStart(2, '0') +
-    'h ' +
-    String(minutes).padStart(2, '0') +
-    'm ' +
-    String(seconds).padStart(2, '0') +
-    's'
-  );
-}
-
-
-/* ============================================================
-   5. REDUCED MOTION
-   ============================================================ */
-
-const prefersReducedMotion =
-  window.matchMedia(
-    '(prefers-reduced-motion: reduce)'
-  ).matches;
-
-
-/* ============================================================
-   6. STATE
-   ============================================================ */
-
+/* ------------------------------------------------------------
+   STATE
+   ------------------------------------------------------------ */
 const state = {
-
-  /* Current player */
-  nickname: '',
-
-  nicknameDateKey: '',
-
-  /* Selected mode */
-  mode: 'easy',
-
-  /* Current round */
-  roundQuestions: [],
-
+  roundQuestions: [], // the QUESTIONS_PER_GAME questions chosen for this round
   currentIndex: 0,
-
   score: 0,
-
   answeredCurrent: false,
-
-  results: [],
-
-  /* Transition lock */
-  transitioning: false,
-
-  /* Timer */
-  startTime: null,
-
-  elapsedSeconds: null
-
+  results: [], // true/false per question, in order, for the constellation trail
+  transitioning: false, // true while the galaxy entrance animation is playing
+  startTime: null,      // performance.now() at the moment the round started
+  elapsedSeconds: null  // captured once the 7th question is answered
 };
 
-
-/* ============================================================
-   7. DOM REFERENCES
-   ============================================================ */
-
+/* ------------------------------------------------------------
+   DOM REFERENCES
+   ------------------------------------------------------------ */
 const screens = {
-
-  nickname:
-    document.getElementById(
-      'nicknameScreen'
-    ),
-
-  start:
-    document.getElementById(
-      'startScreen'
-    ),
-
-  game:
-    document.getElementById(
-      'gameScreen'
-    ),
-
-  results:
-    document.getElementById(
-      'resultsScreen'
-    )
-
+  start: document.getElementById('startScreen'),
+  game: document.getElementById('gameScreen'),
+  results: document.getElementById('resultsScreen')
 };
 
-
-const nicknameContent =
-  document.getElementById(
-    'nicknameContent'
-  );
-
-const nicknameInput =
-  document.getElementById(
-    'nicknameInput'
-  );
-
-const nicknameError =
-  document.getElementById(
-    'nicknameError'
-  );
-
-const nicknameBtn =
-  document.getElementById(
-    'nicknameBtn'
-  );
-
-
-const startBtn =
-  document.getElementById(
-    'startBtn'
-  );
-
-const shareBtn =
-  document.getElementById(
-    'shareBtn'
-  );
-
-const changeNicknameBtn =
-  document.getElementById(
-    'changeNicknameBtn'
-  );
-
-
-const playAgainBtn =
-  document.getElementById(
-    'playAgainBtn'
-  );
-
-const resultsHomeBtn =
-  document.getElementById(
-    'resultsHomeBtn'
-  );
-
-
-const playAudioBtn =
-  document.getElementById(
-    'playAudioBtn'
-  );
-
-const letterAudio =
-  document.getElementById(
-    'letterAudio'
-  );
-
-
-const optionsGrid =
-  document.getElementById(
-    'optionsGrid'
-  );
-
-const feedbackEl =
-  document.getElementById(
-    'feedback'
-  );
-
-
-const questionCounter =
-  document.getElementById(
-    'questionCounter'
-  );
-
-const scoreCounter =
-  document.getElementById(
-    'scoreCounter'
-  );
-
-const timerPill =
-  document.getElementById(
-    'timerPill'
-  );
-
-const modePill =
-  document.getElementById(
-    'modePill'
-  );
-
-
-const blackholeBtn =
-  document.getElementById(
-    'blackholeBtn'
-  );
-
-
-const constellationEl =
-  document.getElementById(
-    'constellation'
-  );
-
-
-const resultsPlayer =
-  document.getElementById(
-    'resultsPlayer'
-  );
-
-const resultsMode =
-  document.getElementById(
-    'resultsMode'
-  );
-
-const resultsScore =
-  document.getElementById(
-    'resultsScore'
-  );
-
-const resultsTime =
-  document.getElementById(
-    'resultsTime'
-  );
-
-const resultsMsg =
-  document.getElementById(
-    'resultsMsg'
-  );
-
-const resultsStars =
-  document.getElementById(
-    'resultsStars'
-  );
-
-const resultsBest =
-  document.getElementById(
-    'resultsBest'
-  );
-
-
-const easyLeaderboard =
-  document.getElementById(
-    'easyLeaderboard'
-  );
-
-const mediumLeaderboard =
-  document.getElementById(
-    'mediumLeaderboard'
-  );
-
-const hardLeaderboard =
-  document.getElementById(
-    'hardLeaderboard'
-  );
-
-const championCountdown =
-  document.getElementById(
-    'championCountdown'
-  );
-
-
-const playerWelcome =
-  document.getElementById(
-    'playerWelcome'
-  );
-
-
-const autoPlayStatus =
-  document.getElementById(
-    'autoPlayStatus'
-  );
-
-
-const starField =
-  document.getElementById(
-    'starField'
-  );
-
-const ambientLayer =
-  document.getElementById(
-    'ambientLayer'
-  );
-
-const appShell =
-  document.getElementById(
-    'appShell'
-  );
-
-const warpCanvas =
-  document.getElementById(
-    'warpCanvas'
-  );
-
-const galaxyFlash =
-  document.getElementById(
-    'galaxyFlash'
-  );
-
-const startContent =
-  document.getElementById(
-    'startContent'
-  );
-
-const questionContent =
-  document.getElementById(
-    'questionContent'
-  );
-
-const resultsContent =
-  document.getElementById(
-    'resultsContent'
-  );
-
-
-/* ============================================================
-   8. MODE HELPERS
-   ============================================================ */
-
-function getModeName(mode) {
-
-  if (mode === 'medium') {
-    return 'MEDIUM';
-  }
-
-  if (mode === 'hard') {
-    return 'HARD';
-  }
-
-  return 'EASY';
-}
-
-
-function getModeBank(mode) {
-
-  if (mode === 'medium') {
-    return MEDIUM_QUESTION_BANK;
-  }
-
-  if (mode === 'hard') {
-    return HARD_QUESTION_BANK;
-  }
-
-  return EASY_QUESTION_BANK;
-}
-
-
-/*
-   This also allows older questions.js versions using
-   QUESTION_BANK to continue working for EASY mode.
-*/
-
-function getEasyBank() {
-
-  if (Array.isArray(EASY_QUESTION_BANK)) {
-    return EASY_QUESTION_BANK;
-  }
-
-  if (Array.isArray(QUESTION_BANK)) {
-    return QUESTION_BANK;
-  }
-
-  return [];
-}
-
-
-/* ============================================================
-   9. STAR FIELD
-   ============================================================ */
-
+const startBtn = document.getElementById('startBtn');
+const shareBtn = document.getElementById('shareBtn');
+const playAgainBtn = document.getElementById('playAgainBtn');
+const playAudioBtn = document.getElementById('playAudioBtn');
+const letterAudio = document.getElementById('letterAudio');
+const optionsGrid = document.getElementById('optionsGrid');
+const feedbackEl = document.getElementById('feedback');
+const nextBtn = document.getElementById('nextBtn');
+const questionCounter = document.getElementById('questionCounter');
+const scoreCounter = document.getElementById('scoreCounter');
+const timerPill = document.getElementById('timerPill');
+const blackholeBtn = document.getElementById('blackholeBtn');
+const constellationEl = document.getElementById('constellation');
+const resultsScore = document.getElementById('resultsScore');
+const resultsMsg = document.getElementById('resultsMsg');
+const resultsStars = document.getElementById('resultsStars');
+const resultsBest = document.getElementById('resultsBest');
+const starField = document.getElementById('starField');
+const ambientLayer = document.getElementById('ambientLayer');
+const appShell = document.getElementById('appShell');
+const warpCanvas = document.getElementById('warpCanvas');
+const galaxyFlash = document.getElementById('galaxyFlash');
+const startContent = document.getElementById('startContent');
+const questionContent = document.getElementById('questionContent');
+const resultsContent = document.getElementById('resultsContent');
+
+/* ------------------------------------------------------------
+   BACKGROUND STAR FIELD
+   Purely decorative — generates STAR_COUNT twinkling dots.
+   ------------------------------------------------------------ */
 function buildStarField() {
-
   starField.innerHTML = '';
-
-  const frag =
-    document.createDocumentFragment();
-
-  for (
-    let i = 0;
-    i < STAR_COUNT;
-    i++
-  ) {
-
-    const star =
-      document.createElement('div');
-
-    const size =
-      Math.random() < .15
-        ? Math.random() * 2 + 2.5
-        : Math.random() * 1.5 + 1;
-
-    const isBig =
-      size > 3;
-
-    star.className =
-      'star' +
-      (isBig ? ' big' : '');
-
-    star.style.left =
-      Math.random() * 100 + 'vw';
-
-    star.style.top =
-      Math.random() * 100 + 'vh';
-
-    star.style.width =
-      size + 'px';
-
-    star.style.height =
-      size + 'px';
-
-    star.style.setProperty(
-      '--min-o',
-      (Math.random() * .25 + .1).toFixed(2)
-    );
-
-    star.style.setProperty(
-      '--max-o',
-      (Math.random() * .4 + .6).toFixed(2)
-    );
-
-    star.style.animationDuration =
-      (Math.random() * 3 + 2.5).toFixed(2) +
-      's';
-
-    star.style.animationDelay =
-      (Math.random() * 4).toFixed(2) +
-      's';
-
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < STAR_COUNT; i++) {
+    const star = document.createElement('div');
+    const size = Math.random() < 0.15 ? (Math.random() * 2 + 2.5) : (Math.random() * 1.5 + 1);
+    const isBig = size > 3;
+    star.className = 'star' + (isBig ? ' big' : '');
+    star.style.left = Math.random() * 100 + 'vw';
+    star.style.top = Math.random() * 100 + 'vh';
+    star.style.width = size + 'px';
+    star.style.height = size + 'px';
+    const duration = (Math.random() * 3 + 2.5).toFixed(2);
+    const delay = (Math.random() * 4).toFixed(2);
+    star.style.setProperty('--min-o', (Math.random() * 0.25 + 0.1).toFixed(2));
+    star.style.setProperty('--max-o', (Math.random() * 0.4 + 0.6).toFixed(2));
+    star.style.animationDuration = duration + 's';
+    star.style.animationDelay = delay + 's';
     frag.appendChild(star);
   }
-
   starField.appendChild(frag);
 }
 
-
-/* ============================================================
-   10. AMBIENT SHOOTING STARS
-   ============================================================ */
-
+/* ------------------------------------------------------------
+   AMBIENT FLOATING SATELLITES & SHOOTING STARS
+   ------------------------------------------------------------
+   Purely decorative flourishes that run continuously for the whole
+   site visit — start screen, quiz, and results alike — completely
+   independent of the hyperspace warp system below. Each function
+   spawns one element, lets its CSS animation play out, then removes
+   it; scheduleShootingStars()/scheduleFloatingSatellites() just keep
+   calling that on a random delay, forever.
+   ------------------------------------------------------------ */
 function randRange(min, max) {
-
-  return (
-    Math.random() *
-      (max - min) +
-    min
-  );
+  return Math.random() * (max - min) + min;
 }
 
-
+// A quick streak with a fading trail that shoots across the screen
+// at a random spot/angle and disappears. Most are small, dim, and
+// short ("far away" — a subtle background detail); a minority are
+// bigger, brighter, and slightly longer ("nearer" — unmistakable).
+// Never more than SHOOTING_STAR_MAX_CONCURRENT are on screen at once.
 let activeShootingStarCount = 0;
 
-
 function spawnShootingStar() {
-
   if (!ambientLayer) return;
+  if (activeShootingStarCount >= SHOOTING_STAR_MAX_CONCURRENT) return; // try again next scheduled tick
 
-  if (
-    activeShootingStarCount >=
-    SHOOTING_STAR_MAX_CONCURRENT
-  ) {
-    return;
-  }
+  const el = document.createElement('div');
+  el.className = 'shooting-star';
 
-  const el =
-    document.createElement('div');
+  const isNear = Math.random() < 0.3; // ~30% read as close/obvious, rest as distant/subtle
+  const length = isNear ? randRange(55, 90) : randRange(22, 42);     // px, visible trail length
+  const distance = isNear ? randRange(150, 230) : randRange(80, 150); // px travelled — short either way
+  const duration = isNear ? randRange(550, 850) : randRange(420, 680);
+  const peakOpacity = isNear ? 1 : randRange(0.4, 0.65);
+  const thickness = isNear ? 2.2 : 1.2; // px
 
-  el.className =
-    'shooting-star';
+  const startTop = randRange(-5, 55);   // upper half-ish of the screen, in %
+  const startLeft = randRange(0, 100);  // %
+  // Mostly a classic downward-right sweep, occasionally mirrored for variety.
+  const angle = randRange(15, 35) * (Math.random() < 0.75 ? 1 : -1);
 
-  const isNear =
-    Math.random() < .3;
-
-  const length =
-    isNear
-      ? randRange(55,90)
-      : randRange(22,42);
-
-  const distance =
-    isNear
-      ? randRange(150,230)
-      : randRange(80,150);
-
-  const duration =
-    isNear
-      ? randRange(550,850)
-      : randRange(420,680);
-
-  const peakOpacity =
-    isNear
-      ? 1
-      : randRange(.4,.65);
-
-  const thickness =
-    isNear
-      ? 2.2
-      : 1.2;
-
-  const startTop =
-    randRange(-5,55);
-
-  const startLeft =
-    randRange(0,100);
-
-  const angle =
-    randRange(15,35) *
-    (Math.random() < .75 ? 1 : -1);
-
-  el.style.top =
-    startTop + '%';
-
-  el.style.left =
-    startLeft + '%';
-
-  el.style.width =
-    length.toFixed(0) + 'px';
-
-  el.style.height =
-    thickness + 'px';
-
-  el.style.setProperty(
-    '--angle',
-    angle.toFixed(1) + 'deg'
-  );
-
-  el.style.setProperty(
-    '--distance',
-    distance.toFixed(0) + 'px'
-  );
-
-  el.style.setProperty(
-    '--peak-opacity',
-    peakOpacity.toFixed(2)
-  );
-
-  el.style.animationDuration =
-    duration.toFixed(0) + 'ms';
+  el.style.top = startTop + '%';
+  el.style.left = startLeft + '%';
+  el.style.width = length.toFixed(0) + 'px';
+  el.style.height = thickness + 'px';
+  el.style.setProperty('--angle', angle.toFixed(1) + 'deg');
+  el.style.setProperty('--distance', distance.toFixed(0) + 'px');
+  el.style.setProperty('--peak-opacity', peakOpacity.toFixed(2));
+  el.style.animationDuration = duration.toFixed(0) + 'ms';
 
   activeShootingStarCount++;
-
-  el.addEventListener(
-    'animationend',
-    () => {
-
-      el.remove();
-
-      activeShootingStarCount--;
-
-    }
-  );
-
+  el.addEventListener('animationend', () => {
+    el.remove();
+    activeShootingStarCount--;
+  });
   ambientLayer.appendChild(el);
 }
-
 
 function scheduleShootingStars() {
-
-  const delay =
-    randRange(
-      SHOOTING_STAR_MIN_DELAY_MS,
-      SHOOTING_STAR_MAX_DELAY_MS
-    );
-
-  setTimeout(
-    () => {
-
-      spawnShootingStar();
-
-      scheduleShootingStars();
-
-    },
-    delay
-  );
+  const delay = randRange(SHOOTING_STAR_MIN_DELAY_MS, SHOOTING_STAR_MAX_DELAY_MS);
+  setTimeout(() => {
+    spawnShootingStar();
+    scheduleShootingStars();
+  }, delay);
 }
 
-
-/* ============================================================
-   11. FLOATING SATELLITES
-   ============================================================ */
-
+// A slow-drifting satellite (🛰️) that cruises across part of the
+// screen while gently tumbling, then fades out. Only
+// FLOATING_SATELLITE_MAX_CONCURRENT can exist on screen at once.
 let activeSatelliteCount = 0;
 
-
 function spawnFloatingSatellite() {
-
   if (!ambientLayer) return;
+  if (activeSatelliteCount >= FLOATING_SATELLITE_MAX_CONCURRENT) return; // try again next scheduled tick
 
-  if (
-    activeSatelliteCount >=
-    FLOATING_SATELLITE_MAX_CONCURRENT
-  ) {
-    return;
-  }
+  const el = document.createElement('div');
+  el.className = 'floating-satellite';
+  el.textContent = '🛰️';
 
-  const el =
-    document.createElement('div');
+  // Pick a travel direction first, then choose a spawn point on the
+  // opposite side so the satellite actually crosses the visible screen.
+  const goingRight = Math.random() < 0.5;
+  const goingDown = Math.random() < 0.5;
+  const dx = (goingRight ? 1 : -1) * randRange(
+  window.innerWidth * 0.35,
+  window.innerWidth * 0.65
+);
+const dy = (goingDown ? 1 : -1) * randRange(
+  window.innerHeight * 0.15,
+  window.innerHeight * 0.35
+);
 
-  el.className =
-    'floating-satellite';
+const startLeft = goingRight ? randRange(-5, 35) : randRange(65, 100);
+const startTop = goingDown ? randRange(5, 35) : randRange(55, 90);
 
-  el.textContent =
-    '🛰️';
+  // Unlike a rocket, a satellite doesn't need to "point" anywhere —
+  // it just gently tumbles end over end while it drifts.
+  const spin = (Math.random() < 0.5 ? 1 : -1) * randRange(180, 420);
 
-  const goingRight =
-    Math.random() < .5;
+  const duration = randRange(10000, 18000); // slower/statelier than the old rockets
+  const size = randRange(20, 32);
 
-  const goingDown =
-    Math.random() < .5;
-
-  const dx =
-    (goingRight ? 1 : -1) *
-    randRange(
-      window.innerWidth * .35,
-      window.innerWidth * .65
-    );
-
-  const dy =
-    (goingDown ? 1 : -1) *
-    randRange(
-      window.innerHeight * .15,
-      window.innerHeight * .35
-    );
-
-  const startLeft =
-    goingRight
-      ? randRange(-5,35)
-      : randRange(65,100);
-
-  const startTop =
-    goingDown
-      ? randRange(5,35)
-      : randRange(55,90);
-
-  const spin =
-    (Math.random() < .5 ? 1 : -1) *
-    randRange(180,420);
-
-  const duration =
-    randRange(10000,18000);
-
-  const size =
-    randRange(20,32);
-
-  el.style.top =
-    startTop + '%';
-
-  el.style.left =
-    startLeft + '%';
-
-  el.style.fontSize =
-    size.toFixed(1) + 'px';
-
-  el.style.setProperty(
-    '--dx',
-    dx.toFixed(0) + 'px'
-  );
-
-  el.style.setProperty(
-    '--dy',
-    dy.toFixed(0) + 'px'
-  );
-
-  el.style.setProperty(
-    '--spin',
-    spin.toFixed(0) + 'deg'
-  );
-
-  el.style.animationDuration =
-    duration.toFixed(0) + 'ms';
+  el.style.top = startTop + '%';
+  el.style.left = startLeft + '%';
+  el.style.fontSize = size.toFixed(1) + 'px';
+  el.style.setProperty('--dx', dx.toFixed(0) + 'px');
+  el.style.setProperty('--dy', dy.toFixed(0) + 'px');
+  el.style.setProperty('--spin', spin.toFixed(0) + 'deg');
+  el.style.animationDuration = duration.toFixed(0) + 'ms';
 
   activeSatelliteCount++;
-
-  el.addEventListener(
-    'animationend',
-    () => {
-
-      el.remove();
-
-      activeSatelliteCount--;
-
-    }
-  );
-
+  el.addEventListener('animationend', () => {
+    el.remove();
+    activeSatelliteCount--;
+  });
   ambientLayer.appendChild(el);
 }
 
-
 function scheduleFloatingSatellites() {
-
-  const delay =
-    randRange(
-      FLOATING_SATELLITE_MIN_DELAY_MS,
-      FLOATING_SATELLITE_MAX_DELAY_MS
-    );
-
-  setTimeout(
-    () => {
-
-      spawnFloatingSatellite();
-
-      scheduleFloatingSatellites();
-
-    },
-    delay
-  );
+  const delay = randRange(FLOATING_SATELLITE_MIN_DELAY_MS, FLOATING_SATELLITE_MAX_DELAY_MS);
+  setTimeout(() => {
+    spawnFloatingSatellite();
+    scheduleFloatingSatellites();
+  }, delay);
 }
 
+/* ------------------------------------------------------------
+   GALAXY ENTRANCE TRANSITION (hyperspace warp)
+   ------------------------------------------------------------
+   Draws a "flying through the galaxy" star-streak animation on a
+   full-screen canvas when the student clicks "Start Mission".
+   Stars spawn near the center and accelerate outward toward the
+   edges of the screen, growing larger/brighter as they approach —
+   classic warp-speed depth effect — before a soft light flash
+   marks "arriving" in the galaxy and the quiz fades in underneath.
 
-/* ============================================================
-   12. WARP CANVAS
-   ============================================================ */
-
+   This section is self-contained: if you never touch it, the rest
+   of the game logic below works exactly as before.
+   ------------------------------------------------------------ */
 let warpCtx = null;
-
 let warpStars = [];
-
 let warpMaxRadius = 0;
-
 let warpRAF = null;
-
 let warpAnimStart = 0;
-
-let warpAccelMsActive =
-  WARP_ACCEL_MS;
-
+let warpAccelMsActive = WARP_ACCEL_MS; // set before each run: big entrance vs quick question hop
 
 function setupWarpCanvas() {
-
-  if (!warpCanvas.getContext) {
-    return;
-  }
-
-  warpCtx =
-    warpCanvas.getContext('2d');
-
+  if (!warpCanvas.getContext) return; // very old browsers: skip gracefully
+  warpCtx = warpCanvas.getContext('2d');
   resizeWarpCanvas();
-
-  window.addEventListener(
-    'resize',
-    resizeWarpCanvas
-  );
+  window.addEventListener('resize', resizeWarpCanvas);
 }
-
 
 function resizeWarpCanvas() {
-
   if (!warpCtx) return;
-
-  const dpr =
-    window.devicePixelRatio || 1;
-
-  const w =
-    window.innerWidth;
-
-  const h =
-    window.innerHeight;
-
-  warpCanvas.width =
-    w * dpr;
-
-  warpCanvas.height =
-    h * dpr;
-
-  warpCanvas.style.width =
-    w + 'px';
-
-  warpCanvas.style.height =
-    h + 'px';
-
-  warpCtx.setTransform(
-    dpr,
-    0,
-    0,
-    dpr,
-    0,
-    0
-  );
+  const dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  warpCanvas.width = w * dpr;
+  warpCanvas.height = h * dpr;
+  warpCanvas.style.width = w + 'px';
+  warpCanvas.style.height = h + 'px';
+  warpCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-
+// Creates one warp star. `nearCenter` seeds it close to the middle
+// (used when a star finishes its flight and respawns).
 function makeWarpStar(nearCenter) {
-
-  const roll =
-    Math.random();
-
+  const roll = Math.random();
   return {
-
-    angle:
-      Math.random() *
-      Math.PI *
-      2,
-
-    r:
-      nearCenter
-        ? Math.random() * 24
-        : Math.random() *
-          warpMaxRadius *
-          .5,
-
-    spd:
-      .6 +
-      Math.random() * 1.4,
-
-    hue:
-      roll < .14
-        ? 'gold'
-        : (
-          roll < .26
-            ? 'teal'
-            : 'white'
-        )
-
+    angle: Math.random() * Math.PI * 2,
+    r: nearCenter ? Math.random() * 24 : Math.random() * warpMaxRadius * 0.5,
+    spd: 0.6 + Math.random() * 1.4, // per-star speed variation, for depth
+    // mostly white starlight, with a sprinkle of gold/teal for magic
+    hue: roll < 0.14 ? 'gold' : (roll < 0.26 ? 'teal' : 'white')
   };
 }
 
-
 function initWarpStars(count) {
-
-  warpMaxRadius =
-    Math.hypot(
-      window.innerWidth,
-      window.innerHeight
-    ) / 2 * 1.05;
-
+  warpMaxRadius = Math.hypot(window.innerWidth, window.innerHeight) / 2 * 1.05;
   warpStars = [];
-
-  const total =
-    count || WARP_STAR_COUNT;
-
-  for (
-    let i = 0;
-    i < total;
-    i++
-  ) {
-
-    warpStars.push(
-      makeWarpStar(false)
-    );
-
+  const total = count || WARP_STAR_COUNT;
+  for (let i = 0; i < total; i++) {
+    warpStars.push(makeWarpStar(false));
   }
 }
 
-
 function warpFrame(now) {
+  const elapsed = now - warpAnimStart;
+  // Ease-in acceleration: slow drift at first, rapidly ramping up to
+  // full hyperspace speed by warpAccelMsActive, then holding there.
+  const accelProgress = Math.min(elapsed / warpAccelMsActive, 1);
+  const eased = accelProgress * accelProgress;
+  const speedFactor = 0.35 + eased * 5.5;
 
-  const elapsed =
-    now - warpAnimStart;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  const cx = w / 2;
+  const cy = h / 2;
 
-  const accelProgress =
-    Math.min(
-      elapsed /
-      warpAccelMsActive,
-      1
-    );
+  // Translucent fill (instead of a full clear) so fast stars leave a
+  // soft streak behind them — the classic warp-speed trail look.
+  warpCtx.fillStyle = 'rgba(6, 8, 24, 0.28)';
+  warpCtx.fillRect(0, 0, w, h);
 
-  const eased =
-    accelProgress *
-    accelProgress;
-
-  const speedFactor =
-    .35 +
-    eased * 5.5;
-
-  const w =
-    window.innerWidth;
-
-  const h =
-    window.innerHeight;
-
-  const cx =
-    w / 2;
-
-  const cy =
-    h / 2;
-
-  warpCtx.fillStyle =
-    'rgba(6,8,24,.28)';
-
-  warpCtx.fillRect(
-    0,
-    0,
-    w,
-    h
-  );
-
-  for (
-    let i = 0;
-    i < warpStars.length;
-    i++
-  ) {
-
-    const star =
-      warpStars[i];
-
-    const delta =
-      speedFactor *
-      star.spd *
-      (2 + star.r * .045);
-
+  for (let i = 0; i < warpStars.length; i++) {
+    const star = warpStars[i];
+    // Stars further from center travel faster, simulating perspective
+    // as they approach the "camera".
+    const delta = speedFactor * star.spd * (2 + star.r * 0.045);
     star.r += delta;
 
-    if (
-      star.r >
-      warpMaxRadius
-    ) {
-
-      warpStars[i] =
-        makeWarpStar(true);
-
+    if (star.r > warpMaxRadius) {
+      warpStars[i] = makeWarpStar(true);
       continue;
     }
 
-    const ratio =
-      star.r /
-      warpMaxRadius;
-
-    const x =
-      cx +
-      Math.cos(star.angle) *
-      star.r;
-
-    const y =
-      cy +
-      Math.sin(star.angle) *
-      star.r;
-
-    const size =
-      .6 +
-      ratio * 3.6;
-
-    const alpha =
-      Math.min(
-        1,
-        .2 +
-        ratio * 1.1
-      );
+    const ratio = star.r / warpMaxRadius;
+    const x = cx + Math.cos(star.angle) * star.r;
+    const y = cy + Math.sin(star.angle) * star.r;
+    const size = 0.6 + ratio * 3.6;
+    const alpha = Math.min(1, 0.2 + ratio * 1.1);
 
     let color;
-
-    if (star.hue === 'gold') {
-
-      color =
-        `rgba(255,217,102,${alpha})`;
-
-    } else if (
-      star.hue === 'teal'
-    ) {
-
-      color =
-        `rgba(79,227,193,${alpha})`;
-
-    } else {
-
-      color =
-        `rgba(255,255,255,${alpha})`;
-
-    }
+    if (star.hue === 'gold') color = `rgba(255, 217, 102, ${alpha})`;
+    else if (star.hue === 'teal') color = `rgba(79, 227, 193, ${alpha})`;
+    else color = `rgba(255, 255, 255, ${alpha})`;
 
     warpCtx.beginPath();
-
-    warpCtx.fillStyle =
-      color;
-
-    warpCtx.arc(
-      x,
-      y,
-      size,
-      0,
-      Math.PI * 2
-    );
-
+    warpCtx.fillStyle = color;
+    warpCtx.arc(x, y, size, 0, Math.PI * 2);
     warpCtx.fill();
   }
 
-  warpRAF =
-    requestAnimationFrame(
-      warpFrame
-    );
+  warpRAF = requestAnimationFrame(warpFrame);
 }
-
 
 function stopWarpAnimation() {
-
-  if (warpRAF) {
-
-    cancelAnimationFrame(
-      warpRAF
-    );
-  }
-
+  if (warpRAF) cancelAnimationFrame(warpRAF);
   warpRAF = null;
-
-  if (warpCtx) {
-
-    warpCtx.clearRect(
-      0,
-      0,
-      warpCanvas.width,
-      warpCanvas.height
-    );
-  }
+  if (warpCtx) warpCtx.clearRect(0, 0, warpCanvas.width, warpCanvas.height);
 }
 
-
-/* ============================================================
-   13. GALAXY ENTRANCE
-   ============================================================ */
-
+// Called when the student clicks "Start Mission". Plays the
+// cinematic hyperspace sequence, then hands off to startGame().
 function beginGalaxyEntrance() {
+  if (state.transitioning) return; // ignore extra clicks mid-transition
+  state.transitioning = true;
+  startBtn.disabled = true;
+  startRoundTimer(); // timing starts the instant Start Mission is clicked
 
-  if (state.transitioning) {
-    return;
-  }
-
-  state.transitioning =
-    true;
-
-  startBtn.disabled =
-    true;
-
-  /*
-     Timer starts when Start Mission is clicked.
-  */
-
-  startRoundTimer();
-
-  if (
-    prefersReducedMotion ||
-    !warpCtx
-  ) {
-
-    appShell.classList.add(
-      'transition-hide'
-    );
-
-    setTimeout(
-      () => {
-
-        startGame();
-
-        appShell.classList.remove(
-          'transition-hide'
-        );
-
-        state.transitioning =
-          false;
-
-        startBtn.disabled =
-          false;
-
-      },
-      300
-    );
-
-    return;
-  }
-
-
-  appShell.classList.add(
-    'transition-hide'
-  );
-
-  document.body.classList.add(
-    'warping'
-  );
-
-  warpAccelMsActive =
-    WARP_ACCEL_MS;
-
-  initWarpStars(
-    WARP_STAR_COUNT
-  );
-
-  warpAnimStart =
-    performance.now();
-
-  warpCanvas.classList.add(
-    'active'
-  );
-
-  stopWarpAnimation();
-
-  warpRAF =
-    requestAnimationFrame(
-      warpFrame
-    );
-
-
-  setTimeout(
-    () => {
-
-      galaxyFlash.classList.remove(
-        'flash'
-      );
-
-      void galaxyFlash.offsetWidth;
-
-      galaxyFlash.classList.add(
-        'flash'
-      );
-
-    },
-    WARP_ACCEL_MS
-  );
-
-
-  setTimeout(
-    () => {
-
+  // Respect motion-sensitivity settings: skip straight to the quiz
+  // with a short, gentle fade instead of the full hyperspace sequence.
+  if (prefersReducedMotion || !warpCtx) {
+    appShell.classList.add('transition-hide');
+    setTimeout(() => {
       startGame();
+      appShell.classList.remove('transition-hide');
+      state.transitioning = false;
+      startBtn.disabled = false;
+    }, 300);
+    return;
+  }
 
-    },
-    WARP_ACCEL_MS +
-    WARP_HOLD_MS
-  );
-
-
-  setTimeout(
-    () => {
-
-      appShell.classList.remove(
-        'transition-hide'
-      );
-
-      warpCanvas.classList.remove(
-        'active'
-      );
-
-      document.body.classList.remove(
-        'warping'
-      );
-
-    },
-    WARP_ACCEL_MS +
-    WARP_HOLD_MS +
-    120
-  );
-
-
-  setTimeout(
-    () => {
-
-      stopWarpAnimation();
-
-      state.transitioning =
-        false;
-
-      startBtn.disabled =
-        false;
-
-    },
-    WARP_ACCEL_MS +
-    WARP_HOLD_MS +
-    120 +
-    WARP_EXIT_MS
-  );
-}
-
-
-/* ============================================================
-   14. QUESTION TRANSITION
-   ============================================================ */
-
-function playQuestionWarpBurst(
-  visibleMs
-) {
-
-  if (!warpCtx) return;
-
-  document.body.classList.add(
-    'warping'
-  );
-
-  warpAccelMsActive =
-    QUESTION_WARP_ACCEL_MS;
-
-  initWarpStars(
-    QUESTION_WARP_STAR_COUNT
-  );
-
-  warpAnimStart =
-    performance.now();
-
+  // 1) Start screen fades/shrinks away, hyperspace canvas fades in,
+  //    stars begin accelerating outward from the center.
+  appShell.classList.add('transition-hide');
+  document.body.classList.add('warping');
+  warpAccelMsActive = WARP_ACCEL_MS;
+  initWarpStars(WARP_STAR_COUNT);
+  warpAnimStart = performance.now();
+  warpCanvas.classList.add('active');
   stopWarpAnimation();
+  warpRAF = requestAnimationFrame(warpFrame);
 
-  warpCanvas.classList.add(
-    'active'
-  );
+  // 2) Near the end of the acceleration, trigger the bright
+  //    "arriving in the galaxy" flash.
+  setTimeout(() => {
+    galaxyFlash.classList.remove('flash');
+    void galaxyFlash.offsetWidth; // restart animation if replayed
+    galaxyFlash.classList.add('flash');
+  }, WARP_ACCEL_MS);
 
-  warpRAF =
-    requestAnimationFrame(
-      warpFrame
-    );
+  // 3) While the app shell is still hidden, swap in the quiz screen
+  //    and pick the round's questions — invisible to the student, so
+  //    there's no jarring jump when everything fades back in.
+  setTimeout(() => {
+    startGame();
+  }, WARP_ACCEL_MS + WARP_HOLD_MS);
 
+  // 4) Fade the quiz back in and the hyperspace canvas/nebula bloom
+  //    back out, completing the "arrival".
+  setTimeout(() => {
+    appShell.classList.remove('transition-hide');
+    warpCanvas.classList.remove('active');
+    document.body.classList.remove('warping');
+  }, WARP_ACCEL_MS + WARP_HOLD_MS + 120);
 
-  setTimeout(
-    () => {
-
-      warpCanvas.classList.remove(
-        'active'
-      );
-
-      document.body.classList.remove(
-        'warping'
-      );
-
-    },
-    visibleMs
-  );
-
-
-  setTimeout(
-    () => {
-
-      stopWarpAnimation();
-
-    },
-    visibleMs + 650
-  );
+  // 5) Clean up once everything has faded, so the canvas isn't
+  //    silently animating in the background forever.
+  setTimeout(() => {
+    stopWarpAnimation();
+    state.transitioning = false;
+    startBtn.disabled = false;
+  }, WARP_ACCEL_MS + WARP_HOLD_MS + 120 + WARP_EXIT_MS);
 }
 
+/* ------------------------------------------------------------
+   QUESTION-TO-QUESTION GALAXY TRANSITION
+   ------------------------------------------------------------
+   Every time the student moves to a new question (or on to the
+   results screen), the current question rushes bigger/brighter and
+   blurs past — like it's flying past at warp speed — a burst of
+   hyperspace stars streaks past behind it, and the next question
+   starts tiny and far away, then zooms up to size as it arrives —
+   the same galaxy effect as the opening entrance, just a short hop
+   instead of a full journey, with the content moving the same way
+   the stars do instead of just fading in place.
+   ------------------------------------------------------------ */
 
-function playGalaxyZoomTransition(
-  exitEl,
-  enterEl,
-  onSwap,
-  exitClass
-) {
+// Plays a short hyperspace star burst behind a question transition.
+// `visibleMs` is how long the canvas stays visible before fading —
+// keep it roughly in line with QUESTION_EXIT_MS + QUESTION_ENTER_MS.
+function playQuestionWarpBurst(visibleMs) {
+  if (!warpCtx) return;
+  document.body.classList.add('warping');
+  warpAccelMsActive = QUESTION_WARP_ACCEL_MS;
+  initWarpStars(QUESTION_WARP_STAR_COUNT);
+  warpAnimStart = performance.now();
+  stopWarpAnimation();
+  warpCanvas.classList.add('active');
+  warpRAF = requestAnimationFrame(warpFrame);
 
-  exitClass =
-    exitClass || 'q-exit';
+  setTimeout(() => {
+    warpCanvas.classList.remove('active');
+    document.body.classList.remove('warping');
+  }, visibleMs);
+
+  // Give the canvas's own fade-out transition (defined in style.css)
+  // time to finish before we stop drawing and clear it.
+  setTimeout(() => {
+    stopWarpAnimation();
+  }, visibleMs + 650);
+}
+
+// Swaps the on-screen content using `onSwap`, wrapped in the
+// zoom-out / hyperspace-burst / zoom-in sequence described above.
+// `exitEl` is the content currently on screen; `enterEl` is what
+// should be visible afterward (they're the same element for a
+// same-screen question change, and different elements when the
+// swap also crosses from the game screen to the results screen,
+// back again via "Play Again", or home via the black hole button).
+// `exitClass` picks which exit animation plays — 'q-exit' (default,
+// flying-past-camera) or 'q-suck' (pulled into the black hole).
+function playGalaxyZoomTransition(exitEl, enterEl, onSwap, exitClass) {
+  exitClass = exitClass || 'q-exit';
 
   if (prefersReducedMotion) {
-
     onSwap();
-
     return;
   }
 
-  playQuestionWarpBurst(
-    QUESTION_EXIT_MS +
-    QUESTION_ENTER_MS -
-    60
-  );
+  playQuestionWarpBurst(QUESTION_EXIT_MS + QUESTION_ENTER_MS - 60);
 
+  // 1) Current content plays its exit animation (rushing past the
+  //    camera, or being pulled into the black hole).
+  exitEl.classList.remove('q-enter', 'q-exit', 'q-suck');
+  exitEl.classList.add(exitClass);
 
-  exitEl.classList.remove(
-    'q-enter',
-    'q-exit',
-    'q-suck'
-  );
-
-  exitEl.classList.add(
-    exitClass
-  );
-
-
-  setTimeout(
-    () => {
-
-      onSwap();
-
-      if (
-        exitEl !== enterEl
-      ) {
-
-        exitEl.classList.remove(
-          exitClass
-        );
-      }
-
-      enterEl.classList.remove(
-        'q-exit',
-        'q-suck',
-        'q-enter'
-      );
-
-      enterEl.classList.add(
-        'q-enter'
-      );
-
-      void enterEl.offsetWidth;
-
-      requestAnimationFrame(
-        () => {
-
-          enterEl.classList.remove(
-            'q-enter'
-          );
-
-        }
-      );
-
-    },
-    QUESTION_EXIT_MS
-  );
+  // 2) Once it's fully faded, perform the actual screen/content swap
+  //    while everything is invisible, then flip the new content
+  //    straight to the "far away" state so it can zoom in from there.
+  setTimeout(() => {
+    onSwap();
+    if (exitEl !== enterEl) exitEl.classList.remove(exitClass);
+    enterEl.classList.remove('q-exit', 'q-suck', 'q-enter');
+    enterEl.classList.add('q-enter');
+    void enterEl.offsetWidth; // force reflow so the next class change transitions
+    requestAnimationFrame(() => {
+      // 3) Zoom the new content in from the distance to full size.
+      enterEl.classList.remove('q-enter');
+    });
+  }, QUESTION_EXIT_MS);
 }
 
+/* ------------------------------------------------------------
+   MISSION TIMER
+   ------------------------------------------------------------
+   Tracks how long the student takes to answer all of a round's
+   questions — from the moment they start the round (via "Start
+   Mission" or "Play Again") to the instant they answer the final
+   question. Feeds into the scoring in calcTimeBonus() above.
+   ------------------------------------------------------------ */
+let gameTimerIntervalId = null;
 
-/* ============================================================
-   15. TIMER
-   ============================================================ */
-
-let gameTimerIntervalId =
-  null;
-
-
-function formatTime(
-  totalSeconds
-) {
-
-  const s =
-    Math.max(
-      0,
-      Math.round(
-        totalSeconds || 0
-      )
-    );
-
-  const m =
-    Math.floor(
-      s / 60
-    );
-
-  const sec =
-    s % 60;
-
-  return (
-    m +
-    ':' +
-    String(sec).padStart(2,'0')
-  );
+function formatTime(totalSeconds) {
+  const s = Math.max(0, Math.round(totalSeconds || 0));
+  const m = Math.floor(s / 60);
+  const sec = s % 60;
+  return m + ':' + String(sec).padStart(2, '0');
 }
 
-
+// Call this at the moment a round begins (click of Start Mission or
+// Play Again) — starts the clock and the ticking display.
 function startRoundTimer() {
-
-  state.startTime =
-    performance.now();
-
-  state.elapsedSeconds =
-    null;
-
+  state.startTime = performance.now();
+  state.elapsedSeconds = null;
   stopGameTimer();
-
   updateTimerDisplay();
-
-  gameTimerIntervalId =
-    setInterval(
-      updateTimerDisplay,
-      250
-    );
+  gameTimerIntervalId = setInterval(updateTimerDisplay, 250);
 }
-
 
 function stopGameTimer() {
-
-  if (
-    gameTimerIntervalId
-  ) {
-
-    clearInterval(
-      gameTimerIntervalId
-    );
-
-    gameTimerIntervalId =
-      null;
+  if (gameTimerIntervalId) {
+    clearInterval(gameTimerIntervalId);
+    gameTimerIntervalId = null;
   }
 }
-
 
 function updateTimerDisplay() {
-
-  if (
-    !timerPill ||
-    state.startTime == null
-  ) {
-
-    return;
-  }
-
-  const liveSeconds =
-    state.elapsedSeconds != null
-      ? state.elapsedSeconds
-      : (
-        performance.now() -
-        state.startTime
-      ) / 1000;
-
-  timerPill.textContent =
-    '⏱ ' +
-    formatTime(
-      liveSeconds
-    );
+  if (!timerPill || state.startTime == null) return;
+  const liveSeconds = state.elapsedSeconds != null
+    ? state.elapsedSeconds
+    : (performance.now() - state.startTime) / 1000;
+  timerPill.textContent = '⏱ ' + formatTime(liveSeconds);
 }
 
-
-/* ============================================================
-   16. NICKNAME STORAGE
-   ============================================================ */
-
-function loadDailyNickname() {
-
-  try {
-
-    const nickname =
-      localStorage.getItem(
-        NICKNAME_STORAGE_KEY
-      );
-
-    const savedDate =
-      localStorage.getItem(
-        NICKNAME_DATE_KEY
-      );
-
-    const today =
-      getJapanDateKey();
-
-    if (
-      nickname &&
-      savedDate === today
-    ) {
-
-      state.nickname =
-        nickname;
-
-      state.nicknameDateKey =
-        savedDate;
-
-      return nickname;
-    }
-
-    /*
-       New Japanese day:
-       old nickname is invalid.
-    */
-
-    localStorage.removeItem(
-      NICKNAME_STORAGE_KEY
-    );
-
-    localStorage.removeItem(
-      NICKNAME_DATE_KEY
-    );
-
-  } catch (error) {
-
-    console.warn(
-      'Nickname storage unavailable.',
-      error
-    );
-
-  }
-
-  return null;
+/* ------------------------------------------------------------
+   BEST SCORE (persisted on this device via localStorage,
+   resets daily at local midnight)
+   ------------------------------------------------------------
+   The saved record is tagged with the calendar date (YYYY-MM-DD, in
+   the player's local timezone) it was set on. Whenever we read it
+   back, if that date isn't TODAY anymore, we treat it as if there
+   were no best score — which is what makes the "best of the day"
+   reset happen automatically right at midnight rather than needing
+   a timer running in the background. Wrapped in try/catch because
+   some browsers block storage entirely in private browsing — in
+   that case the game still works, it just won't remember a best
+   score between visits.
+   ------------------------------------------------------------ */
+function getTodayDateKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
-
-
-function saveDailyNickname(
-  nickname
-) {
-
-  const today =
-    getJapanDateKey();
-
-  state.nickname =
-    nickname;
-
-  state.nicknameDateKey =
-    today;
-
-  try {
-
-    localStorage.setItem(
-      NICKNAME_STORAGE_KEY,
-      nickname
-    );
-
-    localStorage.setItem(
-      NICKNAME_DATE_KEY,
-      today
-    );
-
-  } catch (error) {
-
-    console.warn(
-      'Could not save nickname.',
-      error
-    );
-  }
-}
-
-
-function showNicknameScreen() {
-
-  showScreen(
-    'nickname'
-  );
-
-  nicknameInput.value =
-    '';
-
-  nicknameError.textContent =
-    '';
-
-  setTimeout(
-    () => nicknameInput.focus(),
-    100
-  );
-}
-
-
-/* ============================================================
-   17. SCREEN NAVIGATION
-   ============================================================ */
-
-function showScreen(name) {
-
-  Object.values(
-    screens
-  ).forEach(
-    screen => {
-
-      screen.classList.remove(
-        'active'
-      );
-
-    }
-  );
-
-  screens[name].classList.add(
-    'active'
-  );
-}
-
-
-/* ============================================================
-   18. START SCREEN
-   ============================================================ */
-
-function updateStartScreen() {
-
-  playerWelcome.textContent =
-    `🚀 Ready for launch, ${state.nickname}!`;
-
-  document
-    .querySelectorAll('.mode-btn')
-    .forEach(btn => {
-
-      btn.classList.toggle(
-        'selected',
-        btn.dataset.mode ===
-        state.mode
-      );
-
-    });
-}
-
-
-/* ============================================================
-   19. QUESTION SELECTION
-   ============================================================ */
-
-function shuffle(array) {
-
-  const arr =
-    array.slice();
-
-  for (
-    let i = arr.length - 1;
-    i > 0;
-    i--
-  ) {
-
-    const j =
-      Math.floor(
-        Math.random() *
-        (i + 1)
-      );
-
-    [
-      arr[i],
-      arr[j]
-    ] =
-    [
-      arr[j],
-      arr[i]
-    ];
-  }
-
-  return arr;
-}
-
-
-function pickRoundQuestions() {
-
-  const bank =
-    getModeBank(
-      state.mode
-    );
-
-  return shuffle(
-    bank
-  ).slice(
-    0,
-    QUESTIONS_PER_GAME
-  );
-}
-
-
-/* ============================================================
-   20. CONSTELLATION
-   ============================================================ */
-
-function renderConstellation() {
-
-  const total =
-    state.roundQuestions.length;
-
-  const width = 600;
-
-  const height = 54;
-
-  const padding = 30;
-
-  const step =
-    total > 1
-      ? (
-        width -
-        padding * 2
-      ) /
-      (total - 1)
-      : 0;
-
-  const y =
-    height / 2;
-
-  let pathD =
-    `M ${padding} ${y}`;
-
-  let nodesSvg =
-    '';
-
-  for (
-    let i = 0;
-    i < total;
-    i++
-  ) {
-
-    const x =
-      padding +
-      step * i;
-
-    if (i > 0) {
-
-      pathD +=
-        ` L ${x} ${y}`;
-    }
-
-    let cls =
-      'constellation-node';
-
-    if (
-      i <
-      state.results.length
-    ) {
-
-      cls +=
-        state.results[i]
-          ? ' done'
-          : ' wrong-node';
-
-    } else if (
-      i ===
-      state.currentIndex
-    ) {
-
-      cls +=
-        ' current';
-    }
-
-    const r =
-      i === state.currentIndex &&
-      i >= state.results.length
-        ? 8
-        : 6;
-
-    nodesSvg +=
-      `<circle
-        class="${cls}"
-        cx="${x}"
-        cy="${y}"
-        r="${r}">
-      </circle>`;
-  }
-
-
-  constellationEl.innerHTML =
-    `
-      <svg
-        viewBox="0 0 ${width} ${height}"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <path
-          class="constellation-line"
-          d="${pathD}"
-        ></path>
-
-        ${nodesSvg}
-
-      </svg>
-
-      <div
-        class="rocket"
-        id="rocketIcon"
-        aria-hidden="true"
-      >
-        🚀
-      </div>
-    `;
-
-
-  const rocket =
-    document.getElementById(
-      'rocketIcon'
-    );
-
-  const progressIndex =
-    Math.min(
-      state.currentIndex,
-      total - 1
-    );
-
-  const xPercent =
-    total > 1
-      ? (
-        (
-          padding +
-          step *
-          progressIndex
-        ) /
-        width
-      ) *
-      100
-      : 50;
-
-  rocket.style.left =
-    xPercent + '%';
-}
-
-
-/* ============================================================
-   21. START GAME
-   ============================================================ */
-
-function startGame() {
-
-  state.roundQuestions =
-    pickRoundQuestions();
-
-  state.currentIndex =
-    0;
-
-  state.score =
-    0;
-
-  state.results =
-    [];
-
-  state.answeredCurrent =
-    false;
-
-  /*
-     Do NOT restart the timer here.
-
-     The timer already started when the player clicked
-     Start Mission.
-  */
-
-  showScreen(
-    'game'
-  );
-
-  modePill.textContent =
-    getModeName(
-      state.mode
-    );
-
-  renderQuestion();
-}
-
-
-/* ============================================================
-   22. QUESTION RENDERING
-   ============================================================ */
-
-let questionAudioRunId = 0;
-
-let autoNextTimeoutId = null;
-
-
-function cancelQuestionAudioSequence() {
-
-  questionAudioRunId++;
-
-  if (autoNextTimeoutId) {
-
-    clearTimeout(
-      autoNextTimeoutId
-    );
-
-    autoNextTimeoutId =
-      null;
-  }
-
-  letterAudio.pause();
-
-  letterAudio.currentTime =
-    0;
-
-  playAudioBtn.classList.remove(
-    'playing'
-  );
-}
-
-
-function renderQuestion() {
-
-  state.answeredCurrent =
-    false;
-
-  cancelQuestionAudioSequence();
-
-  const total =
-    state.roundQuestions.length;
-
-  const q =
-    state.roundQuestions[
-      state.currentIndex
-    ];
-
-
-  questionCounter.textContent =
-    `Question ${
-      state.currentIndex + 1
-    } / ${total}`;
-
-
-  scoreCounter.textContent =
-    `Score: ${
-      state.score
-    } / ${
-      state.currentIndex
-    }`;
-
-
-  renderConstellation();
-
-
-  feedbackEl.textContent =
-    '';
-
-  feedbackEl.className =
-    'feedback';
-
-
-  autoPlayStatus.textContent =
-    '🔊 Listen carefully...';
-
-
-  letterAudio.src =
-    q.audio;
-
-
-  /*
-     Build answer choices.
-  */
-
-  optionsGrid.innerHTML =
-    '';
-
-  const shuffledOptions =
-    shuffle(
-      q.options
-    );
-
-
-  shuffledOptions.forEach(
-    letter => {
-
-      const btn =
-        document.createElement(
-          'button'
-        );
-
-      btn.className =
-        'option-btn';
-
-      btn.type =
-        'button';
-
-      btn.textContent =
-        letter;
-
-      btn.setAttribute(
-        'aria-label',
-        `Answer ${letter}`
-      );
-
-      btn.addEventListener(
-        'click',
-        () => {
-
-          handleAnswer(
-            letter,
-            btn,
-            q.correctAnswer
-          );
-
-        }
-      );
-
-      optionsGrid.appendChild(
-        btn
-      );
-
-    }
-  );
-
-
-  /*
-     AUTOMATIC AUDIO TWICE.
-
-     First play:
-       immediately
-
-     Second play:
-       2 seconds AFTER the first audio finishes.
-
-     If the audio itself is very long, the second playback
-     naturally waits until it finishes + 2 seconds.
-  */
-
-  playAutomaticAudioTwice(
-    q
-  );
-}
-
-
-/* ============================================================
-   23. AUTOMATIC AUDIO TWICE
-   ============================================================ */
-
-function playAutomaticAudioTwice(
-  question
-) {
-
-  const runId =
-    ++questionAudioRunId;
-
-  let playCount =
-    0;
-
-  function playOnce() {
-
-    if (
-      runId !==
-      questionAudioRunId
-    ) {
-
-      return;
-    }
-
-    playCount++;
-
-    letterAudio.currentTime =
-      0;
-
-    playAudioBtn.classList.add(
-      'playing'
-    );
-
-    autoPlayStatus.textContent =
-      playCount === 1
-        ? '🔊 Listening...'
-        : '🔊 Listen again...';
-
-
-    const promise =
-      letterAudio.play();
-
-
-    if (
-      promise &&
-      promise.catch
-    ) {
-
-      promise.catch(
-        () => {
-
-          /*
-             Browser blocked autoplay.
-
-             The player can still press the
-             Play Sound button manually.
-          */
-
-          playAudioBtn.classList.remove(
-            'playing'
-          );
-
-          autoPlayStatus.textContent =
-            '👆 Tap Play Sound to hear it';
-
-        }
-      );
-    }
-  }
-
-
-  letterAudio.onended =
-    () => {
-
-      if (
-        runId !==
-        questionAudioRunId
-      ) {
-
-        return;
-      }
-
-      playAudioBtn.classList.remove(
-        'playing'
-      );
-
-      if (
-        playCount < 2
-      ) {
-
-        autoPlayStatus.textContent =
-          '⏳ Get ready...';
-
-        setTimeout(
-          () => {
-
-            if (
-              runId ===
-              questionAudioRunId
-            ) {
-
-              playOnce();
-            }
-
-          },
-          AUTO_AUDIO_GAP_MS
-        );
-
-      } else {
-
-        autoPlayStatus.textContent =
-          '🔊 Want to hear it again? Tap Play Sound';
-
-      }
-
-    };
-
-
-  /*
-     First play starts immediately.
-  */
-
-  playOnce();
-}
-
-
-/* ============================================================
-   24. MANUAL PLAY SOUND
-   ============================================================ */
-
-playAudioBtn.addEventListener(
-  'click',
-  () => {
-
-    /*
-       Manual playback cancels nothing.
-
-       The player can press this at any time.
-
-       The automatic two-play sequence is allowed to
-       finish independently, but this manual play simply
-       restarts the sound from the beginning.
-    */
-
-    letterAudio.currentTime =
-      0;
-
-    playAudioBtn.classList.add(
-      'playing'
-    );
-
-    autoPlayStatus.textContent =
-      '🔊 Listening...';
-
-
-    const promise =
-      letterAudio.play();
-
-
-    if (
-      promise &&
-      promise.catch
-    ) {
-
-      promise.catch(
-        () => {
-
-          playAudioBtn.classList.remove(
-            'playing'
-          );
-
-        }
-      );
-    }
-  }
-);
-
-
-letterAudio.addEventListener(
-  'ended',
-  () => {
-
-    playAudioBtn.classList.remove(
-      'playing'
-    );
-
-  }
-);
-
-
-/* ============================================================
-   25. HANDLE ANSWER
-   ============================================================ */
-
-function handleAnswer(
-  selectedLetter,
-  btnEl,
-  correctLetter
-) {
-
-  /*
-     Prevent multiple answers.
-  */
-
-  if (
-    state.answeredCurrent
-  ) {
-
-    return;
-  }
-
-  state.answeredCurrent =
-    true;
-
-
-  /*
-     Stop automatic audio sequence.
-  */
-
-  questionAudioRunId++;
-
-
-  if (autoNextTimeoutId) {
-
-    clearTimeout(
-      autoNextTimeoutId
-    );
-
-    autoNextTimeoutId =
-      null;
-  }
-
-
-  letterAudio.pause();
-
-  letterAudio.currentTime =
-    0;
-
-  playAudioBtn.classList.remove(
-    'playing'
-  );
-
-
-  const isCorrect =
-    selectedLetter ===
-    correctLetter;
-
-
-  state.results[
-    state.currentIndex
-  ] =
-    isCorrect;
-
-
-  const allOptionButtons =
-    optionsGrid.querySelectorAll(
-      '.option-btn'
-    );
-
-
-  allOptionButtons.forEach(
-    button => {
-
-      button.disabled =
-        true;
-
-      if (
-        button.textContent ===
-        correctLetter
-      ) {
-
-        button.classList.add(
-          'correct'
-        );
-
-      } else if (
-        button ===
-        btnEl
-      ) {
-
-        button.classList.add(
-          'incorrect'
-        );
-
-      } else {
-
-        button.classList.add(
-          'dimmed'
-        );
-
-      }
-
-    }
-  );
-
-
-  if (isCorrect) {
-
-    state.score++;
-
-    feedbackEl.textContent =
-      '✓ Correct!';
-
-    feedbackEl.classList.add(
-      'correct-text'
-    );
-
-  } else {
-
-    feedbackEl.textContent =
-      `✗ Try again! It was "${correctLetter}".`;
-
-    feedbackEl.classList.add(
-      'incorrect-text'
-    );
-
-  }
-
-
-  feedbackEl.classList.add(
-    'show'
-  );
-
-
-  scoreCounter.textContent =
-    `Score: ${
-      state.score
-    } / ${
-      state.currentIndex + 1
-    }`;
-
-
-  renderConstellation();
-
-
-  /*
-     If this is the final question,
-     freeze the timer immediately.
-  */
-
-  const total =
-    state.roundQuestions.length;
-
-  const isLastQuestion =
-    state.currentIndex + 1 >=
-    total;
-
-
-  if (
-    isLastQuestion &&
-    state.elapsedSeconds == null
-  ) {
-
-    state.elapsedSeconds =
-      (
-        performance.now() -
-        state.startTime
-      ) / 1000;
-
-    stopGameTimer();
-
-    updateTimerDisplay();
-
-  }
-
-
-  /*
-     IMPORTANT:
-
-     There is NO Next button anymore.
-
-     The game waits exactly 2 seconds after the
-     answer is selected, then automatically moves on.
-  */
-
-  autoNextTimeoutId =
-    setTimeout(
-      () => {
-
-        autoNextTimeoutId =
-          null;
-
-        moveToNextQuestion();
-
-      },
-      AUTO_NEXT_DELAY_MS
-    );
-}
-
-
-/* ============================================================
-   26. AUTOMATIC NEXT QUESTION
-   ============================================================ */
-
-function moveToNextQuestion() {
-
-  if (
-    state.transitioning
-  ) {
-
-    return;
-  }
-
-  state.transitioning =
-    true;
-
-
-  const total =
-    state.roundQuestions.length;
-
-  const isLastQuestion =
-    state.currentIndex + 1 >=
-    total;
-
-
-  playGalaxyZoomTransition(
-    questionContent,
-    isLastQuestion
-      ? resultsContent
-      : questionContent,
-    () => {
-
-      if (
-        isLastQuestion
-      ) {
-
-        showResults();
-
-      } else {
-
-        state.currentIndex++;
-
-        renderQuestion();
-
-      }
-
-    }
-  );
-
-
-  setTimeout(
-    () => {
-
-      state.transitioning =
-        false;
-
-    },
-    QUESTION_EXIT_MS +
-    QUESTION_ENTER_MS +
-    60
-  );
-}
-
-
-/* ============================================================
-   27. DAILY LEADERBOARD STORAGE
-   ============================================================ */
-
-function getEmptyLeaderboards() {
-
-  return {
-
-    dateKey:
-      getJapanDateKey(),
-
-    easy: [],
-
-    medium: [],
-
-    hard: []
-
-  };
-}
-
-
-function loadLeaderboards() {
-
-  try {
-
-    const raw =
-      localStorage.getItem(
-        LEADERBOARD_STORAGE_KEY
-      );
-
-    if (!raw) {
-
-      return getEmptyLeaderboards();
-
-    }
-
-    const parsed =
-      JSON.parse(raw);
-
-    /*
-       If it is yesterday's leaderboard,
-       it is automatically discarded.
-    */
-
-    if (
-      parsed.dateKey !==
-      getJapanDateKey()
-    ) {
-
-      return getEmptyLeaderboards();
-
-    }
-
-
-    return {
-
-      dateKey:
-        parsed.dateKey,
-
-      easy:
-        Array.isArray(parsed.easy)
-          ? parsed.easy
-          : [],
-
-      medium:
-        Array.isArray(parsed.medium)
-          ? parsed.medium
-          : [],
-
-      hard:
-        Array.isArray(parsed.hard)
-          ? parsed.hard
-          : []
-
-    };
-
-  } catch (error) {
-
-    console.warn(
-      'Could not load leaderboard.',
-      error
-    );
-
-    return getEmptyLeaderboards();
-  }
-}
-
-
-function saveLeaderboards(
-  data
-) {
-
-  try {
-
-    localStorage.setItem(
-      LEADERBOARD_STORAGE_KEY,
-      JSON.stringify(data)
-    );
-
-  } catch (error) {
-
-    console.warn(
-      'Could not save leaderboard.',
-      error
-    );
-  }
-}
-
-
-/* ============================================================
-   28. LEADERBOARD SORTING
-   ============================================================
-
-   Primary:
-      Highest score
-
-   Secondary:
-      Fastest time
-
-   Therefore:
-
-      1000 points / 25 seconds
-      beats
-      1000 points / 31 seconds
-
-   even though both have the same score.
-   ============================================================ */
-
-function sortLeaderboard(
-  entries
-) {
-
-  return entries
-    .slice()
-    .sort(
-      (a,b) => {
-
-        if (
-          b.points !==
-          a.points
-        ) {
-
-          return (
-            b.points -
-            a.points
-          );
-        }
-
-        return (
-          a.timeSeconds -
-          b.timeSeconds
-        );
-
-      }
-    );
-}
-
-
-/* ============================================================
-   29. ADD RESULT TO LEADERBOARD
-   ============================================================ */
-
-function addScoreToLeaderboard(
-  mode,
-  nickname,
-  points,
-  timeSeconds
-) {
-
-  const data =
-    loadLeaderboards();
-
-
-  /*
-     Ensure today's date.
-  */
-
-  data.dateKey =
-    getJapanDateKey();
-
-
-  const entry = {
-
-    nickname:
-      nickname,
-
-    points:
-      Math.max(
-        0,
-        Math.min(
-          1000,
-          Math.round(points)
-        )
-      ),
-
-    timeSeconds:
-      Number(
-        timeSeconds
-      ),
-
-    timeText:
-      formatTime(
-        timeSeconds
-      ),
-
-    timestamp:
-      Date.now()
-
-  };
-
-
-  data[mode].push(
-    entry
-  );
-
-
-  /*
-     Keep only the best score for a particular
-     nickname/mode combination.
-
-     This means if "Alex" plays Easy 20 times,
-     the leaderboard doesn't become 20 lines of Alex.
-
-     Instead, Alex's BEST result remains.
-  */
-
-  const grouped =
-    new Map();
-
-
-  data[mode].forEach(
-    item => {
-
-      const key =
-        item.nickname
-          .trim()
-          .toLowerCase();
-
-      const existing =
-        grouped.get(key);
-
-
-      if (
-        !existing ||
-        item.points >
-          existing.points ||
-        (
-          item.points ===
-          existing.points &&
-          item.timeSeconds <
-            existing.timeSeconds
-        )
-      ) {
-
-        grouped.set(
-          key,
-          item
-        );
-      }
-
-    }
-  );
-
-
-  data[mode] =
-    sortLeaderboard(
-      Array.from(
-        grouped.values()
-      )
-    );
-
-
-  /*
-     Keep top 20 players per mode.
-  */
-
-  data[mode] =
-    data[mode].slice(
-      0,
-      20
-    );
-
-
-  saveLeaderboards(
-    data
-  );
-
-  return data;
-}
-
-
-/* ============================================================
-   30. BEST SCORE
-   ============================================================ */
 
 function loadBestScore() {
-
   try {
-
-    const raw =
-      localStorage.getItem(
-        BEST_SCORE_KEY
-      );
-
-    if (!raw) {
-      return null;
-    }
-
-    const parsed =
-      JSON.parse(raw);
-
-
-    if (
-      parsed.dateKey !==
-      getJapanDateKey()
-    ) {
-
-      return null;
-
-    }
-
-
-    if (
-      typeof parsed.points !==
-        'number'
-    ) {
-
-      return null;
-
-    }
-
-
+    const raw = localStorage.getItem(BEST_SCORE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.points !== 'number' || !isFinite(parsed.points)) return null;
+    if (parsed.dateKey !== getTodayDateKey()) return null; // from a previous day — expired
     return parsed;
-
-  } catch (error) {
-
+  } catch (e) {
     return null;
   }
 }
 
-
-function saveBestScore(
-  points,
-  timeSeconds,
-  mode
-) {
-
+function saveBestScore(points) {
   try {
-
-    localStorage.setItem(
-      BEST_SCORE_KEY,
-      JSON.stringify({
-
-        points:
-          points,
-
-        timeSeconds:
-          timeSeconds,
-
-        mode:
-          mode,
-
-        dateKey:
-          getJapanDateKey(),
-
-        savedAt:
-          Date.now()
-
-      })
-    );
-
-  } catch (error) {
-
-    console.warn(
-      'Could not save best score.',
-      error
-    );
+    localStorage.setItem(BEST_SCORE_KEY, JSON.stringify({
+      points: points,
+      dateKey: getTodayDateKey(),
+      savedAt: Date.now()
+    }));
+  } catch (e) {
+    // Storage unavailable (private browsing, disabled, quota, etc.) —
+    // fail silently; the round's score still displays normally.
   }
 }
 
+/* ------------------------------------------------------------
+   QUESTION SELECTION
+   Picks QUESTIONS_PER_GAME unique random questions from the
+   50-question bank using a Fisher–Yates shuffle, so both the
+   selection AND the order are freshly randomized every game.
+   ------------------------------------------------------------ */
+function shuffle(array) {
+  const arr = array.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
-/* ============================================================
-   31. SHOW RESULTS
-   ============================================================ */
+function pickRoundQuestions() {
+  const shuffledBank = shuffle(QUESTION_BANK);
+  return shuffledBank.slice(0, QUESTIONS_PER_GAME);
+}
 
+/* ------------------------------------------------------------
+   SCREEN NAVIGATION
+   ------------------------------------------------------------ */
+function showScreen(name) {
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[name].classList.add('active');
+}
+
+/* ------------------------------------------------------------
+   CONSTELLATION PROGRESS TRAIL
+   Draws a dashed path with one star-node per question; nodes
+   light up gold (correct) or pink (incorrect) as answered, and
+   a little rocket travels along the path.
+   ------------------------------------------------------------ */
+function renderConstellation() {
+  const total = state.roundQuestions.length;
+  const width = 600;
+  const height = 54;
+  const padding = 30;
+  const step = total > 1 ? (width - padding * 2) / (total - 1) : 0;
+  const y = height / 2;
+
+  let pathD = `M ${padding} ${y}`;
+  let nodesSvg = '';
+
+  for (let i = 0; i < total; i++) {
+    const x = padding + step * i;
+    if (i > 0) pathD += ` L ${x} ${y}`;
+
+    let cls = 'constellation-node';
+    if (i < state.results.length) {
+      cls += state.results[i] ? ' done' : ' wrong-node';
+    } else if (i === state.currentIndex) {
+      cls += ' current';
+    }
+    const r = i === state.currentIndex && i >= state.results.length ? 8 : 6;
+    nodesSvg += `<circle class="${cls}" cx="${x}" cy="${y}" r="${r}"></circle>`;
+  }
+
+  constellationEl.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+      <path class="constellation-line" d="${pathD}"></path>
+      ${nodesSvg}
+    </svg>
+    <div class="rocket" id="rocketIcon" aria-hidden="true">🚀</div>
+  `;
+
+  // position rocket over current node using percentage of width
+  const rocket = document.getElementById('rocketIcon');
+  const progressIndex = Math.min(state.currentIndex, total - 1);
+  const xPercent = total > 1
+    ? ((padding + step * progressIndex) / width) * 100
+    : 50;
+  rocket.style.left = xPercent + '%';
+}
+
+/* ------------------------------------------------------------
+   GAME FLOW
+   ------------------------------------------------------------ */
+function startGame() {
+  state.roundQuestions = pickRoundQuestions();
+  state.currentIndex = 0;
+  state.score = 0;
+  state.results = [];
+  showScreen('game');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  state.answeredCurrent = false;
+  const total = state.roundQuestions.length;
+  const q = state.roundQuestions[state.currentIndex];
+
+  questionCounter.textContent = `Question ${state.currentIndex + 1} / ${total}`;
+  scoreCounter.textContent = `Score: ${state.score} / ${state.currentIndex}`;
+
+  renderConstellation();
+
+  // reset audio + feedback + next button
+  letterAudio.pause();
+  letterAudio.currentTime = 0;
+  letterAudio.src = q.audio;
+  playAudioBtn.classList.remove('playing');
+  feedbackEl.textContent = '';
+  feedbackEl.className = 'feedback';
+  nextBtn.style.display = 'none';
+
+  // build answer option buttons (shuffled so the correct answer
+  // isn't always in the same position)
+  optionsGrid.innerHTML = '';
+  const shuffledOptions = shuffle(q.options);
+  shuffledOptions.forEach(letter => {
+    const btn = document.createElement('button');
+    btn.className = 'option-btn';
+    btn.type = 'button';
+    btn.textContent = letter;
+    btn.setAttribute('aria-label', `Answer ${letter}`);
+    btn.addEventListener('click', () => handleAnswer(letter, btn, q.correctAnswer));
+    optionsGrid.appendChild(btn);
+  });
+
+  // autoplay the sound for this question (best effort; browsers may
+  // block autoplay, in which case the student just taps Play Sound)
+  playCurrentAudio();
+}
+
+function playCurrentAudio() {
+  playAudioBtn.classList.add('playing');
+  const playPromise = letterAudio.play();
+  if (playPromise && playPromise.catch) {
+    playPromise.catch(() => {
+      // Autoplay blocked, or the mp3 file hasn't been added yet.
+      // Silently ignore — the student can press "Play Sound" manually.
+      playAudioBtn.classList.remove('playing');
+    });
+  }
+  letterAudio.onended = () => playAudioBtn.classList.remove('playing');
+}
+
+playAudioBtn.addEventListener('click', () => {
+  letterAudio.currentTime = 0;
+  playCurrentAudio();
+});
+
+function handleAnswer(selectedLetter, btnEl, correctLetter) {
+  // Prevent multiple submissions for the same question
+  if (state.answeredCurrent) return;
+  state.answeredCurrent = true;
+
+  const isCorrect = selectedLetter === correctLetter;
+  state.results[state.currentIndex] = isCorrect;
+
+  const allOptionButtons = optionsGrid.querySelectorAll('.option-btn');
+  allOptionButtons.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correctLetter) {
+      b.classList.add('correct');
+    } else if (b === btnEl) {
+      b.classList.add('incorrect');
+    } else {
+      b.classList.add('dimmed');
+    }
+  });
+
+  if (isCorrect) {
+    state.score++;
+    feedbackEl.textContent = '✓ Correct!';
+    feedbackEl.classList.add('correct-text');
+  } else {
+    feedbackEl.textContent = `✗ Try again! It was "${correctLetter}".`;
+    feedbackEl.classList.add('incorrect-text');
+  }
+  feedbackEl.classList.add('show');
+
+  scoreCounter.textContent = `Score: ${state.score} / ${state.currentIndex + 1}`;
+  renderConstellation();
+
+  const total = state.roundQuestions.length;
+  const isLastQuestion = state.currentIndex + 1 >= total;
+  if (isLastQuestion && state.elapsedSeconds == null) {
+    // "Complete" the mission clock the instant the last question is
+    // answered — not whenever they happen to click through to results.
+    state.elapsedSeconds = (performance.now() - state.startTime) / 1000;
+    stopGameTimer();
+    updateTimerDisplay(); // show the final frozen time, not a live-ticking one
+  }
+
+  nextBtn.textContent = isLastQuestion ? 'See Results →' : 'Next →';
+  nextBtn.style.display = 'inline-block';
+}
+
+nextBtn.addEventListener('click', () => {
+  if (state.transitioning) return; // ignore extra clicks mid-transition
+  state.transitioning = true;
+  nextBtn.disabled = true;
+
+  const total = state.roundQuestions.length;
+  const isLastQuestion = state.currentIndex + 1 >= total;
+
+  playGalaxyZoomTransition(
+    questionContent,
+    isLastQuestion ? resultsContent : questionContent,
+    () => {
+      if (isLastQuestion) {
+        showResults();
+      } else {
+        state.currentIndex++;
+        renderQuestion();
+      }
+    }
+  );
+
+  setTimeout(() => {
+    state.transitioning = false;
+    nextBtn.disabled = false;
+  }, QUESTION_EXIT_MS + QUESTION_ENTER_MS + 60);
+});
+
+/* ------------------------------------------------------------
+   RESULTS SCREEN
+   ------------------------------------------------------------ */
 function showResults() {
+  const total = state.roundQuestions.length;
 
-  const total =
-    state.roundQuestions.length;
+  // Total mission score: correct answers × 100, plus a time bonus
+  // looked up from calcTimeBonus() — see that function to adjust the
+  // point table. No breakdown is shown, just the final sum.
+  const correctPoints = state.score * POINTS_PER_CORRECT_ANSWER;
+  const timeTakenSeconds = state.elapsedSeconds != null ? state.elapsedSeconds : 0;
+  const timeBonus = calcTimeBonus(timeTakenSeconds);
+  const totalPoints = correctPoints + timeBonus;
 
-
-  const correctPoints =
-    state.score *
-    POINTS_PER_CORRECT_ANSWER;
-
-
-  const timeTakenSeconds =
-    state.elapsedSeconds != null
-      ? state.elapsedSeconds
-      : 0;
-
-
-  const timeBonus =
-    calcTimeBonus(
-      timeTakenSeconds
-    );
-
-
-  const totalPoints =
-    Math.min(
-      1000,
-      correctPoints +
-      timeBonus
-    );
-
-
-  resultsPlayer.textContent =
-    `🚀 ${state.nickname}`;
-
-
-  resultsMode.textContent =
-    `${getModeName(state.mode)} MISSION`;
-
-
-  resultsScore.textContent =
-    `${totalPoints} POINTS`;
-
-
-  resultsTime.textContent =
-    `⏱ Time: ${formatTime(
-      timeTakenSeconds
-    )}`;
-
-
-  const ratio =
-    state.score / total;
-
+  resultsScore.textContent = `${totalPoints} POINTS`;
 
   let message;
-
-
-  if (
-    ratio === 1
-  ) {
-
-    message =
-      'Perfect mission — you heard every answer!';
-
-  } else if (
-    ratio >= .7
-  ) {
-
-    message =
-      'Awesome listening, space explorer!';
-
-  } else if (
-    ratio >= .4
-  ) {
-
-    message =
-      'Nice work! Keep practicing and keep exploring.';
-
+  const ratio = state.score / total;
+  if (ratio === 1) {
+    message = 'Perfect mission — you heard every letter!';
+  } else if (ratio >= 0.7) {
+    message = 'Awesome listening, space explorer!';
+  } else if (ratio >= 0.4) {
+    message = 'Nice work! Keep practicing those sounds.';
   } else {
-
-    message =
-      'Good try! Blast off again and listen carefully!';
-
+    message = 'Good try! Let\u2019s blast off again and listen closely.';
   }
+  resultsMsg.textContent = message;
 
+  const filled = Math.round(ratio * 5);
+  resultsStars.textContent = '⭐'.repeat(filled) + '☆'.repeat(5 - filled);
 
-  resultsMsg.textContent =
-    message;
-
-
-  const filled =
-    Math.round(
-      ratio * 5
-    );
-
-
-  resultsStars.textContent =
-    '⭐'.repeat(filled) +
-    '☆'.repeat(5 - filled);
-
-
-  /*
-     Daily best score.
-  */
-
-  const previousBest =
-    loadBestScore();
-
-
-  const isNewBest =
-    !previousBest ||
-    totalPoints >
-      previousBest.points ||
-    (
-      totalPoints ===
-      previousBest.points &&
-      timeTakenSeconds <
-        previousBest.timeSeconds
-    );
-
-
-  if (
-    isNewBest
-  ) {
-
-    saveBestScore(
-      totalPoints,
-      timeTakenSeconds,
-      state.mode
-    );
-
+  // Best score, saved on this device (see BEST SCORE section above).
+  const previousBest = loadBestScore();
+  const isNewBest = !previousBest || totalPoints > previousBest.points;
+  if (isNewBest) {
+    saveBestScore(totalPoints);
   }
+  const bestPoints = isNewBest ? totalPoints : previousBest.points;
+  resultsBest.textContent = (isNewBest ? "🏆 Today's New Best! " : "🏆 Today's Best: ") + bestPoints + ' POINTS';
+  resultsBest.classList.toggle('new-best', isNewBest);
 
-
-  const best =
-    isNewBest
-      ? {
-          points:
-            totalPoints,
-
-          timeSeconds:
-            timeTakenSeconds
-        }
-      : previousBest;
-
-
-  resultsBest.textContent =
-    (
-      isNewBest
-        ? "🏆 Today's New Best! "
-        : "🏆 Today's Best: "
-    ) +
-    best.points +
-    ' POINTS';
-
-
-  resultsBest.classList.toggle(
-    'new-best',
-    isNewBest
-  );
-
-
-  /*
-     Add this result to the selected mode's
-     daily leaderboard.
-  */
-
-  addScoreToLeaderboard(
-    state.mode,
-    state.nickname,
-    totalPoints,
-    timeTakenSeconds
-  );
-
-
-  /*
-     Refresh all three leaderboards.
-  */
-
-  renderAllLeaderboards();
-
-
-  showScreen(
-    'results'
-  );
-
+  showScreen('results');
 }
 
+/* ------------------------------------------------------------
+   EVENT WIRING
+   ------------------------------------------------------------ */
+// First launch: the full cinematic galaxy-entrance sequence.
+startBtn.addEventListener('click', beginGalaxyEntrance);
+// Replaying: uses the same short galaxy zoom/hyperspace-burst as
+// between questions, rather than replaying the full ~2.5s entrance,
+// so repeat play stays snappy.
+playAgainBtn.addEventListener('click', () => {
+  if (state.transitioning) return;
+  state.transitioning = true;
+  playAgainBtn.disabled = true;
+  startRoundTimer(); // timing restarts the instant Play Again is clicked
 
-/* ============================================================
-   32. RENDER LEADERBOARD
-   ============================================================ */
+  playGalaxyZoomTransition(resultsContent, questionContent, startGame);
 
-function renderLeaderboard(
-  element,
-  entries
-) {
+  setTimeout(() => {
+    state.transitioning = false;
+    playAgainBtn.disabled = false;
+  }, QUESTION_EXIT_MS + QUESTION_ENTER_MS + 60);
+});
 
-  element.innerHTML =
-    '';
+// Black hole button: abandons the current round and returns to the
+// very first screen, with a "pulled into the black hole" exit instead
+// of the usual forward-motion zoom.
+blackholeBtn.addEventListener('click', () => {
+  if (state.transitioning) return;
+  state.transitioning = true;
+  blackholeBtn.disabled = true;
 
+  stopGameTimer();
+  letterAudio.pause();
 
-  if (
-    !entries ||
-    entries.length === 0
-  ) {
+  playGalaxyZoomTransition(questionContent, startContent, () => {
+    showScreen('start');
+  }, 'q-suck');
 
-    const empty =
-      document.createElement(
-        'div'
-      );
+  setTimeout(() => {
+    state.transitioning = false;
+    blackholeBtn.disabled = false;
+  }, QUESTION_EXIT_MS + QUESTION_ENTER_MS + 60);
+});
 
-    empty.className =
-      'empty-board';
-
-    empty.textContent =
-      'No explorers yet — be the first CHAMPION! 🚀';
-
-    element.appendChild(
-      empty
-    );
-
-    return;
-  }
-
-
-  entries
-    .slice(0,10)
-    .forEach(
-      (entry,index) => {
-
-        const row =
-          document.createElement(
-            'div'
-          );
-
-        row.className =
-          'leaderboard-row';
-
-
-        const isCurrent =
-          entry.nickname
-            .trim()
-            .toLowerCase() ===
-          state.nickname
-            .trim()
-            .toLowerCase();
-
-
-        if (
-          isCurrent
-        ) {
-
-          row.classList.add(
-            'current-player'
-          );
-        }
-
-
-        const rank =
-          document.createElement(
-            'div'
-          );
-
-        rank.className =
-          'rank';
-
-
-        if (index === 0) {
-
-          rank.textContent =
-            '👑';
-
-        } else if (
-          index === 1
-        ) {
-
-          rank.textContent =
-            '🥈';
-
-        } else if (
-          index === 2
-        ) {
-
-          rank.textContent =
-            '🥉';
-
-        } else {
-
-          rank.textContent =
-            String(index + 1);
-
-        }
-
-
-        const player =
-          document.createElement(
-            'div'
-          );
-
-
-        const name =
-          document.createElement(
-            'div'
-          );
-
-        name.className =
-          'player-name';
-
-        name.textContent =
-          entry.nickname;
-
-
-        const time =
-          document.createElement(
-            'span'
-          );
-
-        time.className =
-          'player-time';
-
-        time.textContent =
-          `BEST SCORE TIME: ${
-            formatTime(
-              entry.timeSeconds
-            )
-          }`;
-
-
-        player.appendChild(
-          name
-        );
-
-        player.appendChild(
-          time
-        );
-
-
-        const score =
-          document.createElement(
-            'div'
-          );
-
-        score.className =
-          'player-score';
-
-        score.textContent =
-          `${entry.points}`;
-
-
-        row.appendChild(
-          rank
-        );
-
-        row.appendChild(
-          player
-        );
-
-        row.appendChild(
-          score
-        );
-
-
-        element.appendChild(
-          row
-        );
-
-      }
-    );
+/* ------------------------------------------------------------
+   SHARE BUTTON
+   ------------------------------------------------------------
+   Uses the native share sheet (navigator.share) where available —
+   the normal way to share a link on phones/tablets. On desktops or
+   browsers without it, falls back to copying the link to the
+   clipboard, and if even that's unavailable, falls back once more
+   to an old-fashioned prompt() so the link is always obtainable.
+   ------------------------------------------------------------ */
+function showShareFeedback(message, durationMs) {
+  const original = shareBtn.textContent;
+  shareBtn.textContent = message;
+  shareBtn.disabled = true;
+  setTimeout(() => {
+    shareBtn.textContent = original;
+    shareBtn.disabled = false;
+  }, durationMs || 2000);
 }
-
-
-/* ============================================================
-   33. RENDER ALL LEADERBOARDS
-   ============================================================ */
-
-function renderAllLeaderboards() {
-
-  const data =
-    loadLeaderboards();
-
-
-  renderLeaderboard(
-    easyLeaderboard,
-    sortLeaderboard(
-      data.easy
-    )
-  );
-
-
-  renderLeaderboard(
-    mediumLeaderboard,
-    sortLeaderboard(
-      data.medium
-    )
-  );
-
-
-  renderLeaderboard(
-    hardLeaderboard,
-    sortLeaderboard(
-      data.hard
-    )
-  );
-
-
-  updateChampionCountdown();
-}
-
-
-/* ============================================================
-   34. CHAMPION COUNTDOWN
-   ============================================================ */
-
-let countdownIntervalId =
-  null;
-
-
-function updateChampionCountdown() {
-
-  const remaining =
-    getMillisecondsUntilJapanMidnight();
-
-
-  championCountdown.textContent =
-    `You have ${
-      formatCountdown(
-        remaining
-      )
-    } left to become the new CHAMPION`;
-}
-
-
-function startChampionCountdown() {
-
-  if (
-    countdownIntervalId
-  ) {
-
-    clearInterval(
-      countdownIntervalId
-    );
-  }
-
-
-  updateChampionCountdown();
-
-
-  countdownIntervalId =
-    setInterval(
-      () => {
-
-        /*
-           At Japanese midnight, refresh the
-           nickname and leaderboard state.
-
-           The current nickname expires automatically.
-        */
-
-        const nickname =
-          loadDailyNickname();
-
-
-        if (!nickname) {
-
-          /*
-             New day.
-
-             Stop showing the old player's name.
-          */
-
-          state.nickname =
-            '';
-
-          state.nicknameDateKey =
-            '';
-
-          clearInterval(
-            countdownIntervalId
-          );
-
-          countdownIntervalId =
-            null;
-
-          showNicknameScreen();
-
-          return;
-        }
-
-
-        renderAllLeaderboards();
-
-      },
-      1000
-    );
-}
-
-
-/* ============================================================
-   35. CHANGE NICKNAME
-   ============================================================ */
-
-function changeNicknameNow() {
-
-  /*
-     This button does NOT allow the player to change their
-     nickname during the same Japanese day.
-
-     The only way to change it is after midnight.
-
-     Therefore we explain this rather than accidentally
-     allowing multiple identities on the daily leaderboard.
-  */
-
-  const today =
-    getJapanDateKey();
-
-
-  if (
-    state.nicknameDateKey ===
-    today
-  ) {
-
-    nicknameError.textContent =
-      `Your explorer name is locked until midnight in Japan.`;
-
-    return;
-  }
-
-
-  showNicknameScreen();
-}
-
-
-/* ============================================================
-   36. NICKNAME SUBMISSION
-   ============================================================ */
-
-function submitNickname() {
-
-  const nickname =
-    nicknameInput.value
-      .trim();
-
-
-  nicknameError.textContent =
-    '';
-
-
-  if (
-    nickname.length < 1
-  ) {
-
-    nicknameError.textContent =
-      'Please enter a nickname.';
-
-    nicknameInput.focus();
-
-    return;
-  }
-
-
-  if (
-    nickname.length > 15
-  ) {
-
-    nicknameError.textContent =
-      'Your nickname can be up to 15 characters.';
-
-    nicknameInput.focus();
-
-    return;
-  }
-
-
-  /*
-     Remove potentially confusing whitespace.
-  */
-
-  const cleaned =
-    nickname
-      .replace(/\s+/g,' ')
-      .trim();
-
-
-  saveDailyNickname(
-    cleaned
-  );
-
-
-  updateStartScreen();
-
-
-  /*
-     Show the existing START MISSION page.
-  */
-
-  showScreen(
-    'start'
-  );
-}
-
-
-/* ============================================================
-   37. MODE SELECTION
-   ============================================================ */
-
-document
-  .querySelectorAll('.mode-btn')
-  .forEach(
-    button => {
-
-      button.addEventListener(
-        'click',
-        () => {
-
-          if (
-            state.transitioning
-          ) {
-
-            return;
-          }
-
-          state.mode =
-            button.dataset.mode;
-
-
-          document
-            .querySelectorAll(
-              '.mode-btn'
-            )
-            .forEach(
-              btn => {
-
-                btn.classList.toggle(
-                  'selected',
-                  btn.dataset.mode ===
-                  state.mode
-                );
-
-              }
-            );
-
-        }
-      );
-
-    }
-  );
-
-
-/* ============================================================
-   38. PLAY AGAIN
-   ============================================================ */
-
-playAgainBtn.addEventListener(
-  'click',
-  () => {
-
-    if (
-      state.transitioning
-    ) {
-
-      return;
-    }
-
-    state.transitioning =
-      true;
-
-    playAgainBtn.disabled =
-      true;
-
-
-    startRoundTimer();
-
-
-    playGalaxyZoomTransition(
-      resultsContent,
-      questionContent,
-      startGame
-    );
-
-
-    setTimeout(
-      () => {
-
-        state.transitioning =
-          false;
-
-        playAgainBtn.disabled =
-          false;
-
-      },
-      QUESTION_EXIT_MS +
-      QUESTION_ENTER_MS +
-      60
-    );
-
-  }
-);
-
-
-/* ============================================================
-   39. BLACK HOLE / HOME
-   ============================================================ */
-
-blackholeBtn.addEventListener(
-  'click',
-  () => {
-
-    if (
-      state.transitioning
-    ) {
-
-      return;
-    }
-
-    state.transitioning =
-      true;
-
-    blackholeBtn.disabled =
-      true;
-
-
-    stopGameTimer();
-
-    cancelQuestionAudioSequence();
-
-
-    playGalaxyZoomTransition(
-      questionContent,
-      startContent,
-      () => {
-
-        updateStartScreen();
-
-        showScreen(
-          'start'
-        );
-
-      },
-      'q-suck'
-    );
-
-
-    setTimeout(
-      () => {
-
-        state.transitioning =
-          false;
-
-        blackholeBtn.disabled =
-          false;
-
-      },
-      QUESTION_EXIT_MS +
-      QUESTION_ENTER_MS +
-      60
-    );
-
-  }
-);
-
-
-/* ============================================================
-   40. RESULTS HOME BUTTON
-   ============================================================ */
-
-resultsHomeBtn.addEventListener(
-  'click',
-  () => {
-
-    if (
-      state.transitioning
-    ) {
-
-      return;
-    }
-
-
-    stopGameTimer();
-
-
-    playGalaxyZoomTransition(
-      resultsContent,
-      startContent,
-      () => {
-
-        updateStartScreen();
-
-        showScreen(
-          'start'
-        );
-
-      },
-      'q-suck'
-    );
-
-  }
-);
-
-
-/* ============================================================
-   41. SHARE BUTTON
-   ============================================================ */
-
-function showShareFeedback(
-  message,
-  durationMs
-) {
-
-  const original =
-    shareBtn.textContent;
-
-  shareBtn.textContent =
-    message;
-
-  shareBtn.disabled =
-    true;
-
-
-  setTimeout(
-    () => {
-
-      shareBtn.textContent =
-        original;
-
-      shareBtn.disabled =
-        false;
-
-    },
-    durationMs || 2000
-  );
-}
-
 
 if (shareBtn) {
+  shareBtn.addEventListener('click', async () => {
+    const shareData = {
+      title: document.title,
+      text: 'Come play the Galaxy Alphabet Quiz with me! 🚀',
+      url: window.location.href
+    };
 
-  shareBtn.addEventListener(
-    'click',
-    async () => {
-
-      const shareData = {
-
-        title:
-          document.title,
-
-        text:
-          'Come play S.P.A.C.E. ALPHABETS with me! 🚀',
-
-        url:
-          window.location.href
-
-      };
-
-
-      if (
-        navigator.share
-      ) {
-
-        try {
-
-          await navigator.share(
-            shareData
-          );
-
-        } catch (error) {
-
-          /*
-             Player cancelled sharing.
-          */
-
-        }
-
-        return;
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // Student cancelled the share sheet, or it failed silently —
+        // either way there's nothing useful to show them.
       }
-
-
-      if (
-        navigator.clipboard &&
-        navigator.clipboard.writeText
-      ) {
-
-        try {
-
-          await navigator.clipboard.writeText(
-            shareData.url
-          );
-
-          showShareFeedback(
-            '✅ Link Copied!'
-          );
-
-          return;
-
-        } catch (error) {
-
-          /*
-             Fall through.
-          */
-
-        }
-      }
-
-
-      window.prompt(
-        'Copy this link to share:',
-        shareData.url
-      );
-
+      return;
     }
-  );
 
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(shareData.url);
+        showShareFeedback('✅ Link Copied!');
+        return;
+      } catch (err) {
+        // fall through to the prompt() fallback below
+      }
+    }
+
+    window.prompt('Copy this link to share:', shareData.url);
+  });
 }
 
+/* ------------------------------------------------------------
+   SPACE GUN CLICK SOUND
+   ------------------------------------------------------------
+   Every button on the site fires a short synthesized laser "pew"
+   on click. This is generated live with the Web Audio API (a
+   frequency sweep through a square-wave oscillator) rather than an
+   audio file — no copyrighted sound effect is used or needed, and
+   there's nothing to download or host. Swap this out for your own
+   licensed .mp3 by pointing an <audio> element at it instead, if
+   you'd rather use a specific sound.
 
-/* ============================================================
-   42. CLICK SOUND
-   ============================================================ */
-
-let clickSoundCtx =
-  null;
-
+   A single click listener on the whole document (using event
+   delegation) covers every button that exists now AND any created
+   later — like the answer buttons, which are rebuilt fresh for each
+   question — so nothing needs to be wired up per-button.
+   ------------------------------------------------------------ */
+let clickSoundCtx = null;
 
 function playClickSound() {
-
-  const AudioContextClass =
-    window.AudioContext ||
-    window.webkitAudioContext;
-
-
-  if (!AudioContextClass) {
-    return;
-  }
-
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContextClass) return; // very old browser: skip silently
 
   if (!clickSoundCtx) {
-
-    clickSoundCtx =
-      new AudioContextClass();
-
+    clickSoundCtx = new AudioContextClass();
   }
-
-
-  if (
-    clickSoundCtx.state ===
-    'suspended'
-  ) {
-
+  // Browsers suspend new AudioContexts until a user gesture resumes
+  // them — since this only ever runs from a click, resuming here is
+  // exactly the right moment.
+  if (clickSoundCtx.state === 'suspended') {
     clickSoundCtx.resume();
-
   }
 
+  const ctx = clickSoundCtx;
+  const now = ctx.currentTime;
 
-  const ctx =
-    clickSoundCtx;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
 
-  const now =
-    ctx.currentTime;
+  // A fast downward pitch sweep on a square wave reads as a classic
+  // sci-fi laser/blaster "pew" rather than a plain electronic beep.
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(1100, now);
+  osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
 
+  // Kept fairly quiet since this fires on every single click.
+  gain.gain.setValueAtTime(0.16, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
 
-  const osc =
-    ctx.createOscillator();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
 
-  const gain =
-    ctx.createGain();
-
-
-  osc.type =
-    'square';
-
-
-  osc.frequency.setValueAtTime(
-    1100,
-    now
-  );
-
-
-  osc.frequency.exponentialRampToValueAtTime(
-    120,
-    now + .15
-  );
-
-
-  gain.gain.setValueAtTime(
-    .16,
-    now
-  );
-
-
-  gain.gain.exponentialRampToValueAtTime(
-    .001,
-    now + .16
-  );
-
-
-  osc.connect(
-    gain
-  );
-
-  gain.connect(
-    ctx.destination
-  );
-
-
-  osc.start(
-    now
-  );
-
-  osc.stop(
-    now + .18
-  );
+  osc.start(now);
+  osc.stop(now + 0.18);
 }
 
-
-document.addEventListener(
-  'click',
-  event => {
-
-    const btn =
-      event.target.closest(
-        'button'
-      );
-
-    if (
-      btn &&
-      !btn.disabled
-    ) {
-
-      playClickSound();
-
-    }
-
-  },
-  true
-);
-
-
-/* ============================================================
-   43. NICKNAME ENTER KEY
-   ============================================================ */
-
-nicknameInput.addEventListener(
-  'keydown',
-  event => {
-
-    if (
-      event.key ===
-      'Enter'
-    ) {
-
-      submitNickname();
-
-    }
-
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if (btn && !btn.disabled) {
+    playClickSound();
   }
-);
+}, true);
 
+/* ------------------------------------------------------------
+   INIT
+   ------------------------------------------------------------ */
+buildStarField();
+setupWarpCanvas();
 
-/* ============================================================
-   44. EVENT WIRING
-   ============================================================ */
-
-nicknameBtn.addEventListener(
-  'click',
-  submitNickname
-);
-
-
-startBtn.addEventListener(
-  'click',
-  beginGalaxyEntrance
-);
-
-
-/*
-   This is intentionally NOT a free nickname changer.
-
-   The name is locked for the entire Japanese calendar day.
-*/
-
-changeNicknameBtn.addEventListener(
-  'click',
-  () => {
-
-    nicknameError.textContent =
-      '';
-
-    showNicknameScreen();
-
-  }
-);
-
-
-/* ============================================================
-   45. INITIALIZATION
-   ============================================================ */
-
-function initializeGame() {
-
-  buildStarField();
-
-  setupWarpCanvas();
-
-
-  /*
-     Load today's nickname.
-
-     If there isn't one, nickname screen is shown.
-     Otherwise we go directly to the existing START screen.
-  */
-
-  const savedNickname =
-    loadDailyNickname();
-
-
-  if (
-    savedNickname
-  ) {
-
-    state.nickname =
-      savedNickname;
-
-    state.nicknameDateKey =
-      getJapanDateKey();
-
-    updateStartScreen();
-
-    showScreen(
-      'start'
-    );
-
-  } else {
-
-    showNicknameScreen();
-
-  }
-
-
-  startChampionCountdown();
-
-
-  if (
-    !prefersReducedMotion
-  ) {
-
-    scheduleShootingStars();
-
-    scheduleFloatingSatellites();
-
-  }
-
+// Ambient satellites/shooting stars run for the whole site visit,
+// but are skipped for motion-sensitive users (same policy as the
+// warp transitions above).
+if (!prefersReducedMotion) {
+  scheduleShootingStars();
+  scheduleFloatingSatellites();
 }
-
-
-initializeGame();
