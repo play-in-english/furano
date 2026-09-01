@@ -645,7 +645,7 @@ welcomeBackEl.textContent =
 `Welcome back, ${nickname}!`;
 
 startWelcomeEl.textContent =
-`Welcome, ${nickname}!`;
+`Are you ready, ${nickname}?`;
 
 showScreen('checkin');
 
@@ -801,7 +801,7 @@ state.nickname =
 
 
 startWelcomeEl.textContent =
-  `Welcome, ${nickname}!`;
+  `Are you ready, ${nickname}?`;
 
 
 /*
