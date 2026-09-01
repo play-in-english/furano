@@ -401,6 +401,15 @@ document.getElementById(
 'startContent'
 );
 
+// NEW: reference to the existing "Which letter did you hear?"
+// paragraph inside the game screen, found by its existing class
+// (no HTML changes needed). Used so Medium/Hard questions can show
+// their own prompt (e.g. a masked word) — see renderQuestion().
+const promptEl =
+document.querySelector(
+'#gameScreen .prompt'
+);
+
 console.log(
 'S.P.A.C.E. ALPHABETS: app.js loaded.'
 );
@@ -2056,6 +2065,17 @@ scoreCounter.textContent =
 `Score: ${state.score} / ${state.currentIndex}`;
 
 renderConstellation();
+
+// NEW: show this question's own prompt text (e.g. a masked word
+// for Medium mode) if it provides one, otherwise fall back to the
+// original default wording — Easy mode is unaffected either way.
+if (promptEl) {
+
+promptEl.textContent =
+  q.prompt ||
+  'Which letter did you hear?';
+
+}
 
 /*
 AUDIO
