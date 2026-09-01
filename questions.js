@@ -153,6 +153,7 @@ function buildEasyBank() {
                shown on screen exactly as you write it
                (e.g. "WAT__")
      pattern — the correct missing pattern (e.g. "ch")
+
      group   — which category this pattern belongs to, so the
                generator only ever picks a wrong answer from the
                SAME category (never an unrelated pattern)
@@ -304,7 +305,7 @@ function buildHardBank() {
       audio: chosen.audio,
       correctAnswer: chosen.correctSpelling,
       options: [chosen.correctSpelling, distractor],
-      prompt: "What word was the 👽 alien saying?"
+      prompt: "The 👽 alien says:"
     };
   });
 }
