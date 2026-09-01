@@ -304,7 +304,7 @@ function buildHardBank() {
       audio: chosen.audio,
       correctAnswer: chosen.correctSpelling,
       options: [chosen.correctSpelling, distractor],
-      prompt: "Which spelling matches the sound you hear?"
+      prompt: "What word was the 👽 alien saying?"
     };
   });
 }
