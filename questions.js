@@ -257,7 +257,7 @@ function buildMediumBank() {
       audio: chosen.audio,
       correctAnswer: chosen.pattern.toUpperCase(),
       options: [chosen.pattern.toUpperCase(), distractor.toUpperCase()],
-      prompt: `Complete the word: ${chosen.display}`
+      prompt: `What sound is missing?: ${chosen.display}`
     };
   });
 }
