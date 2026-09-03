@@ -75,7 +75,7 @@ const QUESTION_EXIT_MS = 320;
 const QUESTION_ENTER_MS = 360;
 
 const AUTO_ADVANCE_DELAY_MS = 2000;
-const AUTOPLAY_GAP_MS = 2000;
+const AUTOPLAY_DELAY_MS = 1500; // wait this long after the question renders before the single automatic play
 
 /* ============================================================
 TIME BONUS
@@ -91,6 +91,26 @@ if (seconds < 40) return 60;
 if (seconds < 45) return 40;
 
 return 20;
+}
+
+/* ============================================================
+STAR RATING
+============================================================
+Based on TOTAL POINTS for the round (not just correct-answer
+ratio) — a max-possible round is 1000 points (700 for all 7
+correct + 300 fastest time bonus), so 800+ comfortably reaches
+5 stars for a near-perfect, fast run.
+============================================================ */
+
+function calcStarRating(points) {
+
+if (points >= 800) return 5;
+if (points >= 600) return 4;
+if (points >= 400) return 3;
+if (points >= 200) return 2;
+
+return 1; // 0–199 points
+
 }
 
 /* ============================================================
@@ -191,7 +211,7 @@ elapsedSeconds: null,
 
 autoAdvanceTimeoutId: null,
 
-autoplaySecondTimeoutId: null
+autoplayTimeoutId: null
 
 };
 
@@ -692,7 +712,7 @@ Update the START MISSION page.
 */
 
 startWelcomeEl.textContent =
-`Welcome, ${nickname}!`;
+`Are you ready, ${nickname}?`;
 
 /*
 FIRST LOGIN:
@@ -1615,7 +1635,7 @@ START GAME
 function startGame() {
 
 clearAutoAdvanceTimer();
-clearAutoplaySecondTimer();
+clearAutoplayTimer();
 
 state.roundQuestions =
 pickRoundQuestions();
@@ -1849,18 +1869,18 @@ state.autoAdvanceTimeoutId =
 
 }
 
-function clearAutoplaySecondTimer() {
+function clearAutoplayTimer() {
 
 if (
-state.autoplaySecondTimeoutId !== null
+state.autoplayTimeoutId !== null
 ) {
 
 
 clearTimeout(
-  state.autoplaySecondTimeoutId
+  state.autoplayTimeoutId
 );
 
-state.autoplaySecondTimeoutId =
+state.autoplayTimeoutId =
   null;
 
 
@@ -2035,7 +2055,7 @@ RENDER QUESTION
 function renderQuestion() {
 
 clearAutoAdvanceTimer();
-clearAutoplaySecondTimer();
+clearAutoplayTimer();
 
 state.answeredCurrent =
 false;
@@ -2242,15 +2262,16 @@ state.answeredCurrent
 return;
 }
 
-playCurrentAudio();
+/*
+  Plays automatically ONCE, AUTOPLAY_DELAY_MS after the question
+  appears — giving the transition a moment to settle before the
+  sound starts. After that, the student can replay it at their own
+  pace with the "Play Sound" button.
+*/
 
-letterAudio.onended =
+state.autoplayTimeoutId =
+setTimeout(
 () => {
-
-
-  playAudioBtn.classList.remove(
-    'playing'
-  );
 
 
   if (
@@ -2260,25 +2281,11 @@ letterAudio.onended =
   }
 
 
-  state.autoplaySecondTimeoutId =
-    setTimeout(
-      () => {
+  playCurrentAudio();
 
-        if (
-          state.answeredCurrent
-        ) {
-          return;
-        }
-
-
-        playCurrentAudio();
-
-      },
-      AUTOPLAY_GAP_MS
-    );
-
-};
-
+},
+AUTOPLAY_DELAY_MS
+);
 
 }
 
@@ -2287,7 +2294,7 @@ playAudioBtn.addEventListener(
 () => {
 
 
-clearAutoplaySecondTimer();
+clearAutoplayTimer();
 
 playCurrentAudio();
 
@@ -2314,7 +2321,7 @@ return;
 state.answeredCurrent =
 true;
 
-clearAutoplaySecondTimer();
+clearAutoplayTimer();
 
 const multipleCorrect =
 Array.isArray(correct);
@@ -3053,8 +3060,8 @@ resultsMsg.textContent =
 message;
 
 const filled =
-Math.round(
-ratio * 5
+calcStarRating(
+totalPoints
 );
 
 resultsStars.textContent =
@@ -3276,7 +3283,7 @@ blackholeBtn.disabled =
 
 clearAutoAdvanceTimer();
 
-clearAutoplaySecondTimer();
+clearAutoplayTimer();
 
 stopGameTimer();
 
