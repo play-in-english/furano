@@ -47,7 +47,30 @@ const QUESTIONS_PER_GAME = 7;
 
 const STAR_COUNT = 90;
 
-const POINTS_PER_CORRECT_ANSWER = 100;
+/*
+NEW SCORING SYSTEM
+
+Each question is worth a MAXIMUM of 1,000 points:
+  700 base points for a correct answer
+  + up to 300 points of speed bonus.
+
+With 7 questions per mission, the maximum possible
+mission score is 7,000 points.
+*/
+
+const MAX_POINTS_PER_QUESTION = 1000;
+
+const BASE_CORRECT_POINTS = 700;
+
+const MAX_SPEED_BONUS = 300;
+
+const SPEED_BONUS_FAST_SECONDS = 2;
+
+const SPEED_BONUS_SLOW_SECONDS = 20;
+
+const MAX_MISSION_POINTS =
+QUESTIONS_PER_GAME *
+MAX_POINTS_PER_QUESTION;
 
 const BEST_SCORE_KEY =
 'galaxyAlphabetQuiz.bestScore.v2';
@@ -78,38 +101,85 @@ const AUTO_ADVANCE_DELAY_MS = 2000;
 const AUTOPLAY_DELAY_MS = 1500; // wait this long after the question renders before the single automatic play
 
 /* ============================================================
-TIME BONUS
+QUESTION SCORING (NEW)
+============================================================
+Each question is scored individually, based on:
+
+  1. Whether the answer is correct.
+  2. How quickly the student answered THAT question
+     (time from when the question was displayed to when
+     the student selected an answer).
+
+A wrong answer always earns 0 points, no matter how fast.
+
+A correct answer earns BASE_CORRECT_POINTS (700) plus a speed
+bonus that decreases linearly from MAX_SPEED_BONUS (300, at
+SPEED_BONUS_FAST_SECONDS or faster) down to 0 (at
+SPEED_BONUS_SLOW_SECONDS or slower):
+
+  <= 2 seconds  → 1,000 points
+  3–19 seconds  → progressively decreasing points
+  >= 20 seconds → 700 points
 ============================================================ */
 
-function calcTimeBonus(seconds) {
+function calcQuestionScore(seconds, isCorrect) {
 
-if (seconds < 20) return 300;
-if (seconds < 25) return 200;
-if (seconds < 30) return 100;
-if (seconds < 35) return 80;
-if (seconds < 40) return 60;
-if (seconds < 45) return 40;
+if (!isCorrect) {
+return 0;
+}
 
-return 20;
+const clamped =
+Math.max(
+0,
+Number(seconds) || 0
+);
+
+if (clamped <= SPEED_BONUS_FAST_SECONDS) {
+return MAX_POINTS_PER_QUESTION;
+}
+
+if (clamped >= SPEED_BONUS_SLOW_SECONDS) {
+return BASE_CORRECT_POINTS;
+}
+
+const range =
+SPEED_BONUS_SLOW_SECONDS -
+SPEED_BONUS_FAST_SECONDS;
+
+const progress =
+(clamped - SPEED_BONUS_FAST_SECONDS) /
+range;
+
+const speedBonus =
+MAX_SPEED_BONUS *
+(1 - progress);
+
+return Math.round(
+BASE_CORRECT_POINTS +
+speedBonus
+);
 }
 
 /* ============================================================
 STAR RATING
 ============================================================
-Based on TOTAL POINTS for the round (not just correct-answer
-ratio) — a max-possible round is 1000 points (700 for all 7
-correct + 300 fastest time bonus), so 800+ comfortably reaches
-5 stars for a near-perfect, fast run.
+Based on the percentage of the maximum possible mission score
+(MAX_MISSION_POINTS = 7,000 points: 7 questions × 1,000 points).
 ============================================================ */
 
 function calcStarRating(points) {
 
-if (points >= 800) return 5;
-if (points >= 600) return 4;
-if (points >= 400) return 3;
-if (points >= 200) return 2;
+if (points <= 0) return 0;
 
-return 1; // 0–199 points
+const percent =
+points / MAX_MISSION_POINTS;
+
+if (percent >= 0.9) return 5;
+if (percent >= 0.75) return 4;
+if (percent >= 0.6) return 3;
+if (percent >= 0.4) return 2;
+
+return 1; // any points above 0 but below 40%
 
 }
 
@@ -199,6 +269,8 @@ currentIndex: 0,
 
 score: 0,
 
+correctCount: 0,
+
 results: [],
 
 answeredCurrent: false,
@@ -208,6 +280,8 @@ transitioning: false,
 startTime: null,
 
 elapsedSeconds: null,
+
+questionStartTime: null,
 
 autoAdvanceTimeoutId: null,
 
@@ -1662,6 +1736,8 @@ state.currentIndex = 0;
 
 state.score = 0;
 
+state.correctCount = 0;
+
 state.results = [];
 
 state.answeredCurrent = false;
@@ -2082,7 +2158,7 @@ questionCounter.textContent =
 `Question ${state.currentIndex + 1} / ${total}`;
 
 scoreCounter.textContent =
-`Score: ${state.score} / ${state.currentIndex}`;
+`Score: ${state.score} / ${MAX_MISSION_POINTS}`;
 
 renderConstellation();
 
@@ -2184,6 +2260,16 @@ option => {
 
 
 );
+
+/*
+  The per-question SCORING timer starts now, the
+  moment this question (and its answer options) is
+  actually displayed to the student. It stops the
+  instant an answer is selected — see handleAnswer().
+*/
+
+state.questionStartTime =
+performance.now();
 
 startAutoplaySequence();
 
@@ -2391,14 +2477,39 @@ button => {
 
 );
 
+/*
+  QUESTION RESPONSE TIME:
+
+  Time from when the question was displayed
+  (state.questionStartTime, set in renderQuestion())
+  to right now, when the answer was selected. This is
+  independent of the overall mission timer.
+*/
+
+const questionResponseSeconds =
+state.questionStartTime !== null
+? (
+    performance.now() -
+    state.questionStartTime
+  ) / 1000
+: 0;
+
+const pointsEarned =
+calcQuestionScore(
+questionResponseSeconds,
+isCorrect
+);
+
 if (isCorrect) {
 
 
-state.score++;
+state.correctCount++;
+
+state.score += pointsEarned;
 
 
 feedbackEl.textContent =
-  '✓ Correct!';
+  `✓ Correct! +${pointsEarned} pts`;
 
 feedbackEl.classList.add(
   'correct-text'
@@ -2429,7 +2540,7 @@ feedbackEl.classList.add(
 );
 
 scoreCounter.textContent =
-`Score: ${state.score} / ${state.currentIndex + 1}`;
+`Score: ${state.score} / ${MAX_MISSION_POINTS}`;
 
 renderConstellation();
 
@@ -2992,30 +3103,27 @@ function showResults() {
 const total =
 state.roundQuestions.length;
 
-const correctPoints =
-state.score *
-POINTS_PER_CORRECT_ANSWER;
-
 const timeTaken =
 state.elapsedSeconds !== null
 ? state.elapsedSeconds
 : 0;
 
-const timeBonus =
-calcTimeBonus(
-timeTaken
-);
+/*
+  The mission score is simply the sum of the
+  per-question scores already accumulated in
+  state.score as each question was answered
+  (see calcQuestionScore() / handleAnswer()).
+*/
 
 const totalPoints =
-correctPoints +
-timeBonus;
+state.score;
 
 resultsScore.textContent =
 `${totalPoints} POINTS`;
 
 const ratio =
 total > 0
-? state.score / total
+? state.correctCount / total
 : 0;
 
 let message;
@@ -3085,7 +3193,7 @@ if (isNewBest) {
 
 saveBestScore(
   totalPoints,
-  state.score,
+  state.correctCount,
   timeTaken
 );
 
