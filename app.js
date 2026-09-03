@@ -60,13 +60,15 @@ mission score is 7,000 points.
 
 const MAX_POINTS_PER_QUESTION = 1000;
 
-const BASE_CORRECT_POINTS = 700;
+const BASE_CORRECT_POINTS = 500;
 
-const MAX_SPEED_BONUS = 300;
+const MAX_SPEED_BONUS = 500;
 
-const SPEED_BONUS_FAST_SECONDS = 2;
+const SPEED_BONUS_FAST_SECONDS = 1;
 
-const SPEED_BONUS_SLOW_SECONDS = 20;
+const SPEED_BONUS_SLOW_SECONDS = 7;
+
+const SPEED_BONUS_DECAY_RATE = 1; // higher = the bonus collapses even faster past the fast cutoff
 
 const MAX_MISSION_POINTS =
 QUESTIONS_PER_GAME *
@@ -98,7 +100,7 @@ const QUESTION_EXIT_MS = 320;
 const QUESTION_ENTER_MS = 360;
 
 const AUTO_ADVANCE_DELAY_MS = 2000;
-const AUTOPLAY_DELAY_MS = 0.5; // wait this long after the question renders before the single automatic play
+const AUTOPLAY_DELAY_MS = 0; // wait this long after the question renders before the single automatic play
 
 /* ============================================================
 QUESTION SCORING (NEW)
@@ -112,14 +114,19 @@ Each question is scored individually, based on:
 
 A wrong answer always earns 0 points, no matter how fast.
 
-A correct answer earns BASE_CORRECT_POINTS (700) plus a speed
-bonus that decreases linearly from MAX_SPEED_BONUS (300, at
-SPEED_BONUS_FAST_SECONDS or faster) down to 0 (at
-SPEED_BONUS_SLOW_SECONDS or slower):
+A correct answer earns BASE_CORRECT_POINTS (500) plus a speed
+bonus of up to MAX_SPEED_BONUS (500):
 
-  <= 2 seconds  → 1,000 points
-  3–19 seconds  → progressively decreasing points
-  >= 20 seconds → 700 points
+  - At SPEED_BONUS_FAST_SECONDS (1s) or faster, the full bonus
+    applies — 1,000 points.
+  - Past that, the bonus collapses SHARPLY (exponential decay,
+    not a straight line or gentle curve) — every second beyond
+    the 1-second mark costs a lot, so speed matters immediately,
+    not just eventually.
+  - SPEED_BONUS_SLOW_SECONDS (7s) is a hard floor: at or beyond
+    it, a correct answer is guaranteed to earn exactly the
+    minimum of 500 points. Answer correctly any faster than
+    that and you always earn MORE than 500.
 ============================================================ */
 
 function calcQuestionScore(seconds, isCorrect) {
@@ -142,17 +149,26 @@ if (clamped >= SPEED_BONUS_SLOW_SECONDS) {
 return BASE_CORRECT_POINTS;
 }
 
-const range =
-SPEED_BONUS_SLOW_SECONDS -
+const secondsPastFast =
+clamped -
 SPEED_BONUS_FAST_SECONDS;
 
-const progress =
-(clamped - SPEED_BONUS_FAST_SECONDS) /
-range;
+/*
+  Exponential decay: the bonus is multiplied by
+  e^(-rate * secondsPastFast), so it drops fast right
+  away and then flattens out toward zero, instead of
+  fading gradually over the whole window.
+*/
+
+const decay =
+Math.exp(
+-SPEED_BONUS_DECAY_RATE *
+secondsPastFast
+);
 
 const speedBonus =
 MAX_SPEED_BONUS *
-(1 - progress);
+decay;
 
 return Math.round(
 BASE_CORRECT_POINTS +
