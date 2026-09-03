@@ -98,7 +98,7 @@ const QUESTION_EXIT_MS = 320;
 const QUESTION_ENTER_MS = 360;
 
 const AUTO_ADVANCE_DELAY_MS = 2000;
-const AUTOPLAY_DELAY_MS = 1500; // wait this long after the question renders before the single automatic play
+const AUTOPLAY_DELAY_MS = 0.5; // wait this long after the question renders before the single automatic play
 
 /* ============================================================
 QUESTION SCORING (NEW)
