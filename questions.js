@@ -181,55 +181,55 @@ const PHONICS_PATTERN_GROUPS = {
 
 const MEDIUM_PATTERN_LIBRARY = [
   // Consonant digraphs
-  { audio: "audio/medium/watch.mp3", word: "watch", display: "WAT__", pattern: "ch", group: "digraph" },
-  { audio: "audio/medium/fish.mp3", word: "fish", display: "FI__", pattern: "sh", group: "digraph" },
-  { audio: "audio/medium/that.mp3", word: "that", display: "__AT", pattern: "th", group: "digraph" },
-  { audio: "audio/medium/wheel.mp3", word: "wheel", display: "__EEL", pattern: "wh", group: "digraph" },
-  { audio: "audio/medium/phone.mp3", word: "phone", display: "__ONE", pattern: "ph", group: "digraph" },
+  { audio: "audio/med-watch.mp3", word: "watch", display: "WAT__", pattern: "ch", group: "digraph" },
+  { audio: "audio/med-fish.mp3", word: "fish", display: "FI__", pattern: "sh", group: "digraph" },
+  { audio: "audio/med-that.mp3", word: "that", display: "__AT", pattern: "th", group: "digraph" },
+  { audio: "audio/med-wheel.mp3", word: "wheel", display: "__EEL", pattern: "wh", group: "digraph" },
+  { audio: "audio/med-phone.mp3", word: "phone", display: "__ONE", pattern: "ph", group: "digraph" },
 
   // Consonant blends
-  { audio: "audio/medium/black.mp3", word: "black", display: "__ACK", pattern: "bl", group: "blend" },
-  { audio: "audio/medium/crab.mp3", word: "crab", display: "__AB", pattern: "cr", group: "blend" },
-  { audio: "audio/medium/drum.mp3", word: "drum", display: "__UM", pattern: "dr", group: "blend" },
-  { audio: "audio/medium/flag.mp3", word: "flag", display: "__AG", pattern: "fl", group: "blend" },
-  { audio: "audio/medium/grape.mp3", word: "grape", display: "__APE", pattern: "gr", group: "blend" },
-  { audio: "audio/medium/plane.mp3", word: "plane", display: "__ANE", pattern: "pl", group: "blend" },
-  { audio: "audio/medium/stamp.mp3", word: "stamp", display: "__AMP", pattern: "st", group: "blend" },
-  { audio: "audio/medium/swim.mp3", word: "swim", display: "__IM", pattern: "sw", group: "blend" },
-  { audio: "audio/medium/tree.mp3", word: "tree", display: "__EE", pattern: "tr", group: "blend" },
-  { audio: "audio/medium/twin.mp3", word: "twin", display: "__IN", pattern: "tw", group: "blend" },
+  { audio: "audio/med-black.mp3", word: "black", display: "__ACK", pattern: "bl", group: "blend" },
+  { audio: "audio/med-crab.mp3", word: "crab", display: "__AB", pattern: "cr", group: "blend" },
+  { audio: "audio/med-drum.mp3", word: "drum", display: "__UM", pattern: "dr", group: "blend" },
+  { audio: "audio/med-flag.mp3", word: "flag", display: "__AG", pattern: "fl", group: "blend" },
+  { audio: "audio/med-grape.mp3", word: "grape", display: "__APE", pattern: "gr", group: "blend" },
+  { audio: "audio/med-plane.mp3", word: "plane", display: "__ANE", pattern: "pl", group: "blend" },
+  { audio: "audio/med-stamp.mp3", word: "stamp", display: "__AMP", pattern: "st", group: "blend" },
+  { audio: "audio/med-swim.mp3", word: "swim", display: "__IM", pattern: "sw", group: "blend" },
+  { audio: "audio/med-tree.mp3", word: "tree", display: "__EE", pattern: "tr", group: "blend" },
+  { audio: "audio/med-twin.mp3", word: "twin", display: "__IN", pattern: "tw", group: "blend" },
 
   // Double consonants
-  { audio: "audio/medium/bell.mp3", word: "bell", display: "BE__", pattern: "ll", group: "doubleConsonant" },
-  { audio: "audio/medium/kiss.mp3", word: "kiss", display: "KI__", pattern: "ss", group: "doubleConsonant" },
-  { audio: "audio/medium/buzz.mp3", word: "buzz", display: "BU__", pattern: "zz", group: "doubleConsonant" },
-  { audio: "audio/medium/puff.mp3", word: "puff", display: "PU__", pattern: "ff", group: "doubleConsonant" },
-  { audio: "audio/medium/mitt.mp3", word: "mitt", display: "MI__", pattern: "tt", group: "doubleConsonant" },
+  { audio: "audio/med-bell.mp3", word: "bell", display: "BE__", pattern: "ll", group: "doubleConsonant" },
+  { audio: "audio/med-kiss.mp3", word: "kiss", display: "KI__", pattern: "ss", group: "doubleConsonant" },
+  { audio: "audio/med-buzz.mp3", word: "buzz", display: "BU__", pattern: "zz", group: "doubleConsonant" },
+  { audio: "audio/med-puff.mp3", word: "puff", display: "PU__", pattern: "ff", group: "doubleConsonant" },
+  { audio: "audio/med-mitt.mp3", word: "mitt", display: "MI__", pattern: "tt", group: "doubleConsonant" },
 
   // Vowel teams
-  { audio: "audio/medium/rain.mp3", word: "rain", display: "R__N", pattern: "ai", group: "vowelTeam" },
-  { audio: "audio/medium/sheep.mp3", word: "sheep", display: "SH__P", pattern: "ee", group: "vowelTeam" },
-  { audio: "audio/medium/boat.mp3", word: "boat", display: "B__T", pattern: "oa", group: "vowelTeam" },
-  { audio: "audio/medium/coin.mp3", word: "coin", display: "C__N", pattern: "oi", group: "vowelTeam" },
-  { audio: "audio/medium/toy.mp3", word: "toy", display: "T__", pattern: "oy", group: "vowelTeam" },
-  { audio: "audio/medium/cloud.mp3", word: "cloud", display: "CL__D", pattern: "ou", group: "vowelTeam" },
-  { audio: "audio/medium/cow.mp3", word: "cow", display: "C__", pattern: "ow", group: "vowelTeam" },
+  { audio: "audio/med-rain.mp3", word: "rain", display: "R__N", pattern: "ai", group: "vowelTeam" },
+  { audio: "audio/med-sheep.mp3", word: "sheep", display: "SH__P", pattern: "ee", group: "vowelTeam" },
+  { audio: "audio/med-boat.mp3", word: "boat", display: "B__T", pattern: "oa", group: "vowelTeam" },
+  { audio: "audio/med-coin.mp3", word: "coin", display: "C__N", pattern: "oi", group: "vowelTeam" },
+  { audio: "audio/med-toy.mp3", word: "toy", display: "T__", pattern: "oy", group: "vowelTeam" },
+  { audio: "audio/med-cloud.mp3", word: "cloud", display: "CL__D", pattern: "ou", group: "vowelTeam" },
+  { audio: "audio/med-cow.mp3", word: "cow", display: "C__", pattern: "ow", group: "vowelTeam" },
 
   // R-controlled vowels
-  { audio: "audio/medium/car.mp3", word: "car", display: "C__", pattern: "ar", group: "rControlled" },
-  { audio: "audio/medium/her.mp3", word: "her", display: "H__", pattern: "er", group: "rControlled" },
-  { audio: "audio/medium/bird.mp3", word: "bird", display: "B__D", pattern: "ir", group: "rControlled" },
-  { audio: "audio/medium/corn.mp3", word: "corn", display: "C__N", pattern: "or", group: "rControlled" },
-  { audio: "audio/medium/burn.mp3", word: "burn", display: "B__N", pattern: "ur", group: "rControlled" },
+  { audio: "audio/med-car.mp3", word: "car", display: "C__", pattern: "ar", group: "rControlled" },
+  { audio: "audio/med-her.mp3", word: "her", display: "H__", pattern: "er", group: "rControlled" },
+  { audio: "audio/med-bird.mp3", word: "bird", display: "B__D", pattern: "ir", group: "rControlled" },
+  { audio: "audio/med-corn.mp3", word: "corn", display: "C__N", pattern: "or", group: "rControlled" },
+  { audio: "audio/med-burn.mp3", word: "burn", display: "B__N", pattern: "ur", group: "rControlled" },
 
   // Long-vowel / silent-e patterns (each paired with its own
   // short-vowel contrast via distractorPool, since the useful
   // wrong answer here is specifically "the same ending without
   // the silent e", not just any other long-vowel pattern)
-  { audio: "audio/medium/cake.mp3", word: "cake", display: "C__", pattern: "ake", group: "longVowel", distractorPool: ["ak"] },
-  { audio: "audio/medium/time.mp3", word: "time", display: "T__", pattern: "ime", group: "longVowel", distractorPool: ["im"] },
-  { audio: "audio/medium/bone.mp3", word: "bone", display: "B__", pattern: "one", group: "longVowel", distractorPool: ["on"] },
-  { audio: "audio/medium/cute.mp3", word: "cute", display: "C__", pattern: "ute", group: "longVowel", distractorPool: ["ut"] }
+  { audio: "audio/med-cake.mp3", word: "cake", display: "C__", pattern: "ake", group: "longVowel", distractorPool: ["ak"] },
+  { audio: "audio/med-time.mp3", word: "time", display: "T__", pattern: "ime", group: "longVowel", distractorPool: ["im"] },
+  { audio: "audio/med-bone.mp3", word: "bone", display: "B__", pattern: "one", group: "longVowel", distractorPool: ["on"] },
+  { audio: "audio/med-cute.mp3", word: "cute", display: "C__", pattern: "ute", group: "longVowel", distractorPool: ["ut"] }
 ];
 
 function pickPhonicsDistractor(item) {
@@ -273,16 +273,16 @@ function buildMediumBank() {
    ============================================================ */
 
 const HARD_ALIEN_LIBRARY = [
-  { audio: "audio/hard/shroop.mp3", word: "shroop", correctSpelling: "SHROOP", distractorPool: ["SHROUP", "SHROOB", "SHRUPE"] },
-  { audio: "audio/hard/blentar.mp3", word: "blentar", correctSpelling: "BLENTAR", distractorPool: ["BLENTER", "BLENTOR", "BLENTARE"] },
-  { audio: "audio/hard/crendix.mp3", word: "crendix", correctSpelling: "CRENDIX", distractorPool: ["CRENDEX", "KRENDIX", "CRENDIKS"] },
-  { audio: "audio/hard/florum.mp3", word: "florum", correctSpelling: "FLORUM", distractorPool: ["FLOROM", "FLORAM", "FLORUME"] },
-  { audio: "audio/hard/wexlin.mp3", word: "wexlin", correctSpelling: "WEXLIN", distractorPool: ["WEKSLIN", "WEXLYN", "WEXLINN"] },
-  { audio: "audio/hard/thrandle.mp3", word: "thrandle", correctSpelling: "THRANDLE", distractorPool: ["THRANDEL", "TRANDLE", "THRANDDLE"] },
-  { audio: "audio/hard/glimzo.mp3", word: "glimzo", correctSpelling: "GLIMZO", distractorPool: ["GLIMSO", "GLYMZO", "GLIMZOE"] },
-  { audio: "audio/hard/prantik.mp3", word: "prantik", correctSpelling: "PRANTIK", distractorPool: ["PRANTICK", "PRANTEK", "PRANTIQ"] },
-  { audio: "audio/hard/sklovar.mp3", word: "sklovar", correctSpelling: "SKLOVAR", distractorPool: ["SCLOVAR", "SKLOVER", "SKLOVARE"] },
-  { audio: "audio/hard/nemquil.mp3", word: "nemquil", correctSpelling: "NEMQUIL", distractorPool: ["NEMQUILL", "NEMQUEL", "NEMQUYLE"] }
+  { audio: "audio/hard-shroop.mp3", word: "shroop", correctSpelling: "SHROOP", distractorPool: ["SHROUP", "SHROOB", "SHRUPE"] },
+  { audio: "audio/hard-blentar.mp3", word: "blentar", correctSpelling: "BLENTAR", distractorPool: ["BLENTER", "BLENTOR", "BLENTARE"] },
+  { audio: "audio/hard-crendix.mp3", word: "crendix", correctSpelling: "CRENDIX", distractorPool: ["CRENDEX", "KRENDIX", "CRENDIKS"] },
+  { audio: "audio/hard-florum.mp3", word: "florum", correctSpelling: "FLORUM", distractorPool: ["FLOROM", "FLORAM", "FLORUME"] },
+  { audio: "audio/hard-wexlin.mp3", word: "wexlin", correctSpelling: "WEXLIN", distractorPool: ["WEKSLIN", "WEXLYN", "WEXLINN"] },
+  { audio: "audio/hard-thrandle.mp3", word: "thrandle", correctSpelling: "THRANDLE", distractorPool: ["THRANDEL", "TRANDLE", "THRANDDLE"] },
+  { audio: "audio/hard-glimzo.mp3", word: "glimzo", correctSpelling: "GLIMZO", distractorPool: ["GLIMSO", "GLYMZO", "GLIMZOE"] },
+  { audio: "audio/hard-prantik.mp3", word: "prantik", correctSpelling: "PRANTIK", distractorPool: ["PRANTICK", "PRANTEK", "PRANTIQ"] },
+  { audio: "audio/hard-sklovar.mp3", word: "sklovar", correctSpelling: "SKLOVAR", distractorPool: ["SCLOVAR", "SKLOVER", "SKLOVARE"] },
+  { audio: "audio/hard-nemquil.mp3", word: "nemquil", correctSpelling: "NEMQUIL", distractorPool: ["NEMQUILL", "NEMQUEL", "NEMQUYLE"] }
 ];
 
 function pickAlienDistractor(item) {
