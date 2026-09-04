@@ -40,6 +40,28 @@ Player sees nickname entry again.
 ============================================================ */
 
 /* ============================================================
+SUPABASE — ONLINE LEADERBOARD
+============================================================
+Replace these with your own project's values, found in:
+Supabase Dashboard → Project Settings → API
+============================================================ */
+
+const SUPABASE_URL = 'https://chqyzmhivilmqdubkava.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_9Bh-hrBs7ODOMrORQP5ntg_nG6FnWPb';
+
+const supabase =
+  (window.supabase && SUPABASE_URL.indexOf('YOUR-PROJECT') === -1)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+    : null;
+
+if (!supabase) {
+  console.warn(
+    'Supabase is not configured yet — set SUPABASE_URL / SUPABASE_ANON_KEY in app.js. ' +
+    'The leaderboard will stay empty until this is done.'
+  );
+}
+
+/* ============================================================
 SETTINGS
 ============================================================ */
 
@@ -79,9 +101,6 @@ const BEST_SCORE_KEY =
 
 const NICKNAME_KEY =
 'galaxyAlphabetQuiz.nickname.v2';
-
-const LEADERBOARD_KEY_PREFIX =
-'galaxyAlphabetQuiz.leaderboard.v2';
 
 const LEADERBOARD_MAX_ROWS = 5;
 
@@ -2689,6 +2708,9 @@ advanceFromCurrentQuestion
 
 /* ============================================================
 BEST SCORE
+============================================================
+This stays in localStorage — it's a per-device "your personal
+best today" tracker, separate from the shared online leaderboard.
 ============================================================ */
 
 function loadBestScore() {
@@ -2771,219 +2793,132 @@ JSON.stringify({
 }
 
 /* ============================================================
-LEADERBOARD
+LEADERBOARD (SUPABASE — SHARED ACROSS ALL PLAYERS)
+============================================================
+Table: leaderboard_entries
+  mode          text
+  nickname      text
+  score         int
+  time_seconds  numeric
+  date_key      text   (JST day, e.g. '2026-09-04')
+  unique (mode, nickname, date_key)
+
+Only today's (JST) rows are ever read or written, so the board
+naturally resets at JST midnight without needing a cleanup job.
 ============================================================ */
 
-function leaderboardKey(mode) {
+async function loadLeaderboard(mode) {
 
-return (
-LEADERBOARD_KEY_PREFIX +
-mode
-);
-
+if (!supabase) {
+return { entries: [] };
 }
 
-function loadLeaderboard(mode) {
+const { data, error } =
+  await supabase
+    .from('leaderboard_entries')
+    .select('nickname, score, time_seconds')
+    .eq('mode', mode)
+    .eq('date_key', getJstDateKey())
+    .order('score', { ascending: false })
+    .order('time_seconds', { ascending: true })
+    .limit(LEADERBOARD_MAX_ROWS);
 
-const raw =
-storageGet(
-leaderboardKey(mode)
-);
+if (error) {
 
-if (!raw) {
-
-
-return {
-
-  dateKey:
-    getJstDateKey(),
-
-  entries: []
-
-};
-
-
-}
-
-try {
-
-
-const data =
-  JSON.parse(raw);
-
-
-if (
-  data.dateKey !==
-  getJstDateKey()
-) {
-
-  return {
-
-    dateKey:
-      getJstDateKey(),
-
-    entries: []
-
-  };
-
-}
-
-
-return {
-
-  dateKey:
-    getJstDateKey(),
-
-  entries:
-    Array.isArray(
-      data.entries
-    )
-      ? data.entries
-      : []
-
-};
-
-
-} catch (error) {
-
-
-return {
-
-  dateKey:
-    getJstDateKey(),
-
-  entries: []
-
-};
-
-
-}
-
-}
-
-function saveLeaderboard(
-mode,
-board
-) {
-
-storageSet(
-leaderboardKey(mode),
-JSON.stringify(board)
-);
-
-}
-
-function recordLeaderboardResult(
-mode,
-nickname,
-score,
-timeSeconds
-) {
-
-const board =
-loadLeaderboard(mode);
-
-const candidate = {
-
-
-nickname,
-
-score,
-
-timeSeconds
-
-
-};
-
-const existingIndex =
-board.entries.findIndex(
-entry =>
-entry.nickname ===
-nickname
-);
-
-if (
-existingIndex === -1
-) {
-
-
-board.entries.push(
-  candidate
-);
-
-
-} else {
-
-
-const existing =
-  board.entries[
-    existingIndex
-  ];
-
-
-const better =
-  score >
-    existing.score ||
-  (
-    score ===
-      existing.score &&
-    timeSeconds <
-      existing.timeSeconds
+  console.error(
+    'Failed to load leaderboard:',
+    error
   );
 
+  return { entries: [] };
+
+}
+
+return {
+  entries:
+    (data || []).map(
+      row => ({
+        nickname: row.nickname,
+        score: row.score,
+        timeSeconds: row.time_seconds
+      })
+    )
+};
+
+}
+
+async function recordLeaderboardResult(
+mode,
+nickname,
+score,
+timeSeconds
+) {
+
+if (!supabase) {
+return { entries: [] };
+}
+
+/*
+  Check the player's existing row for today (if any),
+  so we only overwrite it with a BETTER result — same
+  rule the old localStorage version used.
+*/
+
+const { data: existing, error: fetchError } =
+  await supabase
+    .from('leaderboard_entries')
+    .select('score, time_seconds')
+    .eq('mode', mode)
+    .eq('nickname', nickname)
+    .eq('date_key', getJstDateKey())
+    .maybeSingle();
+
+if (fetchError) {
+  console.error(
+    'Failed to check existing score:',
+    fetchError
+  );
+}
+
+const better =
+  !existing ||
+  score > existing.score ||
+  (
+    score === existing.score &&
+    timeSeconds < existing.time_seconds
+  );
 
 if (better) {
 
-  board.entries[
-    existingIndex
-  ] =
-    candidate;
-
-}
-
-
-}
-
-saveLeaderboard(
-mode,
-board
-);
-
-return board;
-
-}
-
-function sortedLeaderboardEntries(
-board
-) {
-
-return board.entries
-.slice()
-.sort(
-(a, b) => {
-
-
-    if (
-      b.score !==
-      a.score
-    ) {
-
-      return (
-        b.score -
-        a.score
+  const { error: upsertError } =
+    await supabase
+      .from('leaderboard_entries')
+      .upsert(
+        {
+          mode: mode,
+          nickname: nickname,
+          score: score,
+          time_seconds: timeSeconds,
+          date_key: getJstDateKey()
+        },
+        { onConflict: 'mode,nickname,date_key' }
       );
 
-    }
-
-
-    return (
-      a.timeSeconds -
-      b.timeSeconds
+  if (upsertError) {
+    console.error(
+      'Failed to save score:',
+      upsertError
     );
-
   }
-);
 
+}
+
+/*
+  Return the fresh top-N board either way, so the
+  results screen always shows the current standings.
+*/
+
+return loadLeaderboard(mode);
 
 }
 
@@ -3016,13 +2951,15 @@ leaderboardTitleEl.textContent =
       mode.toUpperCase()
     } LEADERBOARD`;
 
+/*
+  board.entries already comes back from Supabase
+  sorted (score desc, time asc) and capped at
+  LEADERBOARD_MAX_ROWS, so no extra sorting/slicing
+  is needed here.
+*/
+
 const entries =
-sortedLeaderboardEntries(
-board
-).slice(
-0,
-LEADERBOARD_MAX_ROWS
-);
+board.entries || [];
 
 if (
 entries.length === 0
@@ -3110,11 +3047,28 @@ entries
 
 }
 
+function renderLeaderboardLoading(mode) {
+
+leaderboardTitleEl.textContent =
+`${
+      MODE_LABELS[mode] ||
+      mode.toUpperCase()
+    } LEADERBOARD`;
+
+leaderboardListEl.innerHTML =
+`
+<li class="leaderboard-empty">
+  Loading today’s explorers...
+</li>
+`;
+
+}
+
 /* ============================================================
 RESULTS
 ============================================================ */
 
-function showResults() {
+async function showResults() {
 
 const total =
 state.roundQuestions.length;
@@ -3235,17 +3189,16 @@ resultsBest.classList.toggle(
 isNewBest
 );
 
-const board =
-recordLeaderboardResult(
-state.mode,
-state.nickname,
-totalPoints,
-timeTaken
-);
+/*
+  Show the results screen right away with a
+  "Loading..." leaderboard placeholder, then fill
+  it in once the Supabase round-trip finishes —
+  avoids the results screen feeling stuck/blank
+  while waiting on the network.
+*/
 
-renderLeaderboard(
-state.mode,
-board
+renderLeaderboardLoading(
+state.mode
 );
 
 startChampionCountdown();
@@ -3253,6 +3206,32 @@ startChampionCountdown();
 showScreen(
 'results'
 );
+
+const board =
+await recordLeaderboardResult(
+state.mode,
+state.nickname,
+totalPoints,
+timeTaken
+);
+
+/*
+  Guard: only paint the fetched board if the player
+  is still looking at this mode's results (they could
+  have mashed "black hole" and left already).
+*/
+
+if (
+screens.results.classList.contains('active') &&
+state.mode === state.mode
+) {
+
+  renderLeaderboard(
+    state.mode,
+    board
+  );
+
+}
 
 }
 
