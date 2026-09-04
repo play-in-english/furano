@@ -33,44 +33,6 @@ aria-hidden="true"
     aria-hidden="true"
   ></div>
 
-  <!-- ======================================================
-       LIFTOFF OVERLAY — rocket launching into space.
-       Played once, when the student leaves the difficulty
-       screen and heads into the first question. Sits above
-       the warp canvas/flash so the rocket reads as flying
-       "through" the hyperspace effect. See beginGalaxyEntrance()
-       in app.js.
-       ====================================================== -->
-  <div
-    id="liftoffOverlay"
-    class="liftoff-overlay"
-    aria-hidden="true"
-  >
-    <div class="liftoff-rocket" id="liftoffRocket">
-      <span class="liftoff-rocket-body">🚀</span>
-      <span class="liftoff-flame">🔥</span>
-    </div>
-  </div>
-
-  <!-- ======================================================
-       LANDING OVERLAY — rocket touching back down on Earth,
-       played once between the last question and the results
-       screen. See playLandingTransition() in app.js.
-       ====================================================== -->
-  <div
-    id="landingOverlay"
-    class="landing-overlay"
-    aria-hidden="true"
-  >
-    <div class="landing-rocket" id="landingRocket">
-      <span class="landing-flame" id="landingFlame">🔥</span>
-      <span class="landing-rocket-body">🚀</span>
-    </div>
-    <div class="landing-ground" aria-hidden="true"></div>
-    <div class="landing-confetti" id="landingConfetti"></div>
-    <div class="landing-banner" id="landingBanner">MISSION COMPLETE!</div>
-  </div>
-
   <main class="app" id="appShell">
 
 <div class="card">
@@ -91,16 +53,8 @@ aria-hidden="true"
     >
 
       <div class="brand">
-
-        <!-- Rocket-on-the-launchpad hero, replacing the lone
-             astronaut emoji — sets the "about to launch" mood
-             for both the nickname and welcome-back screens. -->
-        <div class="launchpad-scene" aria-hidden="true">
-          <div class="pad-tower"></div>
-          <div class="pad-tower right"></div>
-          <div class="pad-glow"></div>
-          <div class="pad-rocket">🚀</div>
-          <div class="pad-base"></div>
+        <div class="brand-emoji" aria-hidden="true">
+          🧑‍🚀
         </div>
 
         <h1 class="title">
@@ -136,7 +90,7 @@ aria-hidden="true"
           type="submit"
           disabled
         >
-          🚀 MISSION ACCEPTED
+          🚀 Let's LAUNCH!
         </button>
 
       </form>
@@ -162,15 +116,11 @@ aria-hidden="true"
 
       <div class="brand">
 
-        <!-- Same launchpad hero as the nickname screen, so a
-             returning player sees the rocket still waiting on
-             the pad for them. -->
-        <div class="launchpad-scene" aria-hidden="true">
-          <div class="pad-tower"></div>
-          <div class="pad-tower right"></div>
-          <div class="pad-glow"></div>
-          <div class="pad-rocket">🚀</div>
-          <div class="pad-base"></div>
+        <div
+          class="brand-emoji"
+          aria-hidden="true"
+        >
+          🧑‍🚀
         </div>
 
         <h1 class="title">
@@ -277,7 +227,7 @@ aria-hidden="true"
         class="btn btn-primary btn-lg btn-block"
         type="button"
       >
-        🚀 LET'S LAUNCH! 
+        🚀 START MISSION
       </button>
 
     </div>
