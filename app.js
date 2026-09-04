@@ -49,12 +49,12 @@ Supabase Dashboard → Project Settings → API
 const SUPABASE_URL = 'https://chqyzmhivilmqdubkava.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_9Bh-hrBs7ODOMrORQP5ntg_nG6FnWPb';
 
-const supabase =
+const supabaseClient =
   (window.supabase && SUPABASE_URL.indexOf('YOUR-PROJECT') === -1)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
 
-if (!supabase) {
+if (!supabaseClient) {
   console.warn(
     'Supabase is not configured yet — set SUPABASE_URL / SUPABASE_ANON_KEY in app.js. ' +
     'The leaderboard will stay empty until this is done.'
@@ -2809,12 +2809,12 @@ naturally resets at JST midnight without needing a cleanup job.
 
 async function loadLeaderboard(mode) {
 
-if (!supabase) {
+if (!supabaseClient) {
 return { entries: [] };
 }
 
 const { data, error } =
-  await supabase
+  await supabaseClient
     .from('leaderboard_entries')
     .select('nickname, score, time_seconds')
     .eq('mode', mode)
@@ -2854,7 +2854,7 @@ score,
 timeSeconds
 ) {
 
-if (!supabase) {
+if (!supabaseClient) {
 return { entries: [] };
 }
 
@@ -2865,7 +2865,7 @@ return { entries: [] };
 */
 
 const { data: existing, error: fetchError } =
-  await supabase
+  await supabaseClient
     .from('leaderboard_entries')
     .select('score, time_seconds')
     .eq('mode', mode)
@@ -2891,7 +2891,7 @@ const better =
 if (better) {
 
   const { error: upsertError } =
-    await supabase
+    await supabaseClient
       .from('leaderboard_entries')
       .upsert(
         {
