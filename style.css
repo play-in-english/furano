@@ -9,11 +9,8 @@
    5. Components (buttons, progress trail, feedback)
    6. Responsive
    7. Motion / accessibility
-   8. Nickname / Difficulty screens
-   9. Leaderboard
-   10. Launchpad scene (nickname / check-in hero)
-   11. Liftoff transition (difficulty → first question)
-   12. Landing transition (last question → results)
+   8. Nickname / Difficulty screens (NEW)
+   9. Leaderboard (NEW)
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap');
@@ -860,7 +857,6 @@ h1, h2, h3 {
   /* Prompt stays readable even when vertical space is tight, just
      pulled in slightly from the full-height sizing above. */
   .prompt { font-size: clamp(18px, 5vw, 26px); }
-  .launchpad-scene { transform: scale(0.75); margin: 6px auto 10px; }
 }
 
 /* Very short viewports — e.g. a small phone in landscape */
@@ -890,7 +886,7 @@ h1, h2, h3 {
 }
 
 /* ============================================================
-   8. NICKNAME / DIFFICULTY SCREENS
+   8. NICKNAME / DIFFICULTY SCREENS (NEW)
    Reuses the same look and feel as the existing start screen —
    same brand block, subtitle, and button styles — so nothing
    about the established visual language changes.
@@ -966,7 +962,7 @@ h1, h2, h3 {
 }
 
 /* ============================================================
-   9. LEADERBOARD
+   9. LEADERBOARD (NEW)
    Sits on the results screen, above the Play Again button.
    ============================================================ */
 
@@ -1061,301 +1057,4 @@ h1, h2, h3 {
   font-weight: 600;
   font-size: 13px;
   padding: 6px 0;
-}
-
-/* ============================================================
-   10. LAUNCHPAD SCENE (nickname / welcome-back hero)
-   ============================================================
-   Replaces the lone floating astronaut on the nickname and
-   welcome-back screens with a small rocket-on-the-pad scene:
-   two gantry towers, an idling engine glow, and a rocket that
-   gently rocks in place — waiting for liftoff (see section 11,
-   which is what actually plays when the mission starts).
-   ============================================================ */
-
-.launchpad-scene {
-  position: relative;
-  width: 140px;
-  height: 128px;
-  margin: 0 auto 4px;
-}
-
-.launchpad-scene .pad-tower {
-  position: absolute;
-  bottom: 6px;
-  left: 18px;
-  width: 5px;
-  height: 78px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.04));
-}
-
-.launchpad-scene .pad-tower.right {
-  left: auto;
-  right: 18px;
-}
-
-.launchpad-scene .pad-base {
-  position: absolute;
-  bottom: 2px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 118px;
-  height: 12px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(124, 92, 255, 0.4), transparent 72%);
-  filter: blur(1px);
-}
-
-.launchpad-scene .pad-glow {
-  position: absolute;
-  bottom: 6px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 46px;
-  height: 14px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(255, 217, 102, 0.6), transparent 70%);
-  animation: padGlowPulse 1.8s ease-in-out infinite;
-}
-
-.launchpad-scene .pad-rocket {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  font-size: 52px;
-  line-height: 1;
-  transform: translateX(-50%) rotate(-2deg);
-  filter: drop-shadow(0 0 14px rgba(255, 217, 102, 0.55));
-  animation: rocketIdleWobble 2.4s ease-in-out infinite;
-}
-
-@keyframes rocketIdleWobble {
-  0%, 100% { transform: translateX(-50%) rotate(-2deg); }
-  50%      { transform: translateX(-50%) rotate(2deg); }
-}
-
-@keyframes padGlowPulse {
-  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
-  50%      { opacity: 0.95; transform: translateX(-50%) scale(1.2); }
-}
-
-/* ============================================================
-   11. LIFTOFF TRANSITION (difficulty → first question)
-   ============================================================
-   Plays once when the mission actually begins — layered on top
-   of the existing hyperspace warp canvas so the rocket reads as
-   flying up "through" the streaking stars. The rocket climbs
-   straight off the top of the screen with a flame trail while
-   the sky/nebula/stars shift downward beneath it, giving the
-   sense that the ground is dropping away as the rocket ascends.
-   Driven by beginGalaxyEntrance() in app.js, which sets the
-   --liftoff-ms custom property to match its existing timing.
-   ============================================================ */
-
-.liftoff-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 3;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.liftoff-rocket {
-  position: relative;
-  font-size: 60px;
-  line-height: 1;
-  transform: translateY(22vh) scale(1);
-  opacity: 0;
-}
-
-.liftoff-rocket .liftoff-rocket-body {
-  display: block;
-}
-
-.liftoff-rocket .liftoff-flame {
-  position: absolute;
-  left: 50%;
-  top: 92%;
-  transform: translateX(-50%);
-  font-size: 30px;
-  opacity: 0;
-  filter: blur(0.5px);
-}
-
-.liftoff-overlay.active .liftoff-rocket {
-  animation: liftoffFly var(--liftoff-ms, 1850ms) cubic-bezier(0.5, 0, 0.4, 1) forwards;
-}
-
-.liftoff-overlay.active .liftoff-rocket .liftoff-flame {
-  animation: liftoffFlame var(--liftoff-ms, 1850ms) ease-out forwards;
-}
-
-@keyframes liftoffFly {
-  0%   { transform: translateY(22vh) scale(1) rotate(0deg); opacity: 1; }
-  12%  { transform: translateY(20vh) scale(1.02) rotate(-2deg); opacity: 1; }
-  100% { transform: translateY(-145vh) scale(0.45) rotate(3deg); opacity: 1; }
-}
-
-@keyframes liftoffFlame {
-  0%   { opacity: 0.95; transform: translateX(-50%) scaleY(1); }
-  70%  { opacity: 0.85; transform: translateX(-50%) scaleY(1.3); }
-  100% { opacity: 0; transform: translateX(-50%) scaleY(1.7); }
-}
-
-/* Background recedes downward like the ground dropping away as the
-   rocket climbs — kept on its own class (separate from .warping) so
-   the between-question hyperspace hops are completely unaffected. */
-body.launching .sky,
-body.launching .nebula,
-body.launching .stars {
-  transition: transform 1.7s cubic-bezier(0.5, 0, 0.4, 1), filter 1.7s ease;
-  transform: translateY(36vh) scale(1.06);
-  filter: brightness(1.15);
-}
-
-/* ============================================================
-   12. LANDING TRANSITION (last question → results)
-   ============================================================
-   A self-contained overlay (doesn't touch the global sky/stars)
-   that plays once between the final question and the results
-   screen: the rocket descends from the top with its thrusters
-   firing, settles with a small landing bounce, then a confetti
-   burst and a gold "MISSION COMPLETE!" banner celebrate the
-   touchdown before the leaderboard is revealed. Driven by
-   playLandingTransition() in app.js — never used for the
-   between-question transitions.
-   ============================================================ */
-
-.landing-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 4;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.landing-rocket {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  font-size: 60px;
-  line-height: 1;
-  transform: translate(-50%, -220vh) scale(0.5);
-  opacity: 0;
-}
-
-.landing-rocket .landing-rocket-body {
-  display: block;
-}
-
-.landing-rocket .landing-flame {
-  position: absolute;
-  left: 50%;
-  top: 92%;
-  transform: translateX(-50%);
-  font-size: 30px;
-  opacity: 0;
-}
-
-.landing-overlay.active .landing-rocket {
-  animation: landingDescend var(--landing-ms, 1500ms) cubic-bezier(0.3, 0, 0.2, 1) forwards;
-}
-
-.landing-overlay.active .landing-rocket .landing-flame {
-  animation: landingFlame var(--landing-ms, 1500ms) ease-in forwards;
-}
-
-@keyframes landingDescend {
-  0%   { transform: translate(-50%, -220vh) scale(0.5) rotate(-3deg); opacity: 1; }
-  78%  { transform: translate(-50%, -8px) scale(1) rotate(1deg); opacity: 1; }
-  90%  { transform: translate(-50%, 6px) scale(1.02) rotate(-1deg); opacity: 1; }
-  100% { transform: translate(-50%, 0) scale(1) rotate(0deg); opacity: 1; }
-}
-
-@keyframes landingFlame {
-  0%   { opacity: 0; transform: translateX(-50%) scaleY(0.6); }
-  55%  { opacity: 0.9; transform: translateX(-50%) scaleY(1.4); }
-  85%  { opacity: 0.7; transform: translateX(-50%) scaleY(0.8); }
-  100% { opacity: 0; transform: translateX(-50%) scaleY(0.3); }
-}
-
-/* Soft horizon silhouette that rises up to meet the rocket right
-   as it touches down, reinforcing "arriving back on the ground". */
-.landing-ground {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 0;
-  background: linear-gradient(180deg, rgba(124, 92, 255, 0) 0%, rgba(11, 14, 43, 0.9) 70%);
-  transition: none;
-}
-
-.landing-overlay.active .landing-ground {
-  animation: landingGroundRise var(--landing-ms, 1500ms) ease-out forwards;
-}
-
-@keyframes landingGroundRise {
-  0%   { height: 0; opacity: 0; }
-  70%  { height: 0; opacity: 0; }
-  100% { height: 16vh; opacity: 1; }
-}
-
-/* Confetti burst — a handful of small colored pieces are appended
-   into this container by playLandingTransition() in app.js right
-   as the rocket touches down, each with its own random left
-   position, color, rotation, and fall duration set inline. */
-.landing-confetti {
-  position: absolute;
-  inset: 0;
-}
-
-.confetti-piece {
-  position: absolute;
-  top: -10px;
-  width: 9px;
-  height: 14px;
-  opacity: 0;
-  border-radius: 2px;
-  animation-name: confettiFall;
-  animation-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  animation-fill-mode: forwards;
-}
-
-@keyframes confettiFall {
-  0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
-  8%   { opacity: 1; }
-  100% { transform: translateY(88vh) rotate(var(--confetti-spin, 540deg)); opacity: 0; }
-}
-
-/* "MISSION COMPLETE!" victory banner, flashed once as the rocket
-   settles on the ground. */
-.landing-banner {
-  position: absolute;
-  left: 50%;
-  top: 42%;
-  transform: translate(-50%, 10px) scale(0.85);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: clamp(24px, 6vw, 38px);
-  color: var(--star-gold);
-  text-shadow: 0 0 18px rgba(255, 217, 102, 0.85), 0 2px 10px rgba(0, 0, 0, 0.6);
-  opacity: 0;
-  letter-spacing: .02em;
-  white-space: nowrap;
-}
-
-.landing-overlay.active .landing-banner {
-  animation: landingBannerPop var(--landing-ms, 1500ms) ease-out forwards;
-}
-
-@keyframes landingBannerPop {
-  0%   { opacity: 0; transform: translate(-50%, 10px) scale(0.85); }
-  72%  { opacity: 0; transform: translate(-50%, 10px) scale(0.85); }
-  85%  { opacity: 1; transform: translate(-50%, 0) scale(1.08); }
-  100% { opacity: 1; transform: translate(-50%, 0) scale(1); }
 }
