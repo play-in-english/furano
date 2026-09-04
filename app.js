@@ -122,29 +122,6 @@ const AUTO_ADVANCE_DELAY_MS = 2000;
 const AUTOPLAY_DELAY_MS = 0; // wait this long after the question renders before the single automatic play
 
 /* ============================================================
-LIFTOFF / LANDING TRANSITION SETTINGS (NEW)
-============================================================
-LIFTOFF plays once, layered on top of the existing hyperspace
-warp canvas, when the mission actually begins (difficulty chosen
-→ first question). Its duration matches WARP_ACCEL_MS +
-WARP_HOLD_MS so the rocket clears the screen right as the game
-screen is swapped in — see beginGalaxyEntrance().
-
-LANDING plays once, in place of the normal question-to-question
-warp, only for the LAST question → results transition — see
-advanceFromCurrentQuestion() / playLandingTransition(). It never
-touches the between-question transitions.
-============================================================ */
-
-const LIFTOFF_MS = WARP_ACCEL_MS + WARP_HOLD_MS;
-
-const LANDING_MS = 1700;
-const LANDING_CONFETTI_COUNT = 26;
-const LANDING_CONFETTI_COLORS = [
-  '#ffd966', '#4fe3c1', '#ff6fb0', '#7c5cff', '#ffffff'
-];
-
-/* ============================================================
 QUESTION SCORING (NEW)
 ============================================================
 Each question is scored individually, based on:
@@ -560,41 +537,6 @@ document.getElementById(
 const promptEl =
 document.querySelector(
 '#gameScreen .prompt'
-);
-
-// NEW: liftoff overlay (rocket launching into space), played once
-// when the mission begins — see beginGalaxyEntrance().
-const liftoffOverlay =
-document.getElementById(
-'liftoffOverlay'
-);
-
-const liftoffRocket =
-document.getElementById(
-'liftoffRocket'
-);
-
-// NEW: landing overlay (rocket touching back down on Earth),
-// played once between the last question and the results screen —
-// see playLandingTransition().
-const landingOverlay =
-document.getElementById(
-'landingOverlay'
-);
-
-const landingRocket =
-document.getElementById(
-'landingRocket'
-);
-
-const landingConfettiEl =
-document.getElementById(
-'landingConfetti'
-);
-
-const landingBannerEl =
-document.getElementById(
-'landingBanner'
 );
 
 console.log(
@@ -1689,43 +1631,6 @@ document.body.classList.add(
 'warping'
 );
 
-/*
-  NEW: LIFTOFF — the rocket launching effect, layered on top
-  of the hyperspace warp canvas below. Kept on its own body
-  class/element (separate from the warp canvas + 'warping'
-  class) so it never touches the between-question transitions,
-  which reuse 'warping' + the warp canvas on their own.
-*/
-
-document.body.classList.add(
-'launching'
-);
-
-if (liftoffOverlay) {
-
-
-liftoffOverlay.classList.remove(
-  'active'
-);
-
-if (liftoffRocket) {
-
-  void liftoffRocket.offsetWidth;
-
-}
-
-liftoffOverlay.style.setProperty(
-  '--liftoff-ms',
-  `${LIFTOFF_MS}ms`
-);
-
-liftoffOverlay.classList.add(
-  'active'
-);
-
-
-}
-
 warpAccelMsActive =
 WARP_ACCEL_MS;
 
@@ -1799,18 +1704,6 @@ setTimeout(
   document.body.classList.remove(
     'warping'
   );
-
-  document.body.classList.remove(
-    'launching'
-  );
-
-  if (liftoffOverlay) {
-
-    liftoffOverlay.classList.remove(
-      'active'
-    );
-
-  }
 
 },
 WARP_ACCEL_MS +
@@ -2058,264 +1951,6 @@ setTimeout(
 
 },
 QUESTION_EXIT_MS
-
-
-);
-
-}
-
-/* ============================================================
-LANDING TRANSITION (NEW)
-============================================================
-Plays ONLY for the last-question → results hand-off. Unlike
-playGalaxyZoomTransition() (which every between-question hop
-still uses, unchanged), this never touches the warp canvas or
-the 'warping' body class — it's a fully separate, self-contained
-overlay: rocket descends → touches down → confetti + victory
-banner → onSwap() reveals the results screen underneath.
-============================================================ */
-
-function spawnLandingConfetti() {
-
-if (!landingConfettiEl) {
-return;
-}
-
-landingConfettiEl.innerHTML =
-'';
-
-for (
-let i = 0;
-i < LANDING_CONFETTI_COUNT;
-i++
-) {
-
-
-const piece =
-  document.createElement(
-    'div'
-  );
-
-
-piece.className =
-  'confetti-piece';
-
-
-const left =
-  Math.random() * 100;
-
-const color =
-  LANDING_CONFETTI_COLORS[
-    Math.floor(
-      Math.random() *
-      LANDING_CONFETTI_COLORS.length
-    )
-  ];
-
-const delay =
-  Math.random() * 220;
-
-const duration =
-  900 +
-  Math.random() * 700;
-
-const spin =
-  (
-    Math.random() < 0.5
-      ? -1
-      : 1
-  ) *
-  (
-    360 +
-    Math.random() * 360
-  );
-
-
-piece.style.left =
-  `${left}%`;
-
-piece.style.background =
-  color;
-
-piece.style.animationDelay =
-  `${delay}ms`;
-
-piece.style.animationDuration =
-  `${duration}ms`;
-
-piece.style.setProperty(
-  '--confetti-spin',
-  `${spin}deg`
-);
-
-
-landingConfettiEl.appendChild(
-  piece
-);
-
-
-}
-
-}
-
-function playLandingTransition(
-exitEl,
-enterEl,
-onSwap
-) {
-
-const reducedMotion =
-window.matchMedia(
-'(prefers-reduced-motion: reduce)'
-).matches;
-
-if (
-reducedMotion ||
-!landingOverlay
-) {
-
-
-if (exitEl) {
-
-  exitEl.classList.remove(
-    'q-enter',
-    'q-exit',
-    'q-suck'
-  );
-
-  exitEl.classList.add(
-    'q-exit'
-  );
-
-}
-
-
-setTimeout(
-  () => {
-
-    onSwap();
-
-    if (
-      exitEl &&
-      exitEl !== enterEl
-    ) {
-
-      exitEl.classList.remove(
-        'q-exit'
-      );
-
-    }
-
-  },
-  reducedMotion ? 0 : QUESTION_EXIT_MS
-);
-
-
-return;
-
-
-}
-
-/*
-  The current question fades/rushes away exactly like any
-  other question exit, so the moment feels continuous right
-  up until the landing overlay takes over.
-*/
-
-if (exitEl) {
-
-
-exitEl.classList.remove(
-  'q-enter',
-  'q-exit',
-  'q-suck'
-);
-
-exitEl.classList.add(
-  'q-exit'
-);
-
-
-}
-
-setTimeout(
-() => {
-
-
-  landingOverlay.classList.remove(
-    'active'
-  );
-
-  if (landingRocket) {
-
-    void landingRocket.offsetWidth;
-
-  }
-
-  landingOverlay.style.setProperty(
-    '--landing-ms',
-    `${LANDING_MS}ms`
-  );
-
-  landingOverlay.classList.add(
-    'active'
-  );
-
-},
-QUESTION_EXIT_MS
-
-
-);
-
-/*
-  Confetti + the results screen itself both appear right as
-  the rocket touches down, a little before the overlay's own
-  animations finish, so the leaderboard is ready the instant
-  the overlay fades.
-*/
-
-setTimeout(
-() => {
-
-
-  spawnLandingConfetti();
-
-
-  onSwap();
-
-
-  if (
-    exitEl &&
-    exitEl !== enterEl
-  ) {
-
-    exitEl.classList.remove(
-      'q-exit'
-    );
-
-  }
-
-},
-QUESTION_EXIT_MS +
-Math.round(
-  LANDING_MS * 0.78
-)
-
-
-);
-
-setTimeout(
-() => {
-
-
-  landingOverlay.classList.remove(
-    'active'
-  );
-
-},
-QUESTION_EXIT_MS +
-LANDING_MS +
-500
 
 
 );
@@ -3021,57 +2656,29 @@ const isLast =
 state.currentIndex + 1 >=
 state.roundQuestions.length;
 
-if (isLast) {
-
-  /*
-    NEW: the mission-ending hand-off uses the rocket
-    LANDING transition instead of the regular
-    question-to-question warp — see playLandingTransition().
-    Every earlier question still uses
-    playGalaxyZoomTransition() below, completely unchanged.
-  */
-
-  playLandingTransition(
-    questionContent,
-    resultsContent,
-    () => {
-
-      showResults();
-
-    }
-  );
-
-  setTimeout(
-    () => {
-
-      state.transitioning =
-        false;
-
-      nextBtn.disabled =
-        false;
-
-    },
-    QUESTION_EXIT_MS +
-    LANDING_MS +
-    120
-  );
-
-  return;
-
-}
-
 playGalaxyZoomTransition(
-  questionContent,
-  questionContent,
-  () => {
+questionContent,
+isLast
+? resultsContent
+: questionContent,
+() => {
 
+
+  if (isLast) {
+
+    showResults();
+
+  } else {
 
     state.currentIndex++;
 
     renderQuestion();
 
-
   }
+
+}
+
+
 );
 
 setTimeout(
