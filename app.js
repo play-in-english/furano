@@ -219,6 +219,39 @@ return 1; // any points above 0 but below 40%
 }
 
 /* ============================================================
+LEADERBOARD SCORE (RESCALED TO 100)
+============================================================
+This does NOT change the scoring rules at all — each question
+is still worth a max of MAX_POINTS_PER_QUESTION (1,000), and a
+mission still tops out at MAX_MISSION_POINTS (7,000). This is
+purely a display/storage conversion used ONLY for the shared
+leaderboard: it rescales a mission's raw point total onto a
+0–100 scale, rounded to 2 decimal places.
+
+Everything else — the in-game "Score: X / 7000" counter, the
+per-question "+950 pts" feedback, the results screen's
+"X POINTS", the star rating, and the personal Best Score — all
+keep using the raw, unscaled point total.
+============================================================ */
+
+function calcLeaderboardScore(totalPoints) {
+
+const rawPercent =
+(totalPoints / MAX_MISSION_POINTS) *
+100;
+
+/*
+  Round to 2 decimal places without floating-point
+  artifacts (e.g. avoids things like 71.699999999).
+*/
+
+return Math.round(
+rawPercent * 100
+) / 100;
+
+}
+
+/* ============================================================
 JST
 ============================================================ */
 
@@ -2798,10 +2831,20 @@ LEADERBOARD (SUPABASE — SHARED ACROSS ALL PLAYERS)
 Table: leaderboard_entries
   mode          text
   nickname      text
-  score         int
+  score         numeric(5,2)  -- rescaled 0.00–100.00 (see
+                               -- calcLeaderboardScore()); the
+                               -- underlying scoring rules are
+                               -- still out of MAX_MISSION_POINTS,
+                               -- this column just stores the
+                               -- rescaled leaderboard value
   time_seconds  numeric
   date_key      text   (JST day, e.g. '2026-09-04')
   unique (mode, nickname, date_key)
+
+NOTE: if this column was previously created as `int`, you'll
+need to alter it to `numeric(5,2)` in Supabase (Table Editor,
+or `alter table leaderboard_entries alter column score type
+numeric(5,2);`) so the decimal places aren't truncated.
 
 Only today's (JST) rows are ever read or written, so the board
 naturally resets at JST midnight without needing a cleanup job.
@@ -3027,7 +3070,7 @@ entries
           <span class="leaderboard-meta">
 
             <span class="lb-score">
-              ${entry.score} pts
+              ${Number(entry.score).toFixed(2)} pts
             </span>
 
             ${formatTime(
@@ -3211,7 +3254,7 @@ const board =
 await recordLeaderboardResult(
 state.mode,
 state.nickname,
-totalPoints,
+calcLeaderboardScore(totalPoints),
 timeTaken
 );
 
