@@ -142,127 +142,247 @@ function buildEasyBank() {
 }
 
 /* ============================================================
-   MEDIUM — PHONICS PATTERNS
+   MEDIUM — PHONICS PATTERNS (v3)
    ============================================================
-   Each entry is one real word that highlights a phonics pattern
-   (a consonant digraph/blend, a double consonant, a vowel team,
-   an r-controlled vowel, or a long-vowel/silent-e pattern).
+   Categories (6 total), 2 words per individual pattern:
 
-     word    — the spoken word (for your own reference)
-     display — the word with the target pattern blanked out,
-               shown on screen exactly as you write it
-               (e.g. "WAT__")
-     pattern — the correct missing pattern (e.g. "ch")
+     1. doubleConsonant : ll, ss, ff, zz, tt, dd, pp, mm, nn
+     2. digraph         : ch, sh, ph, wh, th (Thursday), th (father), ck, ng
+     3. vowelTeamA       : ai, ay, ea, ee, ie, oa, ow(snow), ou(soup), ue, ui
+     4. vowelTeamB       : oo(moon), oo(book), ou(loud), ow(cow), au, oi, oy
+     5. rControlled      : ar, or, ir, wor, ear, er, air, ire, ore, ur, our
+     6. blend            : bl, cl, fl, gl, pl, sl, br, cr, dr, fr, gr, pr, tr,
+                            sc, sk, sm, sn, sp, st, sw, spr, str, thr
 
-     group   — which category this pattern belongs to, so the
-               generator only ever picks a wrong answer from the
-               SAME category (never an unrelated pattern)
-
-   Optionally add distractorPool: [...] to hand-pick which wrong
-   answers are allowed for that specific word instead of using
-   the whole category (handy for long-vowel/silent-e pairs).
+   DISTRACTOR RULE
+   ----------------
+   The wrong answer offered alongside the correct pattern is picked
+   at random from a **different category** than the correct answer's
+   own category (never the same category, so "TH" never appears next
+   to another digraph like "SH"). It also can never be visually
+   identical text to the correct answer (so two entries that happen
+   to share the letters "OW" in different categories never get
+   shown together), and — for the SAME word — it will not repeat the
+   exact same distractor it used the previous time that word came up
+   in this session, so the pairing keeps changing round to round.
    ============================================================ */
 
-// Every phonics pattern the generator knows about, grouped by
-// category. A word's distractor (when it has no distractorPool of
-// its own) is chosen at random from this same-category list.
-const PHONICS_PATTERN_GROUPS = {
-  digraph: ["ch", "sh", "th", "wh", "ph"],
-  blend: [
-    "bl", "br", "cl", "cr", "dr", "fl", "fr", "gl", "gr",
-    "pl", "pr", "sc", "sk", "sl", "sm", "sn", "sp", "st",
-    "sw", "tr", "tw"
-  ],
+// ---- 1. Master pattern pool, tagged by category -------------
+// (Used only to pick distractors — not the questions themselves.)
+const PATTERN_GROUPS = {
   doubleConsonant: ["ll", "ss", "ff", "zz", "tt", "dd", "pp", "mm", "nn"],
-  vowelTeam: ["ai", "ay", "ee", "ea", "oa", "oe", "oi", "oy", "ou", "ow"],
-  rControlled: ["ar", "er", "ir", "or", "ur"],
-  longVowel: ["ake", "ak", "ime", "im", "one", "on", "ute", "ut"]
+  digraph: ["ch", "sh", "ph", "wh", "th", "th", "ck", "ng"],
+  vowelTeamA: ["ai", "ay", "ea", "ee", "ie", "oa", "ow", "ou", "ue", "ui"],
+  vowelTeamB: ["oo", "oo", "ou", "ow", "au", "oi", "oy"],
+  rControlled: ["ar", "or", "ir", "wor", "ear", "er", "air", "ire", "ore", "ur", "our"],
+  blend: [
+    "bl", "cl", "fl", "gl", "pl", "sl",
+    "br", "cr", "dr", "fr", "gr", "pr", "tr",
+    "sc", "sk", "sm", "sn", "sp", "st", "sw",
+    "spr", "str", "thr"
+  ]
 };
 
+// Flatten into { text, group } pairs once, for fast lookup.
+const ALL_PATTERNS = Object.entries(PATTERN_GROUPS).flatMap(([group, list]) =>
+  list.map(text => ({ text, group }))
+);
+
+// ---- 2. Word library ------------------------------------------------
+// display: the word with ONLY the target pattern blanked out.
 const MEDIUM_PATTERN_LIBRARY = [
-  // Consonant digraphs
-  { audio: "audio/med-watch.mp3", word: "watch", display: "WAT__", pattern: "ch", group: "digraph" },
-  { audio: "audio/med-fish.mp3", word: "fish", display: "FI__", pattern: "sh", group: "digraph" },
-  { audio: "audio/med-that.mp3", word: "that", display: "__AT", pattern: "th", group: "digraph" },
-  { audio: "audio/med-wheel.mp3", word: "wheel", display: "__EEL", pattern: "wh", group: "digraph" },
-  { audio: "audio/med-phone.mp3", word: "phone", display: "__ONE", pattern: "ph", group: "digraph" },
 
-  // Consonant blends
-  { audio: "audio/med-black.mp3", word: "black", display: "__ACK", pattern: "bl", group: "blend" },
-  { audio: "audio/med-crab.mp3", word: "crab", display: "__AB", pattern: "cr", group: "blend" },
-  { audio: "audio/med-drum.mp3", word: "drum", display: "__UM", pattern: "dr", group: "blend" },
-  { audio: "audio/med-flag.mp3", word: "flag", display: "__AG", pattern: "fl", group: "blend" },
-  { audio: "audio/med-grape.mp3", word: "grape", display: "__APE", pattern: "gr", group: "blend" },
-  { audio: "audio/med-plane.mp3", word: "plane", display: "__ANE", pattern: "pl", group: "blend" },
-  { audio: "audio/med-stamp.mp3", word: "stamp", display: "__AMP", pattern: "st", group: "blend" },
-  { audio: "audio/med-swim.mp3", word: "swim", display: "__IM", pattern: "sw", group: "blend" },
-  { audio: "audio/med-tree.mp3", word: "tree", display: "__EE", pattern: "tr", group: "blend" },
-  { audio: "audio/med-twin.mp3", word: "twin", display: "__IN", pattern: "tw", group: "blend" },
+  // ---------------- 1. Double consonants ----------------
+  { audio: "audio/med-bell.mp3",    word: "bell",    display: "BE__",     pattern: "ll", group: "doubleConsonant" },
+  { audio: "audio/med-doll.mp3",    word: "doll",    display: "DO__",     pattern: "ll", group: "doubleConsonant" },
+  { audio: "audio/med-kiss.mp3",    word: "kiss",    display: "KI__",     pattern: "ss", group: "doubleConsonant" },
+  { audio: "audio/med-pass.mp3",    word: "pass",    display: "PA__",     pattern: "ss", group: "doubleConsonant" },
+  { audio: "audio/med-puff.mp3",    word: "puff",    display: "PU__",     pattern: "ff", group: "doubleConsonant" },
+  { audio: "audio/med-cliff.mp3",   word: "cliff",   display: "CLI__",    pattern: "ff", group: "doubleConsonant" },
+  { audio: "audio/med-buzz.mp3",    word: "buzz",    display: "BU__",     pattern: "zz", group: "doubleConsonant" },
+  { audio: "audio/med-jazz.mp3",    word: "jazz",    display: "JA__",     pattern: "zz", group: "doubleConsonant" },
+  { audio: "audio/med-mitt.mp3",    word: "mitt",    display: "MI__",     pattern: "tt", group: "doubleConsonant" },
+  { audio: "audio/med-button.mp3",  word: "button",  display: "BU__ON",   pattern: "tt", group: "doubleConsonant" },
+  { audio: "audio/med-add.mp3",     word: "add",     display: "A__",      pattern: "dd", group: "doubleConsonant" },
+  { audio: "audio/med-ladder.mp3",  word: "ladder",  display: "LA__ER",   pattern: "dd", group: "doubleConsonant" },
+  { audio: "audio/med-puppy.mp3",   word: "puppy",   display: "PU__Y",    pattern: "pp", group: "doubleConsonant" },
+  { audio: "audio/med-happy.mp3",   word: "happy",   display: "HA__Y",    pattern: "pp", group: "doubleConsonant" },
+  { audio: "audio/med-hammer.mp3",  word: "hammer",  display: "HA__ER",   pattern: "mm", group: "doubleConsonant" },
+  { audio: "audio/med-summer.mp3",  word: "summer",  display: "SU__ER",   pattern: "mm", group: "doubleConsonant" },
+  { audio: "audio/med-dinner.mp3",  word: "dinner",  display: "DI__ER",   pattern: "nn", group: "doubleConsonant" },
+  { audio: "audio/med-sunny.mp3",   word: "sunny",   display: "SU__Y",    pattern: "nn", group: "doubleConsonant" },
 
-  // Double consonants
-  { audio: "audio/med-bell.mp3", word: "bell", display: "BE__", pattern: "ll", group: "doubleConsonant" },
-  { audio: "audio/med-kiss.mp3", word: "kiss", display: "KI__", pattern: "ss", group: "doubleConsonant" },
-  { audio: "audio/med-buzz.mp3", word: "buzz", display: "BU__", pattern: "zz", group: "doubleConsonant" },
-  { audio: "audio/med-puff.mp3", word: "puff", display: "PU__", pattern: "ff", group: "doubleConsonant" },
-  { audio: "audio/med-mitt.mp3", word: "mitt", display: "MI__", pattern: "tt", group: "doubleConsonant" },
+  // ---------------- 2. Consonant digraphs ----------------
+  { audio: "audio/med-chair.mp3",   word: "chair",   display: "__AIR",    pattern: "ch", group: "digraph" },
+  { audio: "audio/med-lunch.mp3",   word: "lunch",   display: "LUN__",    pattern: "ch", group: "digraph" },
+  { audio: "audio/med-shop.mp3",    word: "shop",    display: "__OP",     pattern: "sh", group: "digraph" },
+  { audio: "audio/med-fish.mp3",    word: "fish",    display: "FI__",     pattern: "sh", group: "digraph" },
+  { audio: "audio/med-phone.mp3",   word: "phone",   display: "__ONE",    pattern: "ph", group: "digraph" },
+  { audio: "audio/med-dolphin.mp3", word: "dolphin", display: "DOL__IN",  pattern: "ph", group: "digraph" },
+  { audio: "audio/med-whale.mp3",   word: "whale",   display: "__ALE",    pattern: "wh", group: "digraph" },
+  { audio: "audio/med-white.mp3",   word: "white",   display: "__ITE",    pattern: "wh", group: "digraph" },
+  { audio: "audio/med-thursday.mp3",word: "Thursday",display: "__URSDAY", pattern: "th", group: "digraph" },
+  { audio: "audio/med-three.mp3",   word: "three",   display: "__REE",    pattern: "th", group: "digraph" },
+  { audio: "audio/med-weather.mp3", word: "weather", display: "WEA__ER",  pattern: "th", group: "digraph" },
+  { audio: "audio/med-mother.mp3",  word: "mother",  display: "MO__ER",   pattern: "th", group: "digraph" },
+  { audio: "audio/med-duck.mp3",    word: "duck",    display: "DU__",     pattern: "ck", group: "digraph" },
+  { audio: "audio/med-clock.mp3",   word: "clock",   display: "CLO__",    pattern: "ck", group: "digraph" },
+  { audio: "audio/med-king.mp3",    word: "king",    display: "KI__",     pattern: "ng", group: "digraph" },
+  { audio: "audio/med-song.mp3",    word: "song",    display: "SO__",     pattern: "ng", group: "digraph" },
 
-  // Vowel teams
-  { audio: "audio/med-rain.mp3", word: "rain", display: "R__N", pattern: "ai", group: "vowelTeam" },
-  { audio: "audio/med-sheep.mp3", word: "sheep", display: "SH__P", pattern: "ee", group: "vowelTeam" },
-  { audio: "audio/med-boat.mp3", word: "boat", display: "B__T", pattern: "oa", group: "vowelTeam" },
-  { audio: "audio/med-coin.mp3", word: "coin", display: "C__N", pattern: "oi", group: "vowelTeam" },
-  { audio: "audio/med-toy.mp3", word: "toy", display: "T__", pattern: "oy", group: "vowelTeam" },
-  { audio: "audio/med-cloud.mp3", word: "cloud", display: "CL__D", pattern: "ou", group: "vowelTeam" },
-  { audio: "audio/med-cow.mp3", word: "cow", display: "C__", pattern: "ow", group: "vowelTeam" },
+  // ---------------- 3. Vowel teams (group A) ----------------
+  { audio: "audio/med-rain.mp3",    word: "rain",    display: "R__N",     pattern: "ai", group: "vowelTeamA" },
+  { audio: "audio/med-snail.mp3",   word: "snail",   display: "SN__L",    pattern: "ai", group: "vowelTeamA" },
+  { audio: "audio/med-play.mp3",    word: "play",    display: "PL__",     pattern: "ay", group: "vowelTeamA" },
+  { audio: "audio/med-day.mp3",     word: "day",     display: "D__",      pattern: "ay", group: "vowelTeamA" },
+  { audio: "audio/med-peach.mp3",   word: "peach",   display: "P__CH",    pattern: "ea", group: "vowelTeamA" },
+  { audio: "audio/med-sea.mp3",     word: "sea",     display: "S__",      pattern: "ea", group: "vowelTeamA" },
+  { audio: "audio/med-tree.mp3",    word: "tree",    display: "TR__",     pattern: "ee", group: "vowelTeamA" },
+  { audio: "audio/med-sheep.mp3",   word: "sheep",   display: "SH__P",    pattern: "ee", group: "vowelTeamA" },
+  { audio: "audio/med-pie.mp3",     word: "pie",     display: "P__",      pattern: "ie", group: "vowelTeamA" },
+  { audio: "audio/med-tie.mp3",     word: "tie",     display: "T__",      pattern: "ie", group: "vowelTeamA" },
+  { audio: "audio/med-boat.mp3",    word: "boat",    display: "B__T",     pattern: "oa", group: "vowelTeamA" },
+  { audio: "audio/med-soap.mp3",    word: "soap",    display: "S__P",     pattern: "oa", group: "vowelTeamA" },
+  { audio: "audio/med-snow.mp3",    word: "snow",    display: "SN__",     pattern: "ow", group: "vowelTeamA" },
+  { audio: "audio/med-yellow.mp3",  word: "yellow",  display: "YELL__",   pattern: "ow", group: "vowelTeamA" },
+  { audio: "audio/med-blue.mp3",    word: "blue",    display: "BL__",     pattern: "ue", group: "vowelTeamA" },
+  { audio: "audio/med-glue.mp3",    word: "glue",    display: "GL__",     pattern: "ue", group: "vowelTeamA" },
+  { audio: "audio/med-fruit.mp3",   word: "fruit",   display: "FR__T",    pattern: "ui", group: "vowelTeamA" },
+  { audio: "audio/med-suit.mp3",    word: "suit",    display: "S__T",     pattern: "ui", group: "vowelTeamA" },
 
-  // R-controlled vowels
-  { audio: "audio/med-car.mp3", word: "car", display: "C__", pattern: "ar", group: "rControlled" },
-  { audio: "audio/med-her.mp3", word: "her", display: "H__", pattern: "er", group: "rControlled" },
-  { audio: "audio/med-bird.mp3", word: "bird", display: "B__D", pattern: "ir", group: "rControlled" },
-  { audio: "audio/med-corn.mp3", word: "corn", display: "C__N", pattern: "or", group: "rControlled" },
-  { audio: "audio/med-burn.mp3", word: "burn", display: "B__N", pattern: "ur", group: "rControlled" },
+  // ---------------- 4. Vowel teams (group B: diphthongs) ----------------
+  { audio: "audio/med-moon.mp3",    word: "moon",    display: "M__N",     pattern: "oo", group: "vowelTeamB" },
+  { audio: "audio/med-spoon.mp3",   word: "spoon",   display: "SP__N",    pattern: "oo", group: "vowelTeamB" },
+  { audio: "audio/med-book.mp3",    word: "book",    display: "B__K",     pattern: "oo", group: "vowelTeamB" },
+  { audio: "audio/med-foot.mp3",    word: "foot",    display: "F__T",     pattern: "oo", group: "vowelTeamB" },
+  { audio: "audio/med-loud.mp3",    word: "loud",    display: "L__D",     pattern: "ou", group: "vowelTeamB" },
+  { audio: "audio/med-mouse.mp3",   word: "mouse",   display: "M__SE",    pattern: "ou", group: "vowelTeamB" },
+  { audio: "audio/med-cloudy.mp3",  word: "cloudy",  display: "CL__DY",   pattern: "ou", group: "vowelTeamB" },
+  { audio: "audio/med-cow.mp3",     word: "cow",     display: "C__",      pattern: "ow", group: "vowelTeamB" },
+  { audio: "audio/med-owl.mp3",     word: "owl",     display: "__L",      pattern: "ow", group: "vowelTeamB" },
+  { audio: "audio/med-sauce.mp3",   word: "sauce",   display: "S__CE",    pattern: "au", group: "vowelTeamB" },
+  { audio: "audio/med-author.mp3",  word: "author",  display: "__THOR",   pattern: "au", group: "vowelTeamB" },
+  { audio: "audio/med-coin.mp3",    word: "coin",    display: "C__N",     pattern: "oi", group: "vowelTeamB" },
+  { audio: "audio/med-voice.mp3",   word: "voice",   display: "V__CE",    pattern: "oi", group: "vowelTeamB" },
+  { audio: "audio/med-boy.mp3",     word: "boy",     display: "B__",      pattern: "oy", group: "vowelTeamB" },
+  { audio: "audio/med-toy.mp3",     word: "toy",     display: "T__",      pattern: "oy", group: "vowelTeamB" },
 
-  // Long-vowel / silent-e patterns (each paired with its own
-  // short-vowel contrast via distractorPool, since the useful
-  // wrong answer here is specifically "the same ending without
-  // the silent e", not just any other long-vowel pattern)
-  { audio: "audio/med-cake.mp3", word: "cake", display: "C__", pattern: "ake", group: "longVowel", distractorPool: ["ak"] },
-  { audio: "audio/med-time.mp3", word: "time", display: "T__", pattern: "ime", group: "longVowel", distractorPool: ["im"] },
-  { audio: "audio/med-bone.mp3", word: "bone", display: "B__", pattern: "one", group: "longVowel", distractorPool: ["on"] },
-  { audio: "audio/med-cute.mp3", word: "cute", display: "C__", pattern: "ute", group: "longVowel", distractorPool: ["ut"] }
+  // ---------------- 5. R-controlled / "murmuring" vowels ----------------
+  { audio: "audio/med-car.mp3",     word: "car",     display: "C__",      pattern: "ar", group: "rControlled" },
+  { audio: "audio/med-star.mp3",    word: "star",    display: "ST__",     pattern: "ar", group: "rControlled" },
+  { audio: "audio/med-corn.mp3",    word: "corn",    display: "C__N",     pattern: "or", group: "rControlled" },
+  { audio: "audio/med-fork.mp3",    word: "fork",    display: "F__K",     pattern: "or", group: "rControlled" },
+  { audio: "audio/med-bird.mp3",    word: "bird",    display: "B__D",     pattern: "ir", group: "rControlled" },
+  { audio: "audio/med-shirt.mp3",   word: "shirt",   display: "SH__T",    pattern: "ir", group: "rControlled" },
+  { audio: "audio/med-word.mp3",    word: "word",    display: "__D",      pattern: "wor", group: "rControlled" },
+  { audio: "audio/med-work.mp3",    word: "work",    display: "__K",      pattern: "wor", group: "rControlled" },
+  { audio: "audio/med-clear.mp3",   word: "clear",   display: "CL__",     pattern: "ear", group: "rControlled" },
+  { audio: "audio/med-year.mp3",    word: "year",    display: "Y__",      pattern: "ear", group: "rControlled" },
+  { audio: "audio/med-dinner.mp3",  word: "dinner",  display: "DINN__",   pattern: "er", group: "rControlled" },
+  { audio: "audio/med-sister.mp3",  word: "sister",  display: "SIST__",   pattern: "er", group: "rControlled" },
+  { audio: "audio/med-hair.mp3",    word: "hair",    display: "H__",      pattern: "air", group: "rControlled" },
+  { audio: "audio/med-fair.mp3",    word: "fair",    display: "F__",      pattern: "air", group: "rControlled" },
+  { audio: "audio/med-fire.mp3",    word: "fire",    display: "F__",      pattern: "ire", group: "rControlled" },
+  { audio: "audio/med-tire.mp3",    word: "tire",    display: "T__",      pattern: "ire", group: "rControlled" },
+  { audio: "audio/med-store.mp3",   word: "store",   display: "ST__",     pattern: "ore", group: "rControlled" },
+  { audio: "audio/med-more.mp3",    word: "more",    display: "M__",      pattern: "ore", group: "rControlled" },
+  { audio: "audio/med-turn.mp3",    word: "turn",    display: "T__N",     pattern: "ur", group: "rControlled" },
+  { audio: "audio/med-nurse.mp3",   word: "nurse",   display: "N__SE",    pattern: "ur", group: "rControlled" },
+  { audio: "audio/med-sour.mp3",    word: "sour",    display: "S__",      pattern: "our", group: "rControlled" },
+  { audio: "audio/med-hour.mp3",    word: "hour",    display: "H__",      pattern: "our", group: "rControlled" },
+
+  // ---------------- 6. Consonant blends ----------------
+  { audio: "audio/med-black.mp3",   word: "black",   display: "__ACK",    pattern: "bl", group: "blend" },
+  { audio: "audio/med-block.mp3",   word: "block",   display: "__OCK",    pattern: "bl", group: "blend" },
+  { audio: "audio/med-clap.mp3",    word: "clap",    display: "__AP",     pattern: "cl", group: "blend" },
+  { audio: "audio/med-class.mp3",   word: "class",   display: "__ASS",    pattern: "cl", group: "blend" },
+  { audio: "audio/med-flag.mp3",    word: "flag",    display: "__AG",     pattern: "fl", group: "blend" },
+  { audio: "audio/med-flower.mp3",  word: "flower",  display: "__OWER",   pattern: "fl", group: "blend" },
+  { audio: "audio/med-glass.mp3",   word: "glass",   display: "__ASS",    pattern: "gl", group: "blend" },
+  { audio: "audio/med-glove.mp3",   word: "glove",   display: "__OVE",    pattern: "gl", group: "blend" },
+  { audio: "audio/med-plane.mp3",   word: "plane",   display: "__ANE",    pattern: "pl", group: "blend" },
+  { audio: "audio/med-please.mp3",  word: "please",  display: "__EASE",   pattern: "pl", group: "blend" },
+  { audio: "audio/med-sleep.mp3",   word: "sleep",   display: "__EEP",    pattern: "sl", group: "blend" },
+  { audio: "audio/med-slide.mp3",   word: "slide",   display: "__IDE",    pattern: "sl", group: "blend" },
+  { audio: "audio/med-brush.mp3",   word: "brush",   display: "__USH",    pattern: "br", group: "blend" },
+  { audio: "audio/med-bread.mp3",   word: "bread",   display: "__EAD",    pattern: "br", group: "blend" },
+  { audio: "audio/med-crab.mp3",    word: "crab",    display: "__AB",     pattern: "cr", group: "blend" },
+  { audio: "audio/med-crown.mp3",   word: "crown",   display: "__OWN",    pattern: "cr", group: "blend" },
+  { audio: "audio/med-drum.mp3",    word: "drum",    display: "__UM",     pattern: "dr", group: "blend" },
+  { audio: "audio/med-dress.mp3",   word: "dress",   display: "__ESS",    pattern: "dr", group: "blend" },
+  { audio: "audio/med-frog.mp3",    word: "frog",    display: "__OG",     pattern: "fr", group: "blend" },
+  { audio: "audio/med-friend.mp3",  word: "friend",  display: "__IEND",   pattern: "fr", group: "blend" },
+  { audio: "audio/med-grape.mp3",   word: "grape",   display: "__APE",    pattern: "gr", group: "blend" },
+  { audio: "audio/med-green.mp3",   word: "green",   display: "__EEN",    pattern: "gr", group: "blend" },
+  { audio: "audio/med-present.mp3", word: "present", display: "__ESENT",  pattern: "pr", group: "blend" },
+  { audio: "audio/med-princess.mp3",word: "princess",display: "__INCESS", pattern: "pr", group: "blend" },
+  { audio: "audio/med-train.mp3",   word: "train",   display: "__AIN",    pattern: "tr", group: "blend" },
+  { audio: "audio/med-truck.mp3",   word: "truck",   display: "__UCK",    pattern: "tr", group: "blend" },
+  { audio: "audio/med-scarf.mp3",   word: "scarf",   display: "__ARF",    pattern: "sc", group: "blend" },
+  { audio: "audio/med-scan.mp3",    word: "scan",    display: "__AN",     pattern: "sc", group: "blend" },
+  { audio: "audio/med-skate.mp3",   word: "skate",   display: "__ATE",    pattern: "sk", group: "blend" },
+  { audio: "audio/med-mask.mp3",    word: "mask",    display: "MA__",     pattern: "sk", group: "blend" },
+  { audio: "audio/med-smile.mp3",   word: "smile",   display: "__ILE",    pattern: "sm", group: "blend" },
+  { audio: "audio/med-small.mp3",   word: "small",   display: "__ALL",    pattern: "sm", group: "blend" },
+  { audio: "audio/med-snake.mp3",   word: "snake",   display: "__AKE",    pattern: "sn", group: "blend" },
+  { audio: "audio/med-sneeze.mp3",  word: "sneeze",  display: "__EEZE",   pattern: "sn", group: "blend" },
+  { audio: "audio/med-spider.mp3",  word: "spider",  display: "__IDER",   pattern: "sp", group: "blend" },
+  { audio: "audio/med-sport.mp3",   word: "sport",   display: "__ORT",    pattern: "sp", group: "blend" },
+  { audio: "audio/med-stop.mp3",    word: "stop",    display: "__OP",     pattern: "st", group: "blend" },
+  { audio: "audio/med-story.mp3",   word: "story",   display: "__ORY",    pattern: "st", group: "blend" },
+  { audio: "audio/med-swim.mp3",    word: "swim",    display: "__IM",     pattern: "sw", group: "blend" },
+  { audio: "audio/med-sweet.mp3",   word: "sweet",   display: "__EET",    pattern: "sw", group: "blend" },
+  { audio: "audio/med-spring.mp3",  word: "spring",  display: "___ING",   pattern: "spr", group: "blend" },
+  { audio: "audio/med-spray.mp3",   word: "spray",   display: "___AY",    pattern: "spr", group: "blend" },
+  { audio: "audio/med-street.mp3",  word: "street",  display: "___EET",   pattern: "str", group: "blend" },
+  { audio: "audio/med-string.mp3",  word: "string",  display: "___ING",   pattern: "str", group: "blend" },
+  { audio: "audio/med-throw.mp3",   word: "throw",   display: "___OW",    pattern: "thr", group: "blend" },
+  { audio: "audio/med-thread.mp3",  word: "thread",  display: "___EAD",   pattern: "thr", group: "blend" }
 ];
 
-function pickPhonicsDistractor(item) {
-  const pattern = item.pattern;
+// ---- 3. Distractor picker --------------------------------------------
+// Remembers the last distractor used for each individual word so the
+// same pairing doesn't repeat two rounds in a row.
+const lastDistractorByWord = {};
 
-  if (Array.isArray(item.distractorPool) && item.distractorPool.length > 0) {
-    const custom = item.distractorPool.filter(p => p !== pattern);
-    if (custom.length > 0) return randomChoice(custom);
+function pickCrossGroupDistractor(item) {
+  const correctText = item.pattern.toLowerCase();
+
+  // Candidates: different category AND not visually the same letters
+  // as the correct answer (guards against e.g. "ow" vs "ow" from two
+  // different categories looking identical on screen).
+  let candidates = ALL_PATTERNS.filter(
+    p => p.group !== item.group && p.text.toLowerCase() !== correctText
+  );
+
+  // Avoid repeating the exact same distractor this word had last time.
+  const previous = lastDistractorByWord[item.word];
+  if (previous) {
+    const fresh = candidates.filter(p => p.text.toLowerCase() !== previous.toLowerCase());
+    if (fresh.length > 0) candidates = fresh;
   }
 
-  const groupList = PHONICS_PATTERN_GROUPS[item.group] || [];
-  const sameGroup = groupList.filter(p => p !== pattern);
-  if (sameGroup.length > 0) return randomChoice(sameGroup);
-
-  // Fallback (should not normally happen): any other known pattern.
-  const everyPattern = Object.values(PHONICS_PATTERN_GROUPS).flat().filter(p => p !== pattern);
-  return randomChoice(everyPattern);
+  const chosen = candidates[Math.floor(Math.random() * candidates.length)];
+  lastDistractorByWord[item.word] = chosen.text;
+  return chosen.text;
 }
 
+// ---- 4. Build the round's question bank -------------------------------
 function buildMediumBank() {
-  const byWord = groupLibraryBy(MEDIUM_PATTERN_LIBRARY, item => item.word);
-  return Object.keys(byWord).map(word => {
-    const chosen = randomChoice(byWord[word]); // random recording for this word
-    const distractor = pickPhonicsDistractor(chosen);
+  return MEDIUM_PATTERN_LIBRARY.map(item => {
+    const distractor = pickCrossGroupDistractor(item);
+    const correct = item.pattern.toUpperCase();
+    const wrong = distractor.toUpperCase();
+    const options = Math.random() < 0.5 ? [correct, wrong] : [wrong, correct];
+
     return {
-      audio: chosen.audio,
-      correctAnswer: chosen.pattern.toUpperCase(),
-      options: [chosen.pattern.toUpperCase(), distractor.toUpperCase()],
-      prompt: `What sound is missing?: ${chosen.display}`
+      audio: item.audio,
+      correctAnswer: correct,
+      options,
+      prompt: `What sound is missing?: ${item.display}`
     };
   });
 }
-
 /* ============================================================
    HARD — ALIEN LANGUAGE DECODER 👽
    ============================================================
