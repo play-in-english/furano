@@ -195,7 +195,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   // ---------------- 1. Double consonants ----------------
   { audio: "audio/med-bell.mp3",    word: "bell",    display: "BE__",     pattern: "ll", group: "doubleConsonant" },
   { audio: "audio/med-doll.mp3",    word: "doll",    display: "DO__",     pattern: "ll", group: "doubleConsonant" },
-  { audio: "audio/med-kiss.mp3",    word: "kiss",    display: "KI__",     pattern: "ss", group: "doubleConsonant" },
+  { audio: "audio/med-miss.mp3",    word: "miss",    display: "MI__",     pattern: "ss", group: "doubleConsonant" },
   { audio: "audio/med-pass.mp3",    word: "pass",    display: "PA__",     pattern: "ss", group: "doubleConsonant" },
   { audio: "audio/med-puff.mp3",    word: "puff",    display: "PU__",     pattern: "ff", group: "doubleConsonant" },
   { audio: "audio/med-cliff.mp3",   word: "cliff",   display: "CLI__",    pattern: "ff", group: "doubleConsonant" },
@@ -340,19 +340,45 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-thread.mp3",  word: "thread",  display: "___EAD",   pattern: "thr", group: "blend" }
 ];
 
-// ---- 3. Distractor picker --------------------------------------------
+// ---- 3. Confusable-pair rules ------------------------------------------
+// Pairs of patterns that should NEVER be shown together as answer choices,
+// even though they're in the same category, because they're too easy to
+// visually/audibly confuse. Undirected (order doesn't matter).
+const CONFUSABLE_PAIRS = [
+  ["ea", "ee"],
+  ["ai", "ay"],
+  ["ue", "ui"],
+  ["oi", "oy"],
+];
+
+// Build a quick lookup: for a given pattern text, the set of texts it's
+// "confusable" with.
+const CONFUSABLE_MAP = {};
+CONFUSABLE_PAIRS.forEach(([a, b]) => {
+  (CONFUSABLE_MAP[a] ??= new Set()).add(b);
+  (CONFUSABLE_MAP[b] ??= new Set()).add(a);
+});
+
+function isConfusable(textA, textB) {
+  return CONFUSABLE_MAP[textA]?.has(textB) ?? false;
+}
+
+// ---- 4. Distractor picker --------------------------------------------
 // Remembers the last distractor used for each individual word so the
 // same pairing doesn't repeat two rounds in a row.
 const lastDistractorByWord = {};
 
-function pickCrossGroupDistractor(item) {
+function pickSameCategoryDistractor(item) {
   const correctText = item.pattern.toLowerCase();
 
-  // Candidates: different category AND not visually the same letters
-  // as the correct answer (guards against e.g. "ow" vs "ow" from two
-  // different categories looking identical on screen).
+  // Candidates: SAME category, not the identical letters as the correct
+  // answer (e.g. "th" never paired with "th"), and not on the
+  // confusable-pairs list (e.g. "ea" never paired with "ee").
   let candidates = ALL_PATTERNS.filter(
-    p => p.group !== item.group && p.text.toLowerCase() !== correctText
+    p =>
+      p.group === item.group &&
+      p.text.toLowerCase() !== correctText &&
+      !isConfusable(p.text.toLowerCase(), correctText)
   );
 
   // Avoid repeating the exact same distractor this word had last time.
@@ -362,15 +388,29 @@ function pickCrossGroupDistractor(item) {
     if (fresh.length > 0) candidates = fresh;
   }
 
+  // Safety fallback: if the confusable-pair rule ever leaves nothing to
+  // choose from within the category, relax it rather than crash.
+  if (candidates.length === 0) {
+    candidates = ALL_PATTERNS.filter(
+      p => p.group === item.group && p.text.toLowerCase() !== correctText
+    );
+  }
+
+  // Last-resort fallback: if even that's empty (shouldn't happen with
+  // this library), allow a cross-category pick so a distractor always exists.
+  if (candidates.length === 0) {
+    candidates = ALL_PATTERNS.filter(p => p.text.toLowerCase() !== correctText);
+  }
+
   const chosen = candidates[Math.floor(Math.random() * candidates.length)];
   lastDistractorByWord[item.word] = chosen.text;
   return chosen.text;
 }
 
-// ---- 4. Build the round's question bank -------------------------------
+// ---- 5. Build the round's question bank -------------------------------
 function buildMediumBank() {
   return MEDIUM_PATTERN_LIBRARY.map(item => {
-    const distractor = pickCrossGroupDistractor(item);
+    const distractor = pickSameCategoryDistractor(item);
     const correct = item.pattern.toUpperCase();
     const wrong = distractor.toUpperCase();
     const options = Math.random() < 0.5 ? [correct, wrong] : [wrong, correct];
