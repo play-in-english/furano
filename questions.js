@@ -198,7 +198,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-miss.mp3",    word: "miss",    display: "MI__",     pattern: "ss", group: "doubleConsonant" },
   { audio: "audio/med-pass.mp3",    word: "pass",    display: "PA__",     pattern: "ss", group: "doubleConsonant" },
   { audio: "audio/med-puff.mp3",    word: "puff",    display: "PU__",     pattern: "ff", group: "doubleConsonant" },
-  { audio: "audio/med-cliff.mp3",   word: "cliff",   display: "CLI__",    pattern: "ff", group: "doubleConsonant" },
+  { audio: "audio/med-muffin.mp3",   word: "muffin",   display: "MU__IN",    pattern: "ff", group: "doubleConsonant" },
   { audio: "audio/med-buzz.mp3",    word: "buzz",    display: "BU__",     pattern: "zz", group: "doubleConsonant" },
   { audio: "audio/med-jazz.mp3",    word: "jazz",    display: "JA__",     pattern: "zz", group: "doubleConsonant" },
   { audio: "audio/med-mitt.mp3",    word: "mitt",    display: "MI__",     pattern: "tt", group: "doubleConsonant" },
