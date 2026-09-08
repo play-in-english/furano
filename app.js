@@ -90,7 +90,7 @@ const SPEED_BONUS_FAST_SECONDS = 1;
 
 const SPEED_BONUS_SLOW_SECONDS = 7;
 
-const SPEED_BONUS_DECAY_RATE = 0.7; // higher = the bonus collapses even faster past the fast cutoff
+const SPEED_BONUS_DECAY_RATE = 0.78; // higher = the bonus collapses even faster past the fast cutoff
 
 const MAX_MISSION_POINTS =
 QUESTIONS_PER_GAME *
