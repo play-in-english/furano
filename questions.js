@@ -145,7 +145,7 @@ function buildEasyBank() {
    MEDIUM — PHONICS PATTERNS (v3)
    ============================================================
    Categories (6 total), 2 words per individual pattern:
-
+ 
      1. doubleConsonant : ll, ss, ff, zz, tt, dd, pp, mm, nn
      2. digraph         : ch, sh, ph, wh, th (Thursday), th (father), ck, ng
      3. vowelTeamA       : ai, ay, ea, ee, ie, oa, ow(snow), ou(soup), ue, ui
@@ -153,7 +153,7 @@ function buildEasyBank() {
      5. rControlled      : ar, or, ir, wor, ear, er, air, ire, ore, ur, our
      6. blend            : bl, cl, fl, gl, pl, sl, br, cr, dr, fr, gr, pr, tr,
                             sc, sk, sm, sn, sp, st, sw, spr, str, thr
-
+ 
    DISTRACTOR RULE
    ----------------
    The wrong answer offered alongside the correct pattern is picked
@@ -166,7 +166,7 @@ function buildEasyBank() {
    exact same distractor it used the previous time that word came up
    in this session, so the pairing keeps changing round to round.
    ============================================================ */
-
+ 
 // ---- 1. Master pattern pool, tagged by category -------------
 // (Used only to pick distractors — not the questions themselves.)
 const PATTERN_GROUPS = {
@@ -182,16 +182,16 @@ const PATTERN_GROUPS = {
     "spr", "str", "thr"
   ]
 };
-
+ 
 // Flatten into { text, group } pairs once, for fast lookup.
 const ALL_PATTERNS = Object.entries(PATTERN_GROUPS).flatMap(([group, list]) =>
   list.map(text => ({ text, group }))
 );
-
+ 
 // ---- 2. Word library ------------------------------------------------
 // display: the word with ONLY the target pattern blanked out.
 const MEDIUM_PATTERN_LIBRARY = [
-
+ 
   // ---------------- 1. Double consonants ----------------
   { audio: "audio/med-bell.mp3",    word: "bell",    display: "BE__",     pattern: "ll", group: "doubleConsonant" },
   { audio: "audio/med-doll.mp3",    word: "doll",    display: "DO__",     pattern: "ll", group: "doubleConsonant" },
@@ -211,7 +211,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-summer.mp3",  word: "summer",  display: "SU__ER",   pattern: "mm", group: "doubleConsonant" },
   { audio: "audio/med-dinner.mp3",  word: "dinner",  display: "DI__ER",   pattern: "nn", group: "doubleConsonant" },
   { audio: "audio/med-sunny.mp3",   word: "sunny",   display: "SU__Y",    pattern: "nn", group: "doubleConsonant" },
-
+ 
   // ---------------- 2. Consonant digraphs ----------------
   { audio: "audio/med-chair.mp3",   word: "chair",   display: "__AIR",    pattern: "ch", group: "digraph" },
   { audio: "audio/med-lunch.mp3",   word: "lunch",   display: "LUN__",    pattern: "ch", group: "digraph" },
@@ -229,7 +229,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-clock.mp3",   word: "clock",   display: "CLO__",    pattern: "ck", group: "digraph" },
   { audio: "audio/med-king.mp3",    word: "king",    display: "KI__",     pattern: "ng", group: "digraph" },
   { audio: "audio/med-song.mp3",    word: "song",    display: "SO__",     pattern: "ng", group: "digraph" },
-
+ 
   // ---------------- 3. Vowel teams (group A) ----------------
   { audio: "audio/med-rain.mp3",    word: "rain",    display: "R__N",     pattern: "ai", group: "vowelTeamA" },
   { audio: "audio/med-snail.mp3",   word: "snail",   display: "SN__L",    pattern: "ai", group: "vowelTeamA" },
@@ -249,7 +249,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-glue.mp3",    word: "glue",    display: "GL__",     pattern: "ue", group: "vowelTeamA" },
   { audio: "audio/med-fruit.mp3",   word: "fruit",   display: "FR__T",    pattern: "ui", group: "vowelTeamA" },
   { audio: "audio/med-suit.mp3",    word: "suit",    display: "S__T",     pattern: "ui", group: "vowelTeamA" },
-
+ 
   // ---------------- 4. Vowel teams (group B: diphthongs) ----------------
   { audio: "audio/med-moon.mp3",    word: "moon",    display: "M__N",     pattern: "oo", group: "vowelTeamB" },
   { audio: "audio/med-spoon.mp3",   word: "spoon",   display: "SP__N",    pattern: "oo", group: "vowelTeamB" },
@@ -266,7 +266,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-voice.mp3",   word: "voice",   display: "V__CE",    pattern: "oi", group: "vowelTeamB" },
   { audio: "audio/med-boy.mp3",     word: "boy",     display: "B__",      pattern: "oy", group: "vowelTeamB" },
   { audio: "audio/med-toy.mp3",     word: "toy",     display: "T__",      pattern: "oy", group: "vowelTeamB" },
-
+ 
   // ---------------- 5. R-controlled / "murmuring" vowels ----------------
   { audio: "audio/med-car.mp3",     word: "car",     display: "C__",      pattern: "ar", group: "rControlled" },
   { audio: "audio/med-star.mp3",    word: "star",    display: "ST__",     pattern: "ar", group: "rControlled" },
@@ -290,7 +290,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-nurse.mp3",   word: "nurse",   display: "N__SE",    pattern: "ur", group: "rControlled" },
   { audio: "audio/med-sour.mp3",    word: "sour",    display: "S__",      pattern: "our", group: "rControlled" },
   { audio: "audio/med-hour.mp3",    word: "hour",    display: "H__",      pattern: "our", group: "rControlled" },
-
+ 
   // ---------------- 6. Consonant blends ----------------
   { audio: "audio/med-black.mp3",   word: "black",   display: "__ACK",    pattern: "bl", group: "blend" },
   { audio: "audio/med-block.mp3",   word: "block",   display: "__OCK",    pattern: "bl", group: "blend" },
@@ -339,7 +339,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-throw.mp3",   word: "throw",   display: "___OW",    pattern: "thr", group: "blend" },
   { audio: "audio/med-thread.mp3",  word: "thread",  display: "___EAD",   pattern: "thr", group: "blend" }
 ];
-
+ 
 // ---- 3. Confusable-pair rules ------------------------------------------
 // Pairs of patterns that should NEVER be shown together as answer choices,
 // even though they're in the same category, because they're too easy to
@@ -349,8 +349,17 @@ const CONFUSABLE_PAIRS = [
   ["ai", "ay"],
   ["ue", "ui"],
   ["oi", "oy"],
+  // r-controlled vowels that sound identical despite different spelling
+  // (e.g. "er" and "ir" both make the same "er" sound — sister vs. bird)
+  ["er", "ir"],
+  ["er", "ur"],
+  ["er", "wor"],
+  ["ir", "ur"],
+  ["ir", "wor"],
+  ["ur", "wor"],
+  ["or", "ore"],
 ];
-
+ 
 // Build a quick lookup: for a given pattern text, the set of texts it's
 // "confusable" with.
 const CONFUSABLE_MAP = {};
@@ -358,19 +367,19 @@ CONFUSABLE_PAIRS.forEach(([a, b]) => {
   (CONFUSABLE_MAP[a] ??= new Set()).add(b);
   (CONFUSABLE_MAP[b] ??= new Set()).add(a);
 });
-
+ 
 function isConfusable(textA, textB) {
   return CONFUSABLE_MAP[textA]?.has(textB) ?? false;
 }
-
+ 
 // ---- 4. Distractor picker --------------------------------------------
 // Remembers the last distractor used for each individual word so the
 // same pairing doesn't repeat two rounds in a row.
 const lastDistractorByWord = {};
-
+ 
 function pickSameCategoryDistractor(item) {
   const correctText = item.pattern.toLowerCase();
-
+ 
   // Candidates: SAME category, not the identical letters as the correct
   // answer (e.g. "th" never paired with "th"), and not on the
   // confusable-pairs list (e.g. "ea" never paired with "ee").
@@ -380,14 +389,14 @@ function pickSameCategoryDistractor(item) {
       p.text.toLowerCase() !== correctText &&
       !isConfusable(p.text.toLowerCase(), correctText)
   );
-
+ 
   // Avoid repeating the exact same distractor this word had last time.
   const previous = lastDistractorByWord[item.word];
   if (previous) {
     const fresh = candidates.filter(p => p.text.toLowerCase() !== previous.toLowerCase());
     if (fresh.length > 0) candidates = fresh;
   }
-
+ 
   // Safety fallback: if the confusable-pair rule ever leaves nothing to
   // choose from within the category, relax it rather than crash.
   if (candidates.length === 0) {
@@ -395,18 +404,18 @@ function pickSameCategoryDistractor(item) {
       p => p.group === item.group && p.text.toLowerCase() !== correctText
     );
   }
-
+ 
   // Last-resort fallback: if even that's empty (shouldn't happen with
   // this library), allow a cross-category pick so a distractor always exists.
   if (candidates.length === 0) {
     candidates = ALL_PATTERNS.filter(p => p.text.toLowerCase() !== correctText);
   }
-
+ 
   const chosen = candidates[Math.floor(Math.random() * candidates.length)];
   lastDistractorByWord[item.word] = chosen.text;
   return chosen.text;
 }
-
+ 
 // ---- 5. Build the round's question bank -------------------------------
 function buildMediumBank() {
   return MEDIUM_PATTERN_LIBRARY.map(item => {
@@ -414,7 +423,7 @@ function buildMediumBank() {
     const correct = item.pattern.toUpperCase();
     const wrong = distractor.toUpperCase();
     const options = Math.random() < 0.5 ? [correct, wrong] : [wrong, correct];
-
+ 
     return {
       audio: item.audio,
       correctAnswer: correct,
