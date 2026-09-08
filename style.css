@@ -642,6 +642,7 @@ h1, h2, h3 {
   line-height: 1.3;
   color: var(--ink-soft);
   margin: 4px 0 18px;
+  white-space: pre-line;
 }
 
 /* ---------- Question-to-question galaxy zoom transition ----------
