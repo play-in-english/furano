@@ -2440,21 +2440,6 @@ letterAudio.onended =
 
 }
 
-}
-
-letterAudio.onended =
-() => {
-
-
-  playAudioBtn.classList.remove(
-    'playing'
-  );
-
-};
-
-
-}
-
 function startAutoplaySequence() {
 
 if (
