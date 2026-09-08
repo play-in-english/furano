@@ -419,7 +419,7 @@ function buildMediumBank() {
       audio: item.audio,
       correctAnswer: correct,
       options,
-      prompt: `What sound is missing?: ${item.display}`
+      prompt: `What sound is missing?\n${item.display}`
     };
   });
 }
