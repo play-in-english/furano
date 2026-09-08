@@ -90,7 +90,7 @@ const SPEED_BONUS_FAST_SECONDS = 1;
 
 const SPEED_BONUS_SLOW_SECONDS = 7;
 
-const SPEED_BONUS_DECAY_RATE = 1; // higher = the bonus collapses even faster past the fast cutoff
+const SPEED_BONUS_DECAY_RATE = 0.7; // higher = the bonus collapses even faster past the fast cutoff
 
 const MAX_MISSION_POINTS =
 QUESTIONS_PER_GAME *
@@ -2336,8 +2336,10 @@ option => {
   instant an answer is selected — see handleAnswer().
 */
 
-state.questionStartTime =
-performance.now();
+// The response-time clock doesn't start here — it starts only once
+// the audio actually begins playing (see playCurrentAudio()), so
+// loading lag before playback never eats into the speed bonus.
+state.questionStartTime = null;
 
 startAutoplaySequence();
 
@@ -2392,6 +2394,51 @@ promise.catch(
   }
 );
 
+
+}
+
+/*
+  The response-time / speed-bonus clock starts the instant the
+  audio actually BEGINS playing (the browser's 'playing' event),
+  not when playback is merely requested. If the audio lags,
+  buffers, or fails outright, this event never fires and the
+  clock never starts — the student can still answer or guess,
+  but that question simply won't earn a speed bonus (see the
+  fallback in handleAnswer()).
+
+  Guarded so a manual replay via the "Play Sound" button doesn't
+  reset a clock that's already running.
+*/
+
+letterAudio.onplaying =
+() => {
+
+
+  if (
+    state.questionStartTime === null
+  ) {
+
+    state.questionStartTime =
+      performance.now();
+
+  }
+
+
+};
+
+letterAudio.onended =
+() => {
+
+
+  playAudioBtn.classList.remove(
+    'playing'
+  );
+
+
+};
+
+
+}
 
 }
 
@@ -2554,13 +2601,21 @@ button => {
   independent of the overall mission timer.
 */
 
+/*
+  If the clock never started (audio never actually played —
+  lag, blocked autoplay, load failure, etc.), that means "no
+  speed bonus", not "instant answer". Feeding calcQuestionScore()
+  a time at/after SPEED_BONUS_SLOW_SECONDS makes a correct answer
+  land exactly on the BASE_CORRECT_POINTS floor with zero bonus,
+  instead of accidentally granting the max bonus.
+*/
 const questionResponseSeconds =
 state.questionStartTime !== null
 ? (
     performance.now() -
     state.questionStartTime
   ) / 1000
-: 0;
+: SPEED_BONUS_SLOW_SECONDS;
 
 const pointsEarned =
 calcQuestionScore(
