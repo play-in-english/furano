@@ -221,7 +221,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-dolphin.mp3", word: "dolphin", display: "DOL__IN",  pattern: "ph", group: "digraph" },
   { audio: "audio/med-whale.mp3",   word: "whale",   display: "__ALE",    pattern: "wh", group: "digraph" },
   { audio: "audio/med-white.mp3",   word: "white",   display: "__ITE",    pattern: "wh", group: "digraph" },
-  { audio: "audio/med-thursday.mp3",word: "Thursday",display: "__URSDAY", pattern: "th", group: "digraph" },
+  { audio: "audio/med- thursday.mp3",word: "Thursday",display: "__URSDAY", pattern: "th", group: "digraph" },
   { audio: "audio/med-three.mp3",   word: "three",   display: "__REE",    pattern: "th", group: "digraph" },
   { audio: "audio/med-weather.mp3", word: "weather", display: "WEA__ER",  pattern: "th", group: "digraph" },
   { audio: "audio/med-mother.mp3",  word: "mother",  display: "MO__ER",   pattern: "th", group: "digraph" },
