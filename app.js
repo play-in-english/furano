@@ -572,6 +572,19 @@ document.querySelector(
 '#gameScreen .prompt'
 );
 
+// NEW: word illustration shown after answering a Medium-mode
+// question, once the missing sound is revealed. See
+// revealMediumAnswer().
+const wordImageWrap =
+document.getElementById(
+'wordImageWrap'
+);
+
+const wordImageEl =
+document.getElementById(
+'wordImageEl'
+);
+
 console.log(
 'S.P.A.C.E. ALPHABETS: app.js loaded.'
 );
@@ -2196,6 +2209,75 @@ rocket.style.left =
 RENDER QUESTION
 ============================================================ */
 
+// NEW: builds the Medium-mode prompt as HTML instead of plain
+// text, wrapping the run of underscores in q.display (e.g. the
+// "__" in "P__") in a <span id="blankSlot"> so
+// revealMediumAnswer() can later swap just that piece for the
+// real letters and animate it in, without touching the rest of
+// the prompt.
+function buildMediumPromptHTML(q) {
+
+const segments =
+String(q.display || '')
+.split(/(_+)/);
+
+let html =
+'What sound is missing?<br>';
+
+segments.forEach(
+segment => {
+
+
+  if (/^_+$/.test(segment)) {
+
+    html +=
+      `<span class="blank-slot" id="blankSlot">${segment}</span>`;
+
+  } else {
+
+    html +=
+      escapeHtml(segment);
+
+  }
+
+
+}
+);
+
+return html;
+
+}
+
+// NEW: resets the word-reveal image back to hidden/empty. Called
+// at the start of every question so a previous question's image
+// never lingers into the next one.
+function resetWordImage() {
+
+if (wordImageWrap) {
+
+
+wordImageWrap.classList.remove(
+  'show'
+);
+
+
+}
+
+if (wordImageEl) {
+
+
+wordImageEl.onerror =
+  null;
+
+wordImageEl.src = '';
+
+wordImageEl.alt = '';
+
+
+}
+
+}
+
 function renderQuestion() {
 
 clearAutoAdvanceTimer();
@@ -2230,14 +2312,31 @@ scoreCounter.textContent =
 
 renderConstellation();
 
-// NEW: show this question's own prompt text (e.g. a masked word
-// for Medium mode) if it provides one, otherwise fall back to the
-// original default wording — Easy mode is unaffected either way.
+// NEW: always start a fresh question with no revealed word
+// image showing.
+resetWordImage();
+
+// NEW: Medium mode shows its masked word with a targetable
+// blank span so the correct sound can later fade into place
+// (see revealMediumAnswer()). Easy/Hard are unaffected and keep
+// using the plain-text prompt exactly as before.
 if (promptEl) {
 
-promptEl.textContent =
-  q.prompt ||
-  'Which letter did you hear?';
+if (
+  state.mode === 'medium' &&
+  q.display
+) {
+
+  promptEl.innerHTML =
+    buildMediumPromptHTML(q);
+
+} else {
+
+  promptEl.textContent =
+    q.prompt ||
+    'Which letter did you hear?';
+
+}
 
 }
 
@@ -2489,6 +2588,93 @@ playCurrentAudio();
 );
 
 /* ============================================================
+MEDIUM MODE — ANSWER REVEAL (blank fill-in + word image)
+============================================================
+Called once per question, right after the student answers, ONLY
+in Medium mode. It:
+
+  1. Swaps the underscores in the blank span for the real
+     letters (q.correctAnswer) and adds a class that triggers a
+     CSS fade/pop-in animation (see .blank-slot.blank-revealed
+     in style.css).
+  2. Fades in an illustration for the word (q.image) so players
+     can see what the word means.
+
+This always reveals the CORRECT answer, whether the student got
+it right or wrong — same as the existing text feedback already
+does ("It was 'X'.").
+============================================================ */
+
+function revealMediumAnswer(q) {
+
+if (!q) {
+return;
+}
+
+const blankSlot =
+document.getElementById(
+'blankSlot'
+);
+
+if (
+blankSlot &&
+q.correctAnswer
+) {
+
+
+blankSlot.textContent =
+  String(
+    q.correctAnswer
+  ).toUpperCase();
+
+
+blankSlot.classList.add(
+  'blank-revealed'
+);
+
+
+}
+
+if (
+wordImageWrap &&
+wordImageEl &&
+q.image
+) {
+
+
+wordImageEl.onerror =
+  () => {
+
+    // Missing/broken image file — fail quietly and just
+    // keep the illustration hidden rather than showing a
+    // broken-image icon.
+    wordImageWrap.classList.remove(
+      'show'
+    );
+
+  };
+
+
+wordImageEl.alt =
+  q.word
+    ? `Picture of ${q.word}`
+    : '';
+
+
+wordImageEl.src =
+  q.image;
+
+
+wordImageWrap.classList.add(
+  'show'
+);
+
+
+}
+
+}
+
+/* ============================================================
 ANSWER
 ============================================================ */
 
@@ -2508,6 +2694,11 @@ state.answeredCurrent =
 true;
 
 clearAutoplayTimer();
+
+const q =
+state.roundQuestions[
+state.currentIndex
+];
 
 const multipleCorrect =
 Array.isArray(correct);
@@ -2652,6 +2843,17 @@ scoreCounter.textContent =
 
 renderConstellation();
 
+// NEW: Medium mode reveals the missing sound in the blank and
+// fades in the word's illustration, win or lose. Easy/Hard are
+// untouched.
+if (
+state.mode === 'medium'
+) {
+
+revealMediumAnswer(q);
+
+}
+
 const isLast =
 state.currentIndex + 1 >=
 state.roundQuestions.length;
@@ -2691,11 +2893,25 @@ nextBtn.style.display =
 
 clearAutoAdvanceTimer();
 
+/*
+  NEW: Medium mode no longer auto-advances. Because the answer
+  reveal (blank fill-in + illustration) takes a moment to read,
+  players tap "Next →" themselves instead of being swept along
+  on a fixed timer. Easy and Hard modes are UNCHANGED — they
+  still auto-advance after AUTO_ADVANCE_DELAY_MS exactly as
+  before, and their scoring/timing logic is untouched either way.
+*/
+if (
+state.mode !== 'medium'
+) {
+
 state.autoAdvanceTimeoutId =
-setTimeout(
-advanceFromCurrentQuestion,
-AUTO_ADVANCE_DELAY_MS
-);
+  setTimeout(
+    advanceFromCurrentQuestion,
+    AUTO_ADVANCE_DELAY_MS
+  );
+
+}
 
 }
 
