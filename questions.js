@@ -177,14 +177,14 @@ function buildEasyBank() {
                app.js so it can locate the blank and fade the
                correct letters into it after the student answers
      image   — a conventional path to a word illustration, e.g.
-               "images/words/pie.png". app.js fades this in next
-               to the revealed blank so players can see what the
-               word means. If the file is missing, app.js quietly
+               "images/pie.png". app.js fades this in next to the
+               revealed blank so players can see what the word
+               means. If the file is missing, app.js quietly
                keeps the illustration hidden instead of showing a
                broken image — so you can add these image files
                gradually without breaking anything in the
-               meantime. Add one PNG/JPG per distinct "word" value
-               under images/words/ named <word-lowercase>.png.
+               meantime. One PNG per distinct "word" value, saved
+               directly in images/ as <word-lowercase>.png.
    ============================================================ */
  
 // ---- 1. Master pattern pool, tagged by category -------------
@@ -320,7 +320,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-flower.mp3",  word: "flower",  display: "__OWER",   pattern: "fl", group: "blend" },
   { audio: "audio/med-glass.mp3",   word: "glass",   display: "__ASS",    pattern: "gl", group: "blend" },
   { audio: "audio/med-glove.mp3",   word: "glove",   display: "__OVE",    pattern: "gl", group: "blend" },
-  { audio: "audio/med-airplane.mp3",   word: "airplane",   display: "AIR__ANE",    pattern: "pl", group: "blend" },
+  { audio: "audio/med-plane.mp3",   word: "plane",   display: "__ANE",    pattern: "pl", group: "blend" },
   { audio: "audio/med-please.mp3",  word: "please",  display: "__EASE",   pattern: "pl", group: "blend" },
   { audio: "audio/med-sleep.mp3",   word: "sleep",   display: "__EEP",    pattern: "sl", group: "blend" },
   { audio: "audio/med-slide.mp3",   word: "slide",   display: "__IDE",    pattern: "sl", group: "blend" },
@@ -329,7 +329,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-crab.mp3",    word: "crab",    display: "__AB",     pattern: "cr", group: "blend" },
   { audio: "audio/med-crown.mp3",   word: "crown",   display: "__OWN",    pattern: "cr", group: "blend" },
   { audio: "audio/med-drum.mp3",    word: "drum",    display: "__UM",     pattern: "dr", group: "blend" },
-  { audio: "audio/med-drop.mp3",   word: "drop",   display: "__OP",    pattern: "dr", group: "blend" },
+  { audio: "audio/med-dress.mp3",   word: "dress",   display: "__ESS",    pattern: "dr", group: "blend" },
   { audio: "audio/med-frog.mp3",    word: "frog",    display: "__OG",     pattern: "fr", group: "blend" },
   { audio: "audio/med-friend.mp3",  word: "friend",  display: "__IEND",   pattern: "fr", group: "blend" },
   { audio: "audio/med-grape.mp3",   word: "grape",   display: "__APE",    pattern: "gr", group: "blend" },
@@ -347,15 +347,15 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-snake.mp3",   word: "snake",   display: "__AKE",    pattern: "sn", group: "blend" },
   { audio: "audio/med-sneeze.mp3",  word: "sneeze",  display: "__EEZE",   pattern: "sn", group: "blend" },
   { audio: "audio/med-spider.mp3",  word: "spider",  display: "__IDER",   pattern: "sp", group: "blend" },
-  { audio: "audio/med-sports.mp3",   word: "sports",   display: "__ORTS",    pattern: "sp", group: "blend" },
+  { audio: "audio/med-sport.mp3",   word: "sport",   display: "__ORT",    pattern: "sp", group: "blend" },
   { audio: "audio/med-stop.mp3",    word: "stop",    display: "__OP",     pattern: "st", group: "blend" },
-  { audio: "audio/med-storybook.mp3",   word: "storybook",   display: "__ORYBOOK",    pattern: "st", group: "blend" },
+  { audio: "audio/med-story.mp3",   word: "story",   display: "__ORY",    pattern: "st", group: "blend" },
   { audio: "audio/med-swim.mp3",    word: "swim",    display: "__IM",     pattern: "sw", group: "blend" },
-  { audio: "audio/med-sweets.mp3",   word: "sweets",   display: "__EETS",    pattern: "sw", group: "blend" },
+  { audio: "audio/med-sweet.mp3",   word: "sweet",   display: "__EET",    pattern: "sw", group: "blend" },
   { audio: "audio/med-spring.mp3",  word: "spring",  display: "___ING",   pattern: "spr", group: "blend" },
   { audio: "audio/med-spray.mp3",   word: "spray",   display: "___AY",    pattern: "spr", group: "blend" },
   { audio: "audio/med-street.mp3",  word: "street",  display: "___EET",   pattern: "str", group: "blend" },
-  { audio: "audio/med-strap.mp3",  word: "strap",  display: "___AP",   pattern: "str", group: "blend" },
+  { audio: "audio/med-string.mp3",  word: "string",  display: "___ING",   pattern: "str", group: "blend" },
   { audio: "audio/med-throw.mp3",   word: "throw",   display: "___OW",    pattern: "thr", group: "blend" },
   { audio: "audio/med-thread.mp3",  word: "thread",  display: "___EAD",   pattern: "thr", group: "blend" }
 ];
@@ -455,7 +455,7 @@ function buildMediumBank() {
       // revealMediumAnswer() in app.js.
       word: item.word,
       display: item.display,
-      image: `images/words/${item.word.toLowerCase()}.png`
+      image: `images/${item.word.toLowerCase()}.png`
     };
   });
 }
