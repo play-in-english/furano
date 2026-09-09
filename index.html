@@ -406,31 +406,10 @@ aria-hidden="true"
       id="questionContent"
     >
 
-      <div class="prompt-row" id="promptRow">
-
-        <p class="prompt">
+      <p class="prompt">
   Which letter did you hear? <br>
   どのアルファベットの音かな？
 </p>
-
-        <!-- NEW: Medium-mode word illustration. Hidden by default;
-             faded in by revealMediumAnswer() in app.js right after
-             the student answers, right next to the revealed word,
-             so players can see what it means. Easy and Hard modes
-             never populate or show this. -->
-        <div
-          class="word-image-wrap"
-          id="wordImageWrap"
-          aria-hidden="true"
-        >
-          <img
-            id="wordImageEl"
-            class="word-image"
-            alt=""
-          >
-        </div>
-
-      </div>
 
       <button
         id="playAudioBtn"
@@ -455,12 +434,36 @@ aria-hidden="true"
         preload="none"
       ></audio>
 
-      <div
-        class="options-grid"
-        id="optionsGrid"
-        role="group"
-        aria-label="Answer choices"
-      ></div>
+      <div class="answer-row" id="answerRow">
+
+        <div
+          class="options-grid"
+          id="optionsGrid"
+          role="group"
+          aria-label="Answer choices"
+        ></div>
+
+        <!-- NEW: Medium-mode word illustration. Hidden by default;
+             faded in by revealMediumAnswer() in app.js right after
+             the student answers. It's a sibling grid item of the
+             answer buttons (see .answer-row / .options-grid in
+             style.css), so it renders at the SAME size as an
+             answer button, right beside them — no extra page
+             height, no scrollbar. Easy and Hard modes never
+             populate or show this. -->
+        <div
+          class="word-image-wrap"
+          id="wordImageWrap"
+          aria-hidden="true"
+        >
+          <img
+            id="wordImageEl"
+            class="word-image"
+            alt=""
+          >
+        </div>
+
+      </div>
 
       <p
         class="feedback"
