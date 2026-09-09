@@ -11,6 +11,7 @@
    7. Motion / accessibility
    8. Nickname / Difficulty screens (NEW)
    9. Leaderboard (NEW)
+   10. Medium-mode answer reveal (NEW)
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap');
@@ -1071,4 +1072,79 @@ h1, h2, h3 {
   vertical-align: middle;
   display: inline-block;
   margin-right: 0.35em;
+}
+
+/* ============================================================
+   10. MEDIUM-MODE ANSWER REVEAL (NEW)
+   ------------------------------------------------------------
+   Two pieces, both triggered together by revealMediumAnswer()
+   in app.js right after the student answers a Medium-mode
+   question:
+
+     a) .blank-slot — the underscores inside the prompt (e.g. the
+        "__" in "P__"). Its text is swapped for the real letters,
+        then .blank-revealed is added to pop/fade them in.
+
+     b) .word-image-wrap — a small illustration of the word,
+        hidden by default, faded/grown in via .show once an
+        image path is available.
+   ============================================================ */
+
+.blank-slot {
+  display: inline-block;
+  color: var(--star-gold);
+}
+
+.blank-slot.blank-revealed {
+  animation: blankRevealIn .5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  text-shadow: 0 0 14px rgba(255, 217, 102, 0.65);
+}
+
+@keyframes blankRevealIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+    filter: blur(3px);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.15);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.word-image-wrap {
+  margin: 16px auto 6px;
+  width: 100%;
+  max-width: 220px;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity .5s ease .05s, max-height .5s ease;
+}
+
+.word-image-wrap.show {
+  opacity: 1;
+  max-height: 220px;
+}
+
+.word-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Short viewports: keep the illustration modest so it never pushes
+   the Next button off screen. */
+@media (max-height: 560px) {
+  .word-image-wrap { max-width: 150px; }
+  .word-image-wrap.show { max-height: 150px; }
 }
