@@ -406,10 +406,31 @@ aria-hidden="true"
       id="questionContent"
     >
 
-      <p class="prompt">
+      <div class="prompt-row" id="promptRow">
+
+        <p class="prompt">
   Which letter did you hear? <br>
   どのアルファベットの音かな？
 </p>
+
+        <!-- NEW: Medium-mode word illustration. Hidden by default;
+             faded in by revealMediumAnswer() in app.js right after
+             the student answers, right next to the revealed word,
+             so players can see what it means. Easy and Hard modes
+             never populate or show this. -->
+        <div
+          class="word-image-wrap"
+          id="wordImageWrap"
+          aria-hidden="true"
+        >
+          <img
+            id="wordImageEl"
+            class="word-image"
+            alt=""
+          >
+        </div>
+
+      </div>
 
       <button
         id="playAudioBtn"
@@ -446,23 +467,6 @@ aria-hidden="true"
         id="feedback"
         role="status"
       ></p>
-
-      <!-- NEW: Medium-mode word illustration. Hidden by default;
-           faded in by revealMediumAnswer() in app.js right after
-           the student answers, alongside the blank fill-in, so
-           players can see what the revealed word means. Easy and
-           Hard modes never populate or show this. -->
-      <div
-        class="word-image-wrap"
-        id="wordImageWrap"
-        aria-hidden="true"
-      >
-        <img
-          id="wordImageEl"
-          class="word-image"
-          alt=""
-        >
-      </div>
 
     </div>
 
