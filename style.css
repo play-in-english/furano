@@ -1117,34 +1117,50 @@ h1, h2, h3 {
   }
 }
 
+/* Prompt + illustration sit side by side. On narrow screens
+   flex-wrap lets the image drop below the text instead of
+   squeezing everything. */
+.prompt-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 4px 0 18px;
+}
+
+.prompt-row .prompt {
+  /* .prompt-row now owns the spacing, so remove the old
+     standalone margin. */
+  margin: 0;
+}
+
 .word-image-wrap {
-  margin: 16px auto 6px;
-  width: 100%;
-  max-width: 220px;
+  flex: none;
   opacity: 0;
-  max-height: 0;
+  max-width: 0;
   overflow: hidden;
-  transition: opacity .5s ease .05s, max-height .5s ease;
+  transition: opacity .5s ease .05s, max-width .5s ease;
 }
 
 .word-image-wrap.show {
   opacity: 1;
-  max-height: 220px;
+  max-width: 130px;
 }
 
 .word-image {
-  width: 100%;
-  height: auto;
+  /* No border, shadow, or background — the illustration floats
+     directly over the galaxy scene with a transparent background,
+     same as every other emoji/icon in the UI. */
   display: block;
-  border-radius: var(--radius-md);
-  border: 2px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
-  background: rgba(255, 255, 255, 0.05);
+  width: 100%;
+  max-width: 130px;
+  height: auto;
 }
 
-/* Short viewports: keep the illustration modest so it never pushes
-   the Next button off screen. */
+/* Short viewports: keep the illustration a little smaller so it
+   never pushes the Next button off screen. */
 @media (max-height: 560px) {
-  .word-image-wrap { max-width: 150px; }
-  .word-image-wrap.show { max-height: 150px; }
+  .word-image-wrap.show { max-width: 90px; }
+  .word-image { max-width: 90px; }
 }
