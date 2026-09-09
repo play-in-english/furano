@@ -700,24 +700,11 @@ h1, h2, h3 {
   filter: blur(6px);
 }
 
-.answer-row {
+.options-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 16px;
   margin-bottom: 8px;
-  /* Every cell in the row (answer buttons AND the word image once
-     revealed) stretches to match the tallest item, so the image
-     always ends up the same size as an answer button — see
-     .word-image-wrap below. */
-  align-items: stretch;
-}
-
-.options-grid {
-  /* display: contents makes this element invisible as a box: its
-     button children become direct grid items of .answer-row above,
-     so the buttons and the (later-revealed) word image share one
-     single grid/row instead of stacking on separate lines. */
-  display: contents;
 }
 
 .option-btn {
@@ -845,7 +832,7 @@ h1, h2, h3 {
 
 /* Phones (portrait) — iPhone SE through Pro Max, small Android phones */
 @media (max-width: 480px) {
-  .answer-row { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .options-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .audio-btn { padding: 14px 24px; font-size: 17px; }
   .brand-emoji { font-size: 46px; }
   .start-illustration { font-size: 32px; margin: 16px 0; }
@@ -1095,12 +1082,18 @@ h1, h2, h3 {
    question:
 
      a) .blank-slot — the underscores inside the prompt (e.g. the
-        "__" in "P__"). Its text is swapped for the real letters,
-        then .blank-revealed is added to pop/fade them in.
+        "__" in "SIST__"). Its text is swapped for the real
+        letters, then .blank-revealed is added to pop/fade them
+        in, turning "SIST__" into "SISTER".
 
-     b) .word-image-wrap — a small illustration of the word,
-        hidden by default, faded/grown in via .show once an
-        image path is available.
+     b) .word-image-wrap — a small illustration of the word, sat
+        INLINE right after the revealed word on the same text
+        line (e.g. "SISTER [image]"), hidden by default and faded
+        in via .show. Because this is plain inline content inside
+        the <p class="prompt"> — not a grid or flex layout — it
+        behaves identically on every device (phone, tablet,
+        desktop): the image simply sits beside the word as part
+        of the same line, the same way everywhere.
    ============================================================ */
 
 .blank-slot {
@@ -1130,33 +1123,31 @@ h1, h2, h3 {
   }
 }
 
-/* The word illustration is a grid CELL sitting beside the answer
-   buttons (see .answer-row / .options-grid above), not a block
-   below them — so revealing it never adds page height or triggers
-   a scrollbar. It's display:none (takes up no grid space at all)
-   until revealMediumAnswer() in app.js adds .show, at which point
-   it becomes a normal grid item and stretches to match the
-   answer buttons' height/width exactly (align-items: stretch on
-   .answer-row). No border, shadow, or background — the picture
-   itself floats transparently over the galaxy scene. */
 .word-image-wrap {
   display: none;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity .45s ease;
+  vertical-align: middle;
+  margin-left: 10px;
 }
 
 .word-image-wrap.show {
-  display: flex;
-  opacity: 1;
+  display: inline-flex;
+  align-items: center;
+  animation: wordImageFadeIn .5s ease;
+}
+
+@keyframes wordImageFadeIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.85); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .word-image {
   display: block;
-  width: 100%;
-  height: 100%;
-  /* Keeps the picture's own proportions instead of stretching it
-     to fill the (possibly non-square) button-sized cell. */
+  /* Scales gently with the viewport, same as the prompt text
+     itself, so the picture stays proportionate to the word on
+     every screen size instead of needing per-device rules. */
+  height: clamp(26px, 7vw, 42px);
+  width: auto;
   object-fit: contain;
+  /* No border, shadow, or background — transparent, floating
+     directly over the galaxy scene. */
 }
