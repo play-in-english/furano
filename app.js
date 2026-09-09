@@ -572,19 +572,6 @@ document.querySelector(
 '#gameScreen .prompt'
 );
 
-// NEW: word illustration shown after answering a Medium-mode
-// question, once the missing sound is revealed. See
-// revealMediumAnswer().
-const wordImageWrap =
-document.getElementById(
-'wordImageWrap'
-);
-
-const wordImageEl =
-document.getElementById(
-'wordImageEl'
-);
-
 console.log(
 'S.P.A.C.E. ALPHABETS: app.js loaded.'
 );
@@ -2210,19 +2197,22 @@ RENDER QUESTION
 ============================================================ */
 
 // NEW: builds the Medium-mode prompt as HTML instead of plain
-// text, wrapping the run of underscores in q.display (e.g. the
-// "__" in "P__") in a <span id="blankSlot"> so
+// text. It wraps the run of underscores in q.display (e.g. the
+// "__" in "SIST__") in a <span id="blankSlot"> so
 // revealMediumAnswer() can later swap just that piece for the
-// real letters and animate it in, without touching the rest of
-// the prompt.
+// real letters and animate it in. It also places the word-image
+// slot (#wordImageWrap / #wordImageEl) INLINE right after the
+// word, on the same line — e.g. "SISTER [image]" — so the
+// illustration always sits directly beside the word as plain
+// text flow, identically on every device, rather than depending
+// on a grid/flex layout that can wrap differently by screen size.
 function buildMediumPromptHTML(q) {
 
 const segments =
 String(q.display || '')
 .split(/(_+)/);
 
-let html =
-'What sound is missing?<br>';
+let wordHtml = '';
 
 segments.forEach(
 segment => {
@@ -2230,12 +2220,12 @@ segment => {
 
   if (/^_+$/.test(segment)) {
 
-    html +=
+    wordHtml +=
       `<span class="blank-slot" id="blankSlot">${segment}</span>`;
 
   } else {
 
-    html +=
+    wordHtml +=
       escapeHtml(segment);
 
   }
@@ -2244,37 +2234,12 @@ segment => {
 }
 );
 
-return html;
+wordHtml +=
+`<span class="word-image-wrap" id="wordImageWrap" aria-hidden="true"><img id="wordImageEl" class="word-image" alt=""></span>`;
 
-}
-
-// NEW: resets the word-reveal image back to hidden/empty. Called
-// at the start of every question so a previous question's image
-// never lingers into the next one.
-function resetWordImage() {
-
-if (wordImageWrap) {
-
-
-wordImageWrap.classList.remove(
-  'show'
+return (
+`What sound is missing?<br><span class="word-line">${wordHtml}</span>`
 );
-
-
-}
-
-if (wordImageEl) {
-
-
-wordImageEl.onerror =
-  null;
-
-wordImageEl.src = '';
-
-wordImageEl.alt = '';
-
-
-}
 
 }
 
@@ -2312,14 +2277,11 @@ scoreCounter.textContent =
 
 renderConstellation();
 
-// NEW: always start a fresh question with no revealed word
-// image showing.
-resetWordImage();
-
 // NEW: Medium mode shows its masked word with a targetable
-// blank span so the correct sound can later fade into place
-// (see revealMediumAnswer()). Easy/Hard are unaffected and keep
-// using the plain-text prompt exactly as before.
+// blank span (and an inline image slot right after it) so the
+// correct sound and its illustration can fade in together once
+// answered — see revealMediumAnswer(). Easy/Hard are unaffected
+// and keep using the plain-text prompt exactly as before.
 if (promptEl) {
 
 if (
@@ -2634,6 +2596,19 @@ blankSlot.classList.add(
 
 
 }
+
+// Looked up fresh here (rather than cached at page load) because
+// this markup is regenerated inline inside the prompt for every
+// new question — see buildMediumPromptHTML().
+const wordImageWrap =
+document.getElementById(
+'wordImageWrap'
+);
+
+const wordImageEl =
+document.getElementById(
+'wordImageEl'
+);
 
 if (
 wordImageWrap &&
