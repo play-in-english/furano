@@ -700,11 +700,24 @@ h1, h2, h3 {
   filter: blur(6px);
 }
 
-.options-grid {
+.answer-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 16px;
   margin-bottom: 8px;
+  /* Every cell in the row (answer buttons AND the word image once
+     revealed) stretches to match the tallest item, so the image
+     always ends up the same size as an answer button — see
+     .word-image-wrap below. */
+  align-items: stretch;
+}
+
+.options-grid {
+  /* display: contents makes this element invisible as a box: its
+     button children become direct grid items of .answer-row above,
+     so the buttons and the (later-revealed) word image share one
+     single grid/row instead of stacking on separate lines. */
+  display: contents;
 }
 
 .option-btn {
@@ -832,7 +845,7 @@ h1, h2, h3 {
 
 /* Phones (portrait) — iPhone SE through Pro Max, small Android phones */
 @media (max-width: 480px) {
-  .options-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .answer-row { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .audio-btn { padding: 14px 24px; font-size: 17px; }
   .brand-emoji { font-size: 46px; }
   .start-illustration { font-size: 32px; margin: 16px 0; }
@@ -1117,50 +1130,33 @@ h1, h2, h3 {
   }
 }
 
-/* Prompt + illustration sit side by side. On narrow screens
-   flex-wrap lets the image drop below the text instead of
-   squeezing everything. */
-.prompt-row {
-  display: flex;
+/* The word illustration is a grid CELL sitting beside the answer
+   buttons (see .answer-row / .options-grid above), not a block
+   below them — so revealing it never adds page height or triggers
+   a scrollbar. It's display:none (takes up no grid space at all)
+   until revealMediumAnswer() in app.js adds .show, at which point
+   it becomes a normal grid item and stretches to match the
+   answer buttons' height/width exactly (align-items: stretch on
+   .answer-row). No border, shadow, or background — the picture
+   itself floats transparently over the galaxy scene. */
+.word-image-wrap {
+  display: none;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin: 4px 0 18px;
-}
-
-.prompt-row .prompt {
-  /* .prompt-row now owns the spacing, so remove the old
-     standalone margin. */
-  margin: 0;
-}
-
-.word-image-wrap {
-  flex: none;
   opacity: 0;
-  max-width: 0;
-  overflow: hidden;
-  transition: opacity .5s ease .05s, max-width .5s ease;
+  transition: opacity .45s ease;
 }
 
 .word-image-wrap.show {
+  display: flex;
   opacity: 1;
-  max-width: 130px;
 }
 
 .word-image {
-  /* No border, shadow, or background — the illustration floats
-     directly over the galaxy scene with a transparent background,
-     same as every other emoji/icon in the UI. */
   display: block;
   width: 100%;
-  max-width: 130px;
-  height: auto;
-}
-
-/* Short viewports: keep the illustration a little smaller so it
-   never pushes the Next button off screen. */
-@media (max-height: 560px) {
-  .word-image-wrap.show { max-width: 90px; }
-  .word-image { max-width: 90px; }
+  height: 100%;
+  /* Keeps the picture's own proportions instead of stretching it
+     to fill the (possibly non-square) button-sized cell. */
+  object-fit: contain;
 }
