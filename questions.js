@@ -165,6 +165,26 @@ function buildEasyBank() {
    shown together), and — for the SAME word — it will not repeat the
    exact same distractor it used the previous time that word came up
    in this session, so the pairing keeps changing round to round.
+
+   ANSWER REVEAL (NEW)
+   --------------------
+   Every entry below also carries:
+
+     word    — the plain word, e.g. "pie" (used for the alt text
+               and to build the illustration path)
+     display — the same masked string used to build the on-screen
+               prompt (e.g. "P__"), passed straight through to
+               app.js so it can locate the blank and fade the
+               correct letters into it after the student answers
+     image   — a conventional path to a word illustration, e.g.
+               "images/words/pie.png". app.js fades this in next
+               to the revealed blank so players can see what the
+               word means. If the file is missing, app.js quietly
+               keeps the illustration hidden instead of showing a
+               broken image — so you can add these image files
+               gradually without breaking anything in the
+               meantime. Add one PNG/JPG per distinct "word" value
+               under images/words/ named <word-lowercase>.png.
    ============================================================ */
  
 // ---- 1. Master pattern pool, tagged by category -------------
@@ -428,7 +448,14 @@ function buildMediumBank() {
       audio: item.audio,
       correctAnswer: correct,
       options,
-      prompt: `What sound is missing?\n${item.display}`
+      prompt: `What sound is missing?\n${item.display}`,
+      // NEW: passed through so app.js can reveal the answer in
+      // place (word/display) and show a matching illustration
+      // (image) once the student has answered — see
+      // revealMediumAnswer() in app.js.
+      word: item.word,
+      display: item.display,
+      image: `images/words/${item.word.toLowerCase()}.png`
     };
   });
 }
