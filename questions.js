@@ -329,7 +329,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-crab.mp3",    word: "crab",    display: "__AB",     pattern: "cr", group: "blend" },
   { audio: "audio/med-crown.mp3",   word: "crown",   display: "__OWN",    pattern: "cr", group: "blend" },
   { audio: "audio/med-drum.mp3",    word: "drum",    display: "__UM",     pattern: "dr", group: "blend" },
-  { audio: "audio/med-dress.mp3",   word: "dress",   display: "__ESS",    pattern: "dr", group: "blend" },
+  { audio: "audio/med-drop.mp3",   word: "drop",   display: "__OP",    pattern: "dr", group: "blend" },
   { audio: "audio/med-frog.mp3",    word: "frog",    display: "__OG",     pattern: "fr", group: "blend" },
   { audio: "audio/med-friend.mp3",  word: "friend",  display: "__IEND",   pattern: "fr", group: "blend" },
   { audio: "audio/med-grape.mp3",   word: "grape",   display: "__APE",    pattern: "gr", group: "blend" },
