@@ -1086,14 +1086,17 @@ h1, h2, h3 {
         letters, then .blank-revealed is added to pop/fade them
         in, turning "SIST__" into "SISTER".
 
-     b) .word-image-wrap — a small illustration of the word, sat
-        INLINE right after the revealed word on the same text
-        line (e.g. "SISTER [image]"), hidden by default and faded
-        in via .show. Because this is plain inline content inside
-        the <p class="prompt"> — not a grid or flex layout — it
-        behaves identically on every device (phone, tablet,
-        desktop): the image simply sits beside the word as part
-        of the same line, the same way everywhere.
+     b) .word-meaning-wrap — the word's Japanese translation,
+        positioned right beside the revealed word (e.g.
+        "SISTER 「姉」"), hidden by default and faded in via
+        .show. It's positioned ABSOLUTELY relative to .word-line
+        (the text), rather than sitting inline as normal text
+        flow — so appearing/disappearing never changes the width
+        of .word-line itself, which means the word's own centered
+        position on screen never shifts. Without this, the
+        translation would count toward the centered line's total
+        width and visibly "push" the word sideways the moment it
+        appeared.
    ============================================================ */
 
 .blank-slot {
@@ -1123,34 +1126,55 @@ h1, h2, h3 {
   }
 }
 
-.word-image-wrap {
+.word-line {
+  /* Sized to fit ONLY the text content (not the translation
+     below), and made a positioning anchor for it. Because
+     .prompt centers this inline-block as a single unit based on
+     its own text width, the word's centered position never
+     changes whether the translation is showing or not — it's
+     positioned relative to this box instead of being counted as
+     part of it, so it can't push/re-center the word when it
+     appears. */
+  position: relative;
+  display: inline-block;
+}
+
+.word-meaning-wrap {
+  /* Taken out of normal text flow entirely (position: absolute),
+     so it can sit right beside the word without ever affecting
+     the word's own width/centering — this is what stops the
+     answer text from "jumping" left when the translation
+     appears. */
   display: none;
-  vertical-align: middle;
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
   margin-left: 14px;
+  white-space: nowrap;
 }
 
-.word-image-wrap.show {
-  display: inline-flex;
-  align-items: center;
-  animation: wordImageFadeIn .5s ease;
-}
-
-@keyframes wordImageFadeIn {
-  from { opacity: 0; transform: translateY(4px) scale(0.85); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-.word-image {
+.word-meaning-wrap.show {
   display: block;
-  /* Sized to match the answer buttons' own rendered height —
-     .option-btn is font-size: clamp(32px, 8vw, 42px) plus
-     padding: clamp(14px, 3vh, 22px), which renders out to
-     roughly 65–95px tall depending on viewport. This mirrors
-     that so the illustration reads as "the same size as an
-     answer", not just "as tall as the text". */
-  height: clamp(64px, 16vw, 96px);
-  width: auto;
-  object-fit: contain;
-  /* No border, shadow, or background — transparent, floating
-     directly over the galaxy scene. */
+  animation: wordMeaningFadeIn .5s ease;
+}
+
+@keyframes wordMeaningFadeIn {
+  from { opacity: 0; transform: translateY(calc(-50% + 4px)) scale(0.9); }
+  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+.word-meaning-text {
+  display: block;
+  font-family: var(--font-display);
+  font-weight: 700;
+  /* Scales with the same clamp curve as the answer buttons'
+     font-size, so the translation reads at a similar visual
+     weight to the revealed word itself — same idea as the old
+     image sizing, just for text. Tune this one value if you want
+     it bigger/smaller. */
+  font-size: clamp(22px, 6vw, 32px);
+  color: var(--comet-teal);
+  text-shadow: 0 0 12px rgba(79, 227, 193, 0.5);
+  white-space: nowrap;
 }
