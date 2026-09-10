@@ -1126,7 +1126,7 @@ h1, h2, h3 {
 .word-image-wrap {
   display: none;
   vertical-align: middle;
-  margin-left: 0.35em;
+  margin-left: 14px;
 }
 
 .word-image-wrap.show {
@@ -1142,13 +1142,13 @@ h1, h2, h3 {
 
 .word-image {
   display: block;
-  /* Sized in em, so it inherits the prompt's own font-size
-     (clamp(22px, 6vw, 34px) — see .prompt) and scales exactly
-     with the revealed word/answer text on every device, instead
-     of using its own separate fixed size. 1.4em reads as roughly
-     "as tall as the text, plus a little" so it doesn't look
-     cramped next to the letters. */
-  height: 1.4em;
+  /* Sized to match the answer buttons' own rendered height —
+     .option-btn is font-size: clamp(32px, 8vw, 42px) plus
+     padding: clamp(14px, 3vh, 22px), which renders out to
+     roughly 65–95px tall depending on viewport. This mirrors
+     that so the illustration reads as "the same size as an
+     answer", not just "as tall as the text". */
+  height: clamp(64px, 16vw, 96px);
   width: auto;
   object-fit: contain;
   /* No border, shadow, or background — transparent, floating
