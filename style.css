@@ -1087,16 +1087,19 @@ h1, h2, h3 {
         in, turning "SIST__" into "SISTER".
 
      b) .word-meaning-wrap — the word's Japanese translation,
-        positioned right beside the revealed word (e.g.
-        "SISTER 「姉」"), hidden by default and faded in via
-        .show. It's positioned ABSOLUTELY relative to .word-line
-        (the text), rather than sitting inline as normal text
-        flow — so appearing/disappearing never changes the width
-        of .word-line itself, which means the word's own centered
-        position on screen never shifts. Without this, the
-        translation would count toward the centered line's total
-        width and visibly "push" the word sideways the moment it
-        appeared.
+        appearing on its own centered line right below the word:
+
+          What sound is missing?
+          SISTER
+          意味：姉/妹
+
+        Hidden (display: none) by default — .show switches it to
+        display: block, which is what pushes it onto a new line
+        below the word and lets .prompt's text-align: center
+        center it as its own row, no absolute positioning needed
+        (unlike the previous "beside the word" layout, showing or
+        hiding this doesn't affect the word's own line at all,
+        since it's a separate line entirely).
    ============================================================ */
 
 .blank-slot {
@@ -1127,54 +1130,38 @@ h1, h2, h3 {
 }
 
 .word-line {
-  /* Sized to fit ONLY the text content (not the translation
-     below), and made a positioning anchor for it. Because
-     .prompt centers this inline-block as a single unit based on
-     its own text width, the word's centered position never
-     changes whether the translation is showing or not — it's
-     positioned relative to this box instead of being counted as
-     part of it, so it can't push/re-center the word when it
-     appears. */
-  position: relative;
   display: inline-block;
 }
 
 .word-meaning-wrap {
-  /* Taken out of normal text flow entirely (position: absolute),
-     so it can sit right beside the word without ever affecting
-     the word's own width/centering — this is what stops the
-     answer text from "jumping" left when the translation
-     appears. */
   display: none;
-  position: absolute;
-  left: 100%;
-  top: 50%;
-  transform: translateY(-50%);
-  margin-left: 14px;
-  white-space: nowrap;
 }
 
 .word-meaning-wrap.show {
   display: block;
-  animation: wordMeaningFadeIn .5s ease;
+  margin-top: 10px;
+  animation: wordMeaningFadeIn .45s ease;
 }
 
 @keyframes wordMeaningFadeIn {
-  from { opacity: 0; transform: translateY(calc(-50% + 4px)) scale(0.9); }
-  to   { opacity: 1; transform: translateY(-50%) scale(1); }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 .word-meaning-text {
-  display: block;
+  /* inline-block (not block) so it only takes up as much width as
+     its own text, letting .prompt's text-align: center center it
+     as a compact unit on its line rather than stretching edge to
+     edge. */
+  display: inline-block;
   font-family: var(--font-display);
   font-weight: 700;
-  /* Scales with the same clamp curve as the answer buttons'
-     font-size, so the translation reads at a similar visual
-     weight to the revealed word itself — same idea as the old
-     image sizing, just for text. Tune this one value if you want
-     it bigger/smaller. */
-  font-size: clamp(22px, 6vw, 32px);
+  /* A bit smaller than the revealed word itself, reading as a
+     caption/translation underneath rather than competing with it. */
+  font-size: clamp(18px, 5vw, 26px);
   color: var(--comet-teal);
   text-shadow: 0 0 12px rgba(79, 227, 193, 0.5);
-  white-space: nowrap;
+  /* No nowrap here — long translations are free to wrap onto a
+     second line within the prompt's width instead of overflowing
+     off-screen, since this now sits in normal centered flow. */
 }
