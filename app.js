@@ -2201,9 +2201,14 @@ RENDER QUESTION
 // "__" in "SIST__") in a <span id="blankSlot"> so
 // revealMediumAnswer() can later swap just that piece for the
 // real letters and animate it in. It also places the word-meaning
-// slot (#wordMeaningWrap / #wordMeaningText) right beside the
-// word — e.g. "SISTER (姉)" — so the Japanese translation always
-// sits directly next to the word once revealed.
+// slot (#wordMeaningWrap / #wordMeaningText) as its own line right
+// below the word — e.g.:
+//   What sound is missing?
+//   SISTER
+//   意味：姉/妹
+// — hidden by default; revealMediumAnswer() makes it a block
+// element once shown, which is what pushes it onto its own new,
+// centered line without needing an explicit line break here.
 function buildMediumPromptHTML(q) {
 
 const segments =
@@ -2232,11 +2237,8 @@ segment => {
 }
 );
 
-wordHtml +=
-`<span class="word-meaning-wrap" id="wordMeaningWrap" aria-hidden="true"><span id="wordMeaningText" class="word-meaning-text"></span></span>`;
-
 return (
-`What sound is missing?<br><span class="word-line">${wordHtml}</span>`
+`What sound is missing?<br><span class="word-line">${wordHtml}</span><span class="word-meaning-wrap" id="wordMeaningWrap" aria-hidden="true"><span id="wordMeaningText" class="word-meaning-text"></span></span>`
 );
 
 }
