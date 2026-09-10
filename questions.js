@@ -318,7 +318,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-flower.mp3",  word: "flower",  display: "__OWER",   pattern: "fl", group: "blend" },
   { audio: "audio/med-glass.mp3",   word: "glass",   display: "__ASS",    pattern: "gl", group: "blend" },
   { audio: "audio/med-glove.mp3",   word: "glove",   display: "__OVE",    pattern: "gl", group: "blend" },
-  { audio: "audio/med-plane.mp3",   word: "plane",   display: "__ANE",    pattern: "pl", group: "blend" },
+  { audio: "audio/med-airplane.mp3",   word: "airplane",   display: "AIR__ANE",    pattern: "pl", group: "blend" },
   { audio: "audio/med-please.mp3",  word: "please",  display: "__EASE",   pattern: "pl", group: "blend" },
   { audio: "audio/med-sleep.mp3",   word: "sleep",   display: "__EEP",    pattern: "sl", group: "blend" },
   { audio: "audio/med-slide.mp3",   word: "slide",   display: "__IDE",    pattern: "sl", group: "blend" },
