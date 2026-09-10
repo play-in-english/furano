@@ -2200,12 +2200,10 @@ RENDER QUESTION
 // text. It wraps the run of underscores in q.display (e.g. the
 // "__" in "SIST__") in a <span id="blankSlot"> so
 // revealMediumAnswer() can later swap just that piece for the
-// real letters and animate it in. It also places the word-image
-// slot (#wordImageWrap / #wordImageEl) INLINE right after the
-// word, on the same line — e.g. "SISTER [image]" — so the
-// illustration always sits directly beside the word as plain
-// text flow, identically on every device, rather than depending
-// on a grid/flex layout that can wrap differently by screen size.
+// real letters and animate it in. It also places the word-meaning
+// slot (#wordMeaningWrap / #wordMeaningText) right beside the
+// word — e.g. "SISTER (姉)" — so the Japanese translation always
+// sits directly next to the word once revealed.
 function buildMediumPromptHTML(q) {
 
 const segments =
@@ -2235,7 +2233,7 @@ segment => {
 );
 
 wordHtml +=
-`<span class="word-image-wrap" id="wordImageWrap" aria-hidden="true"><img id="wordImageEl" class="word-image" alt=""></span>`;
+`<span class="word-meaning-wrap" id="wordMeaningWrap" aria-hidden="true"><span id="wordMeaningText" class="word-meaning-text"></span></span>`;
 
 return (
 `What sound is missing?<br><span class="word-line">${wordHtml}</span>`
@@ -2559,8 +2557,8 @@ in Medium mode. It:
      letters (q.correctAnswer) and adds a class that triggers a
      CSS fade/pop-in animation (see .blank-slot.blank-revealed
      in style.css).
-  2. Fades in an illustration for the word (q.image) so players
-     can see what the word means.
+  2. Fades in the word's Japanese translation (q.japanese) right
+     beside it, so players can see what the word means.
 
 This always reveals the CORRECT answer, whether the student got
 it right or wrong — same as the existing text feedback already
@@ -2600,47 +2598,31 @@ blankSlot.classList.add(
 // Looked up fresh here (rather than cached at page load) because
 // this markup is regenerated inline inside the prompt for every
 // new question — see buildMediumPromptHTML().
-const wordImageWrap =
+const wordMeaningWrap =
 document.getElementById(
-'wordImageWrap'
+'wordMeaningWrap'
 );
 
-const wordImageEl =
+const wordMeaningText =
 document.getElementById(
-'wordImageEl'
+'wordMeaningText'
 );
 
 if (
-wordImageWrap &&
-wordImageEl &&
-q.image
+wordMeaningWrap &&
+wordMeaningText &&
+q.japanese
 ) {
 
 
-wordImageEl.onerror =
-  () => {
-
-    // Missing/broken image file — fail quietly and just
-    // keep the illustration hidden rather than showing a
-    // broken-image icon.
-    wordImageWrap.classList.remove(
-      'show'
-    );
-
-  };
+// "意味：" (meaning:) label in front of the translation, e.g.
+// "意味：姉/妹" — easy to change here if you'd rather show it
+// differently.
+wordMeaningText.textContent =
+  `意味：${q.japanese}`;
 
 
-wordImageEl.alt =
-  q.word
-    ? `Picture of ${q.word}`
-    : '';
-
-
-wordImageEl.src =
-  q.image;
-
-
-wordImageWrap.classList.add(
+wordMeaningWrap.classList.add(
   'show'
 );
 
