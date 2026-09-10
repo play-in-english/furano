@@ -345,7 +345,7 @@ const MEDIUM_PATTERN_LIBRARY = [
   { audio: "audio/med-snake.mp3",   word: "snake",   display: "__AKE",    pattern: "sn", group: "blend" },
   { audio: "audio/med-sneeze.mp3",  word: "sneeze",  display: "__EEZE",   pattern: "sn", group: "blend" },
   { audio: "audio/med-spider.mp3",  word: "spider",  display: "__IDER",   pattern: "sp", group: "blend" },
-  { audio: "audio/med-sport.mp3",   word: "sport",   display: "__ORT",    pattern: "sp", group: "blend" },
+  { audio: "audio/med-sports.mp3",   word: "sports",   display: "__ORTS",    pattern: "sp", group: "blend" },
   { audio: "audio/med-stop.mp3",    word: "stop",    display: "__OP",     pattern: "st", group: "blend" },
   { audio: "audio/med-story.mp3",   word: "story",   display: "__ORY",    pattern: "st", group: "blend" },
   { audio: "audio/med-swim.mp3",    word: "swim",    display: "__IM",     pattern: "sw", group: "blend" },
