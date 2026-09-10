@@ -580,7 +580,7 @@ const JAPANESE_TRANSLATIONS = {
   stop: "止まる/止める",
   story: "絵本",
   swim: "泳ぐ",
-  sweet: "お菓子/甘いもの",
+  sweet: "甘い",
   spring: "春/ばね",
   spray: "スプレー",
   street: "通り/道路",
