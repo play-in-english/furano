@@ -118,7 +118,7 @@ const QUESTION_WARP_ACCEL_MS = 450;
 const QUESTION_EXIT_MS = 320;
 const QUESTION_ENTER_MS = 360;
 
-const AUTO_ADVANCE_DELAY_MS = 2000;
+const AUTO_ADVANCE_DELAY_MS = 2000; // currently unused — all modes require a manual "Next →" click now; kept here in case you want to bring auto-advance back for any mode later
 const AUTOPLAY_DELAY_MS = 0; // wait this long after the question renders before the single automatic play
 
 /* ============================================================
@@ -2853,24 +2853,13 @@ nextBtn.style.display =
 clearAutoAdvanceTimer();
 
 /*
-  NEW: Medium mode no longer auto-advances. Because the answer
-  reveal (blank fill-in + illustration) takes a moment to read,
-  players tap "Next →" themselves instead of being swept along
-  on a fixed timer. Easy and Hard modes are UNCHANGED — they
-  still auto-advance after AUTO_ADVANCE_DELAY_MS exactly as
-  before, and their scoring/timing logic is untouched either way.
+  All three modes (Easy, Medium, Hard) now require a manual
+  "Next →" click to advance — no mode auto-advances anymore.
+  Scoring/timing logic (the per-question speed bonus, mission
+  timer, etc.) is completely unaffected by this; it only changes
+  when the NEXT question appears, not how the current one was
+  scored.
 */
-if (
-state.mode !== 'medium'
-) {
-
-state.autoAdvanceTimeoutId =
-  setTimeout(
-    advanceFromCurrentQuestion,
-    AUTO_ADVANCE_DELAY_MS
-  );
-
-}
 
 }
 
