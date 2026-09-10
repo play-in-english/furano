@@ -170,21 +170,19 @@ function buildEasyBank() {
    --------------------
    Every entry below also carries:
 
-     word    — the plain word, e.g. "pie" (used for the alt text
-               and to build the illustration path)
-     display — the same masked string used to build the on-screen
-               prompt (e.g. "P__"), passed straight through to
-               app.js so it can locate the blank and fade the
-               correct letters into it after the student answers
-     image   — a conventional path to a word illustration, e.g.
-               "images/pie.png". app.js fades this in next to the
-               revealed blank so players can see what the word
-               means. If the file is missing, app.js quietly
-               keeps the illustration hidden instead of showing a
-               broken image — so you can add these image files
-               gradually without breaking anything in the
-               meantime. One PNG per distinct "word" value, saved
-               directly in images/ as <word-lowercase>.png.
+     word     — the plain word, e.g. "pie" (used to look up its
+                Japanese meaning below)
+     display  — the same masked string used to build the on-screen
+                prompt (e.g. "P__"), passed straight through to
+                app.js so it can locate the blank and fade the
+                correct letters into it after the student answers
+     japanese — the word's Japanese meaning, looked up from the
+                JAPANESE_TRANSLATIONS table further down this file
+                (keyed by the lowercase word). app.js fades this
+                in right next to the revealed word so players can
+                see what it means. A word with no translation
+                filled in yet just won't show anything — nothing
+                breaks, so you can fill the table in gradually.
    ============================================================ */
  
 // ---- 1. Master pattern pool, tagged by category -------------
@@ -436,6 +434,161 @@ function pickSameCategoryDistractor(item) {
   return chosen.text;
 }
  
+// ---- 4b. Japanese translations ----------------------------------------
+// One entry per distinct word, keyed by the LOWERCASE word (matching
+// item.word.toLowerCase()). Fill in each "" with the Japanese meaning
+// from your list — e.g. bell: "ベル". Any word left as "" simply won't
+// show a translation when revealed (buildMediumBank() below falls back
+// to an empty string automatically), so you can fill these in
+// gradually without breaking anything in the meantime.
+const JAPANESE_TRANSLATIONS = {
+  // ---------------- Double consonants ----------------
+  bell: "鐘/ベル",
+  doll: "人形",
+  miss: "～を逃す/～がいなくて寂しく思う",
+  pass: "渡す/通る/合格する",
+  puff: "ふくらむ",
+  muffin: "マフィン",
+  buzz: "ブンブンいう音/ブザー音/ぶんぶん飛ぶ",
+  jazz: "ジャズ",
+  kitty: "子猫/にゃんこ",
+  butter: "バター",
+  address: "住所",
+  ladder: "はしご",
+  guppy: "グッピー",
+  happy: "幸せな/うれしい",
+  hammer: "ハンマー",
+  summer: "夏",
+  dinner: "夕食/晩ごはん",
+  sunny: "晴れた",
+
+  // ---------------- Consonant digraphs ----------------
+  chair: "いす",
+  lunch: "昼食/昼ごはん",
+  shop: "店/買い物をする",
+  fish: "魚",
+  phone: "電話(する)",
+  dolphin: "イルカ",
+  whale: "クジラ",
+  white: "白",
+  thursday: "木曜日",
+  three: "3",
+  weather: "天気",
+  mother: "お母さん",
+  duck: "アヒル",
+  clock: "時計",
+  king: "王/国王",
+  song: "曲",
+
+  // ---------------- Vowel teams (group A) ----------------
+  rain: "雨/雨が降る",
+  snail: "カタツムリ",
+  play: "遊ぶ/（楽器やスポーツやゲームを）する",
+  day: "日/昼間",
+  peach: "桃",
+  sea: "海",
+  tree: "木",
+  sleep: "眠る",
+  pie: "パイ",
+  fries: "フライドポテト",
+  boat: "ボート/船",
+  road: "道/道路",
+  snow: "雪",
+  yellow: "きいろ",
+  blue: "青い",
+  glue: "のり",
+  fruit: "果物",
+  suit: "スーツ",
+
+  // ---------------- Vowel teams (group B: diphthongs) ----------------
+  moon: "月",
+  spoon: "スプーン",
+  book: "本",
+  foot: "足",
+  sound: "音",
+  mouse: "ネズミ",
+  cloudy: "曇り",
+  brown: "茶色",
+  owl: "フクロウ",
+  sauce: "ソース",
+  author: "作者",
+  coin: "硬貨",
+  voice: "声",
+  boy: "男の子",
+  toy: "おもちゃ",
+
+  // ---------------- R-controlled vowels ----------------
+  car: "車",
+  star: "星",
+  corn: "トウモロコシ",
+  pork: "豚肉",
+  bird: "鳥",
+  shirt: "シャツ",
+  word: "言葉",
+  homework: "宿題",
+  clear: "透明な/はっきりした",
+  year: "年",
+  shoulder: "肩",
+  sister: "姉/妹",
+  hair: "髪",
+  fair: "公平な/祭り・品評会",
+  fire: "火",
+  tired: "疲れた",
+  store: "店",
+  more: "より多く",
+  turn: "曲がる",
+  nurse: "看護師",
+  sour: "酸っぱい",
+  hour: "1時間",
+
+  // ---------------- Consonant blends ----------------
+  black: "黒",
+  block: "ブロック",
+  clap: "拍手",
+  class: "クラス/授業",
+  flag: "旗",
+  flower: "花",
+  glass: "ガラス",
+  glove: "手袋",
+  plane: "飛行機",
+  please: "～してください",
+  slide: "滑る/スライド",
+  brush: "ブラシ/磨く",
+  bread: "パン",
+  crab: "カニ",
+  crown: "王冠",
+  drum: "ドラム/太鼓",
+  drop: "落とす/落ちる",
+  frog: "カエル",
+  friend: "友達",
+  grape: "ぶどう",
+  green: "緑",
+  present: "プレゼント",
+  princess: "おひめさま",
+  train: "電車/訓練する",
+  truck: "トラック",
+  scarf: "マフラー/スカーフ",
+  scan: "スキャンする",
+  skate: "スケートをする",
+  mask: "マスク/～を隠す",
+  smile: "笑顔",
+  small: "小さい",
+  snake: "ヘビ",
+  sneeze: "くしゃみ",
+  spider: "クモ",
+  sport: "スポーツ",
+  stop: "止まる/止める",
+  story: "絵本",
+  swim: "泳ぐ",
+  sweet: "お菓子/甘いもの",
+  spring: "春/ばね",
+  spray: "スプレー",
+  street: "通り/道路",
+  string: "ストラップ/ひも",
+  throw: "投げる",
+  thread: "糸",
+};
+
 // ---- 5. Build the round's question bank -------------------------------
 function buildMediumBank() {
   return MEDIUM_PATTERN_LIBRARY.map(item => {
@@ -450,12 +603,12 @@ function buildMediumBank() {
       options,
       prompt: `What sound is missing?\n${item.display}`,
       // NEW: passed through so app.js can reveal the answer in
-      // place (word/display) and show a matching illustration
-      // (image) once the student has answered — see
+      // place (word/display) and show the word's Japanese meaning
+      // (japanese) once the student has answered — see
       // revealMediumAnswer() in app.js.
       word: item.word,
       display: item.display,
-      image: `images/${item.word.toLowerCase()}.png`
+      japanese: JAPANESE_TRANSLATIONS[item.word.toLowerCase()] || ''
     };
   });
 }
