@@ -756,61 +756,76 @@ DAILY HOMEPAGE
 
 function showDailyHomepage() {
 
+const launchMission =
+sessionStorage.getItem(
+  'launchMission1'
+);
+
 const nickname =
 loadNickname();
 
-/*
-FIRST VISIT OF THE DAY
+/* HOME BASE → Mission 1 */
+if (
+  launchMission === 'true' &&
+  nickname
+) {
 
+  sessionStorage.removeItem(
+    'launchMission1'
+  );
 
-No nickname exists.
+  state.nickname = nickname;
 
+  try {
+    sessionStorage.setItem(
+      'playerNickname',
+      nickname
+    );
+  } catch (error) {
+    /* Ignore sessionStorage failure */
+  }
 
-*/
+  startWelcomeEl.textContent =
+    `Are you ready, ${nickname}?`;
 
-if (!nickname) {
+  showScreen('start');
 
-
-state.nickname = '';
-
-nicknameInput.value = '';
-
-nicknameSubmitBtn.disabled = true;
-
-showScreen('nickname');
-
-setTimeout(
-  () => {
-    nicknameInput.focus();
-  },
-  50
-);
-
-return;
-
-
+  return;
 }
 
-/*
-RETURNING PLAYER
+/* FIRST VISIT OF THE DAY */
+if (!nickname) {
 
+  state.nickname = '';
+  nicknameInput.value = '';
+  nicknameSubmitBtn.disabled = true;
 
-Nickname already exists today.
+  showScreen('nickname');
 
+  setTimeout(
+    () => {
+      nicknameInput.focus();
+    },
+    50
+  );
 
-*/
+  return;
+}
 
-state.nickname =
-nickname;
+/* Existing nickname → HOME BASE */
+state.nickname = nickname;
 
-welcomeBackEl.textContent =
-`Welcome back, ${nickname}!`;
+try {
+  sessionStorage.setItem(
+    'playerNickname',
+    nickname
+  );
+} catch (error) {
+  /* Ignore sessionStorage failure */
+}
 
-startWelcomeEl.textContent =
-`Are you ready, ${nickname}?`;
-
-showScreen('checkin');
-
+window.location.href =
+  'home.html';
 }
 
 /* ============================================================
@@ -830,11 +845,9 @@ nicknameInput.value
 
 if (!nickname) {
 
-
 nicknameInput.focus();
 
 return;
-
 
 }
 
@@ -849,28 +862,20 @@ saveNickname(
 nickname
 );
 
-/*
-Update the START MISSION page.
-*/
-
-startWelcomeEl.textContent =
-`Are you ready, ${nickname}?`;
-
-/*
-FIRST LOGIN:
-
-
-NICKNAME
-   ↓
-START MISSION PAGE
-
-
-*/
-
-showScreen('start');
-
+try {
+  sessionStorage.setItem(
+    'playerNickname',
+    nickname
+  );
+} catch (error) {
+  /* Ignore sessionStorage failure */
 }
 
+/* NICKNAME → HOME BASE */
+window.location.href =
+  'home.html';
+
+}
 /* ============================================================
 NICKNAME INPUT
 ============================================================ */
