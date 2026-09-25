@@ -3965,144 +3965,49 @@ now + 0.18
 /*
   CORRECT ANSWER SOUND
   ------------------------------------------------------------
-  "Two stars colliding" — a bright, crisp impact made of two
-  overlapping tones with a fast attack and quick decay — followed
-  by "a burst of tiny starlight particles shooting upward" — a
-  handful of short, high, rising blips fired off in quick
-  succession right after the impact.
+  Plays the "Twinkle/Sparkle" sound effect (ShidenBeatsMusic,
+  Pixabay) from audio/correct-twinkle.mp3 instead of a
+  synthesized tone. Reuses one Audio object and rewinds it each
+  time, so rapid-fire correct answers restart cleanly instead of
+  overlapping or lagging.
 */
+let correctAnswerAudio =
+null;
+
 function playCorrectSound() {
 
-const ctx =
-getSoundCtx();
-
-if (!ctx) {
-return;
-}
-
-const now =
-ctx.currentTime;
-
-/* Impact: two "colliding" tones, bright and metallic. */
-[1600, 2100].forEach(
-freq => {
+if (!correctAnswerAudio) {
 
 
-  const osc =
-    ctx.createOscillator();
-
-  const gain =
-    ctx.createGain();
-
-  osc.type =
-    'triangle';
-
-  osc.frequency.setValueAtTime(
-    freq,
-    now
-  );
-
-  osc.frequency.exponentialRampToValueAtTime(
-    freq * 1.35,
-    now + 0.05
-  );
-
-  gain.gain.setValueAtTime(
-    0.0001,
-    now
-  );
-
-  gain.gain.exponentialRampToValueAtTime(
-    0.22,
-    now + 0.008
-  );
-
-  gain.gain.exponentialRampToValueAtTime(
-    0.0001,
-    now + 0.22
-  );
-
-  osc.connect(gain);
-
-  gain.connect(
-    ctx.destination
-  );
-
-  osc.start(now);
-
-  osc.stop(
-    now + 0.24
+correctAnswerAudio =
+  new Audio(
+    'audio/correct-twinkle.mp3'
   );
 
 
 }
-);
 
-/* Sparkle burst: tiny rising blips, staggered right after impact. */
-const sparkleCount = 6;
+correctAnswerAudio.currentTime = 0;
 
-for (
-let i = 0;
-i < sparkleCount;
-i++
+const promise =
+correctAnswerAudio.play();
+
+if (
+promise &&
+typeof promise.catch === 'function'
 ) {
 
 
-  const t =
-    now +
-    0.05 +
-    i * 0.028;
+promise.catch(
+  error => {
 
-  const freq =
-    2200 +
-    i * 260 +
-    Math.random() * 80;
+    console.warn(
+      'Correct-answer sound could not play:',
+      error
+    );
 
-  const osc =
-    ctx.createOscillator();
-
-  const gain =
-    ctx.createGain();
-
-  osc.type =
-    'sine';
-
-  osc.frequency.setValueAtTime(
-    freq,
-    t
-  );
-
-  osc.frequency.exponentialRampToValueAtTime(
-    freq * 1.6,
-    t + 0.09
-  );
-
-  gain.gain.setValueAtTime(
-    0.0001,
-    t
-  );
-
-  gain.gain.exponentialRampToValueAtTime(
-    0.09,
-    t + 0.006
-  );
-
-  gain.gain.exponentialRampToValueAtTime(
-    0.0001,
-    t + 0.11
-  );
-
-  osc.connect(gain);
-
-  gain.connect(
-    ctx.destination
-  );
-
-  osc.start(t);
-
-  osc.stop(
-    t + 0.13
-  );
+  }
+);
 
 
 }
