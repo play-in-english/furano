@@ -756,20 +756,63 @@ DAILY HOMEPAGE
 
 function showDailyHomepage() {
 
+const launchMission1 =
+sessionStorage.getItem(
+'launchMission1'
+);
+
+/*
+HOME BASE → MISSION 1
+
+If Home Base sent the player here,
+skip the normal CHECK-IN screen and
+go directly to START MISSION.
+*/
+
+if (launchMission1) {
+
+sessionStorage.removeItem(
+  'launchMission1'
+);
+
 const nickname =
 loadNickname();
 
+if (nickname) {
+
+  state.nickname =
+    nickname;
+
+  sessionStorage.setItem(
+    'playerNickname',
+    nickname
+  );
+
+  welcomeBackEl.textContent =
+    `Welcome back, ${nickname}!`;
+
+  startWelcomeEl.textContent =
+    `Are you ready, ${nickname}?`;
+
+  showScreen('start');
+
+  return;
+
+}
+
+}
+
 /*
-FIRST VISIT OF THE DAY
+NORMAL DAILY HOMEPAGE
 
-
-No nickname exists.
-
-
+No nickname today:
+→ nickname screen
 */
 
-if (!nickname) {
+const nickname =
+loadNickname();
 
+if (!nickname) {
 
 state.nickname = '';
 
@@ -788,20 +831,21 @@ setTimeout(
 
 return;
 
-
 }
 
 /*
 RETURNING PLAYER
 
-
 Nickname already exists today.
-
-
 */
 
 state.nickname =
 nickname;
+
+sessionStorage.setItem(
+'playerNickname',
+nickname
+);
 
 welcomeBackEl.textContent =
 `Welcome back, ${nickname}!`;
@@ -830,11 +874,9 @@ nicknameInput.value
 
 if (!nickname) {
 
-
 nicknameInput.focus();
 
 return;
-
 
 }
 
@@ -849,6 +891,11 @@ saveNickname(
 nickname
 );
 
+sessionStorage.setItem(
+'playerNickname',
+nickname
+);
+
 /*
 Update the START MISSION page.
 */
@@ -859,18 +906,14 @@ startWelcomeEl.textContent =
 /*
 FIRST LOGIN:
 
-
 NICKNAME
    ↓
 START MISSION PAGE
-
-
 */
 
 showScreen('start');
 
 }
-
 /* ============================================================
 NICKNAME INPUT
 ============================================================ */
