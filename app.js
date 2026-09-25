@@ -563,6 +563,28 @@ document.getElementById(
 'startContent'
 );
 
+// NEW: "Home Base" buttons — placed on the Start Mission,
+// Difficulty, and Results screens so a player can back out to
+// home.html (mission select) at any point WITHOUT losing their
+// nickname or their spot; if they never click it, they simply
+// keep playing the current mission as normal. The in-game
+// black-hole button already sends the player home mid-question,
+// so these cover the screens the black hole doesn't reach.
+const homeFromStartBtn =
+document.getElementById(
+'homeFromStartBtn'
+);
+
+const homeFromDifficultyBtn =
+document.getElementById(
+'homeFromDifficultyBtn'
+);
+
+const homeFromResultsBtn =
+document.getElementById(
+'homeFromResultsBtn'
+);
+
 // NEW: reference to the existing "Which letter did you hear?"
 // paragraph inside the game screen, found by its existing class
 // (no HTML changes needed). Used so Medium/Hard questions can show
@@ -827,6 +849,46 @@ try {
 window.location.href =
   'home.html';
 }
+
+/* ============================================================
+GO TO HOME BASE (NEW)
+============================================================
+Used by the "🏠 Home Base" buttons on the Start Mission,
+Difficulty, and Results screens. Unlike the black-hole button,
+this does NOT play a transition or touch the round/timer state
+— it's meant for screens where no question is in progress, so a
+simple, immediate navigation is enough. The nickname stays saved
+in localStorage/sessionStorage, so home.html will greet the same
+player and they can jump straight back into a mission.
+============================================================ */
+
+function goToHomeBase() {
+
+window.location.href =
+'home.html';
+
+}
+
+[
+homeFromStartBtn,
+homeFromDifficultyBtn,
+homeFromResultsBtn
+].forEach(
+button => {
+
+
+if (!button) {
+  return;
+}
+
+button.addEventListener(
+  'click',
+  goToHomeBase
+);
+
+
+}
+);
 
 /* ============================================================
 NICKNAME SUBMISSION
