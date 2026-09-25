@@ -242,6 +242,18 @@ aria-hidden="true"
         🚀 LET'S LAUNCH!
       </button>
 
+      <!-- NEW: lets the player back out to Home Base to pick a
+           different mission instead of continuing this one. If
+           they never tap it, nothing changes — they can still
+           tap LET'S LAUNCH! and keep going. -->
+      <button
+        id="homeFromStartBtn"
+        class="btn btn-secondary btn-block start-secondary-btn"
+        type="button"
+      >
+        🏠 Home Base
+      </button>
+
     </div>
 
   </section>
@@ -317,6 +329,16 @@ aria-hidden="true"
         </button>
 
       </div>
+
+      <!-- NEW: same Home Base escape hatch as the Start screen —
+           purely optional, doesn't affect anything unless clicked. -->
+      <button
+        id="homeFromDifficultyBtn"
+        class="btn btn-secondary btn-block start-secondary-btn"
+        type="button"
+      >
+        🏠 Home Base
+      </button>
 
     </div>
 
@@ -548,6 +570,16 @@ aria-hidden="true"
         type="button"
       >
         🔄 Play Again
+      </button>
+
+      <!-- NEW: from Results, go back to Home Base to pick a
+           different mission instead of playing this one again. -->
+      <button
+        id="homeFromResultsBtn"
+        class="btn btn-secondary btn-block start-secondary-btn"
+        type="button"
+      >
+        🏠 Home Base
       </button>
 
     </div>
