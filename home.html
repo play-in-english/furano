@@ -285,6 +285,63 @@
 
     })();
 
+    // Button click sound — same square-wave "zap" synthesis as
+    // playClickSound() in app.js, kept self-contained here since
+    // this page doesn't load app.js. Applies to every button on
+    // this page (currently: START / COMING SOON).
+    let clickSoundCtx = null;
+
+    function playClickSound() {
+
+        const AudioContextClass =
+            window.AudioContext || window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+            return;
+        }
+
+        if (!clickSoundCtx) {
+            clickSoundCtx = new AudioContextClass();
+        }
+
+        if (clickSoundCtx.state === "suspended") {
+            clickSoundCtx.resume();
+        }
+
+        const now = clickSoundCtx.currentTime;
+
+        const osc = clickSoundCtx.createOscillator();
+        const gain = clickSoundCtx.createGain();
+
+        osc.type = "square";
+
+        osc.frequency.setValueAtTime(1100, now);
+        osc.frequency.exponentialRampToValueAtTime(120, now + 0.15);
+
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+
+        osc.connect(gain);
+        gain.connect(clickSoundCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.18);
+    }
+
+    document.addEventListener(
+        "click",
+        event => {
+
+            const button = event.target.closest("button");
+
+            if (button && !button.disabled) {
+                playClickSound();
+            }
+
+        },
+        true
+    );
+
 </script>
 
 </body>
