@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home Base</title>
+    <title>Galaxy Hub</title>
 
     <!-- Same font pairing as the main game (index.html / style.css):
          Baloo 2 for headings/buttons, Nunito for body text. -->
@@ -17,23 +17,106 @@
         :root {
             --font-display: "Baloo 2", "Trebuchet MS", sans-serif;
             --font-body: "Nunito", "Trebuchet MS", sans-serif;
+
+            --sky-deep: #05060f;
+            --sky-navy: #0b0e2b;
+            --star-gold: #ffd966;
+            --comet-teal: #4fe3c1;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
         }
 
         body {
             margin: 0;
             min-height: 100vh;
+            min-height: 100svh;
+            min-height: 100dvh;
             font-family: var(--font-body);
-            background: #081426;
             color: white;
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow-x: hidden;
+            padding: max(16px, env(safe-area-inset-top))
+                     max(16px, env(safe-area-inset-right))
+                     max(16px, env(safe-area-inset-bottom))
+                     max(16px, env(safe-area-inset-left));
+        }
+
+        /* ---------- Galaxy background: sky, nebula, twinkling stars ----------
+           Same look as the main game screen (index.html / style.css), so
+           the Home Base / Galaxy Hub page feels like part of the same
+           galaxy rather than a plain page. */
+        .sky {
+            position: fixed;
+            inset: 0;
+            z-index: -3;
+            background:
+                radial-gradient(ellipse at 20% 15%, rgba(124, 92, 255, 0.16), transparent 55%),
+                radial-gradient(ellipse at 82% 78%, rgba(255, 111, 176, 0.12), transparent 50%),
+                radial-gradient(ellipse at 50% 100%, rgba(79, 227, 193, 0.08), transparent 60%),
+                linear-gradient(180deg, var(--sky-deep) 0%, var(--sky-navy) 55%, #0a0d2a 100%);
+        }
+
+        .nebula {
+            position: fixed;
+            inset: -10%;
+            z-index: -2;
+            pointer-events: none;
+            background:
+                radial-gradient(600px 400px at 15% 25%, rgba(124, 92, 255, 0.14), transparent 60%),
+                radial-gradient(500px 380px at 85% 20%, rgba(255, 111, 176, 0.10), transparent 60%),
+                radial-gradient(700px 500px at 60% 90%, rgba(79, 227, 193, 0.08), transparent 60%);
+            filter: blur(6px);
+            animation: driftNebula 50s ease-in-out infinite alternate;
+        }
+
+        @keyframes driftNebula {
+            0%   { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(-2%, 2%) scale(1.05); }
+        }
+
+        .stars {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            border-radius: 50%;
+            background: #fff;
+            opacity: 0.6;
+            animation: twinkle linear infinite;
+        }
+
+        .star.big {
+            box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.8);
+        }
+
+        @keyframes twinkle {
+            0%, 100% { opacity: var(--min-o, 0.25); transform: scale(1); }
+            50%      { opacity: var(--max-o, 0.95); transform: scale(1.25); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .nebula, .star {
+                animation: none;
+            }
         }
 
         .home-base {
+            position: relative;
+            z-index: 1;
             width: 90%;
             max-width: 900px;
             text-align: center;
+            text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.8);
         }
 
         h1 {
@@ -48,6 +131,7 @@
             font-weight: 700;
             font-size: 24px;
             margin-bottom: 40px;
+            color: var(--star-gold);
         }
 
         .missions {
@@ -57,7 +141,7 @@
         }
 
         .mission {
-            background: #142a47;
+            background: rgba(20, 42, 71, 0.75);
             border: 3px solid #4cc9f0;
             border-radius: 20px;
             padding: 30px 20px;
@@ -78,6 +162,7 @@
         .mission p {
             font-family: var(--font-body);
             font-weight: 600;
+            line-height: 1.5;
         }
 
         .mission button {
@@ -104,9 +189,13 @@
 
 <body>
 
+<div class="sky"></div>
+<div class="nebula"></div>
+<div class="stars" id="starField" aria-hidden="true"></div>
+
 <div class="home-base">
 
-    <h1>🚀 HOME BASE</h1>
+    <h1>🪐 GALAXY HUB</h1>
 
     <div id="welcome"></div>
 
@@ -114,15 +203,21 @@
 
         <!-- Mission 1 -->
         <div class="mission" onclick="startMission1()">
-            <h2>Sounds from the SPACE!</h2>
-            <p>Complete the original English game.</p>
+            <h2>🎧 Sounds from SPACE!</h2>
+            <p>
+                宇宙から聞こえる、未知の音。<br>
+                この音は、何だろう？
+            </p>
             <button>START</button>
         </div>
 
         <!-- Future Word Hunter -->
         <div class="mission locked">
-            <h2>SHOOTING SPELL</h2>
-            <p>WORD HUNTER</p>
+            <h2>🌠 SHOOT 'N SPELL</h2>
+            <p>
+                宇宙に散らばったアルファベット。<br>
+                正しい文字を、シュート！
+            </p>
             <button>COMING SOON</button>
         </div>
 
@@ -144,10 +239,51 @@
     }
 
     // Mission 1
-   function startMission1() {
-    sessionStorage.setItem("launchMission1", "true");
-    window.location.href = "index.html";
-}
+    function startMission1() {
+        sessionStorage.setItem("launchMission1", "true");
+        window.location.href = "index.html";
+    }
+
+    // Twinkling star field — same generation approach as the main
+    // game's buildStarField() in app.js, kept small/self-contained
+    // here since this page doesn't load app.js.
+    (function buildStarField() {
+
+        const starField = document.getElementById("starField");
+
+        if (!starField) {
+            return;
+        }
+
+        const STAR_COUNT = 90;
+        const fragment = document.createDocumentFragment();
+
+        for (let i = 0; i < STAR_COUNT; i++) {
+
+            const star = document.createElement("div");
+
+            const size =
+                Math.random() < 0.15
+                    ? Math.random() * 2 + 2.5
+                    : Math.random() * 1.5 + 1;
+
+            star.className = size > 3 ? "star big" : "star";
+
+            star.style.left = `${Math.random() * 100}vw`;
+            star.style.top = `${Math.random() * 100}vh`;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+            star.style.animationDuration = `${(Math.random() * 3 + 2.5).toFixed(2)}s`;
+            star.style.animationDelay = `${(Math.random() * 4).toFixed(2)}s`;
+            star.style.setProperty("--min-o", (Math.random() * 0.25 + 0.1).toFixed(2));
+            star.style.setProperty("--max-o", (Math.random() * 0.4 + 0.6).toFixed(2));
+
+            fragment.appendChild(star);
+        }
+
+        starField.appendChild(fragment);
+
+    })();
 
 </script>
 
