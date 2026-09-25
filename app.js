@@ -2833,6 +2833,9 @@ state.correctCount++;
 state.score += pointsEarned;
 
 
+playCorrectSound();
+
+
 feedbackEl.textContent =
   `✓ Correct! +${pointsEarned} pts`;
 
@@ -2848,6 +2851,9 @@ const answer =
   multipleCorrect
     ? correct.join(' / ')
     : correct;
+
+
+playIncorrectSound();
 
 
 feedbackEl.textContent =
@@ -3862,14 +3868,19 @@ BUTTON SOUND
 let clickSoundCtx =
 null;
 
-function playClickSound() {
+/*
+  Shared AudioContext used by every synthesized sound effect below
+  (generic click, correct answer, incorrect answer) so they don't
+  each spin up their own context.
+*/
+function getSoundCtx() {
 
 const AudioContextClass =
 window.AudioContext ||
 window.webkitAudioContext;
 
 if (!AudioContextClass) {
-return;
+return null;
 }
 
 if (!clickSoundCtx) {
@@ -3892,14 +3903,27 @@ clickSoundCtx.resume();
 
 }
 
+return clickSoundCtx;
+
+}
+
+function playClickSound() {
+
+const ctx =
+getSoundCtx();
+
+if (!ctx) {
+return;
+}
+
 const now =
-clickSoundCtx.currentTime;
+ctx.currentTime;
 
 const osc =
-clickSoundCtx.createOscillator();
+ctx.createOscillator();
 
 const gain =
-clickSoundCtx.createGain();
+ctx.createGain();
 
 osc.type =
 'square';
@@ -3927,7 +3951,7 @@ now + 0.16
 osc.connect(gain);
 
 gain.connect(
-clickSoundCtx.destination
+ctx.destination
 );
 
 osc.start(now);
@@ -3938,6 +3962,242 @@ now + 0.18
 
 }
 
+/*
+  CORRECT ANSWER SOUND
+  ------------------------------------------------------------
+  "Two stars colliding" — a bright, crisp impact made of two
+  overlapping tones with a fast attack and quick decay — followed
+  by "a burst of tiny starlight particles shooting upward" — a
+  handful of short, high, rising blips fired off in quick
+  succession right after the impact.
+*/
+function playCorrectSound() {
+
+const ctx =
+getSoundCtx();
+
+if (!ctx) {
+return;
+}
+
+const now =
+ctx.currentTime;
+
+/* Impact: two "colliding" tones, bright and metallic. */
+[1600, 2100].forEach(
+freq => {
+
+
+  const osc =
+    ctx.createOscillator();
+
+  const gain =
+    ctx.createGain();
+
+  osc.type =
+    'triangle';
+
+  osc.frequency.setValueAtTime(
+    freq,
+    now
+  );
+
+  osc.frequency.exponentialRampToValueAtTime(
+    freq * 1.35,
+    now + 0.05
+  );
+
+  gain.gain.setValueAtTime(
+    0.0001,
+    now
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    0.22,
+    now + 0.008
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    now + 0.22
+  );
+
+  osc.connect(gain);
+
+  gain.connect(
+    ctx.destination
+  );
+
+  osc.start(now);
+
+  osc.stop(
+    now + 0.24
+  );
+
+
+}
+);
+
+/* Sparkle burst: tiny rising blips, staggered right after impact. */
+const sparkleCount = 6;
+
+for (
+let i = 0;
+i < sparkleCount;
+i++
+) {
+
+
+  const t =
+    now +
+    0.05 +
+    i * 0.028;
+
+  const freq =
+    2200 +
+    i * 260 +
+    Math.random() * 80;
+
+  const osc =
+    ctx.createOscillator();
+
+  const gain =
+    ctx.createGain();
+
+  osc.type =
+    'sine';
+
+  osc.frequency.setValueAtTime(
+    freq,
+    t
+  );
+
+  osc.frequency.exponentialRampToValueAtTime(
+    freq * 1.6,
+    t + 0.09
+  );
+
+  gain.gain.setValueAtTime(
+    0.0001,
+    t
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    0.09,
+    t + 0.006
+  );
+
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    t + 0.11
+  );
+
+  osc.connect(gain);
+
+  gain.connect(
+    ctx.destination
+  );
+
+  osc.start(t);
+
+  osc.stop(
+    t + 0.13
+  );
+
+
+}
+
+}
+
+/*
+  INCORRECT ANSWER SOUND
+  ------------------------------------------------------------
+  A short zap that gets pulled downward in pitch while a lowpass
+  filter closes over it, like it's being sucked into and muffled
+  by a black hole — obvious, but cut off quickly rather than left
+  ringing out.
+*/
+function playIncorrectSound() {
+
+const ctx =
+getSoundCtx();
+
+if (!ctx) {
+return;
+}
+
+const now =
+ctx.currentTime;
+
+const osc =
+ctx.createOscillator();
+
+const gain =
+ctx.createGain();
+
+const filter =
+ctx.createBiquadFilter();
+
+osc.type =
+'sawtooth';
+
+filter.type =
+'lowpass';
+
+filter.Q.value = 6;
+
+filter.frequency.setValueAtTime(
+3000,
+now
+);
+
+filter.frequency.exponentialRampToValueAtTime(
+80,
+now + 0.22
+);
+
+osc.frequency.setValueAtTime(
+900,
+now
+);
+
+osc.frequency.exponentialRampToValueAtTime(
+60,
+now + 0.22
+);
+
+gain.gain.setValueAtTime(
+0.22,
+now
+);
+
+gain.gain.exponentialRampToValueAtTime(
+0.0001,
+now + 0.2
+);
+
+osc.connect(filter);
+
+filter.connect(gain);
+
+gain.connect(
+ctx.destination
+);
+
+osc.start(now);
+
+osc.stop(
+now + 0.22
+);
+
+}
+
+/*
+  Generic button click sound plays for every button EXCEPT the
+  answer options — those get playCorrectSound() / playIncorrectSound()
+  instead (triggered from handleAnswer()), so a single click never
+  plays two sounds at once.
+*/
 document.addEventListener(
 'click',
 event => {
@@ -3951,7 +4211,10 @@ const button =
 
 if (
   button &&
-  !button.disabled
+  !button.disabled &&
+  !button.classList.contains(
+    'option-btn'
+  )
 ) {
 
   playClickSound();
