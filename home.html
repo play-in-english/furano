@@ -212,5 +212,247 @@
             display: grid;
             grid-template-columns: repeat(
                 auto-fit,
-                minma
+                minmax(220px, 1fr)
+            );
+            gap: 25px;
+        }
+
+        .mission {
+            background: rgba(20, 42, 71, 0.75);
+            border: 3px solid #4cc9f0;
+            border-radius: 20px;
+            padding: 30px 20px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .mission:hover {
+            transform: scale(1.05);
+        }
+
+        .mission h2 {
+            font-family: var(--font-display);
+            font-weight: 700;
+            margin-top: 0;
+        }
+
+        .mission p {
+            font-family: var(--font-body);
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .mission button {
+            font-family: var(--font-display);
+            font-weight: 700;
+            margin-top: 15px;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .locked {
+            opacity: 0.45;
+            cursor: default;
+        }
+
+        .locked:hover {
+            transform: none;
+        }
+
+        /* ---------- Responsive ---------- */
+
+        @media (max-width: 600px) {
+            .galaxy-hub-title {
+                font-size: 38px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="sky"></div>
+<div class="nebula"></div>
+<div class="stars" id="starField" aria-hidden="true"></div>
+
+<div class="home-base">
+
+    <h1 class="galaxy-hub-title">
+        <span>🪐</span>
+        <span>GALAXY HUB</span>
+    </h1>
+
+    <div id="welcome"></div>
+
+    <div class="missions">
+
+        <!-- Mission 1 -->
+        <div class="mission" onclick="startMission1()">
+            <h2>📢 Sounds from S.P.A.C.E.!</h2>
+            <p>
+                宇宙から聞こえる、未知の音。<br>
+                この音は、何だろう？
+            </p>
+            <button>START</button>
+        </div>
+
+        <!-- Future Word Hunter -->
+        <div class="mission locked">
+            <h2>🌠 SHOOT 'N SPELL</h2>
+            <p>
+                宇宙に散らばったアルファベット。<br>
+                正しい文字を、シュート！
+            </p>
+            <button>COMING SOON</button>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+    // Get the nickname saved during login
+    const nickname = sessionStorage.getItem("playerNickname");
+
+    // If there is no nickname, send the player back to login
+    if (!nickname) {
+        window.location.href = "index.html";
+    } else {
+        document.getElementById("welcome").textContent =
+            "Choose your mission, " + nickname + "!";
+    }
+
+    // Mission 1
+    function startMission1() {
+        sessionStorage.setItem("launchMission1", "true");
+        window.location.href = "index.html";
+    }
+
+    // Twinkling star field — same generation approach as the main
+    // game's buildStarField() in app.js, kept small/self-contained
+    // here since this page doesn't load app.js.
+    (function buildStarField() {
+
+        const starField = document.getElementById("starField");
+
+        if (!starField) {
+            return;
+        }
+
+        const STAR_COUNT = 90;
+        const fragment = document.createDocumentFragment();
+
+        for (let i = 0; i < STAR_COUNT; i++) {
+
+            const star = document.createElement("div");
+
+            const size =
+                Math.random() < 0.15
+                    ? Math.random() * 2 + 2.5
+                    : Math.random() * 1.5 + 1;
+
+            star.className = size > 3
+                ? "star big"
+                : "star";
+
+            star.style.left = `${Math.random() * 100}vw`;
+            star.style.top = `${Math.random() * 100}vh`;
+            star.style.width = `${size}px`;
+            star.style.height = `${size}px`;
+
+            star.style.animationDuration =
+                `${(Math.random() * 3 + 2.5).toFixed(2)}s`;
+
+            star.style.animationDelay =
+                `${(Math.random() * 4).toFixed(2)}s`;
+
+            star.style.setProperty(
+                "--min-o",
+                (Math.random() * 0.25 + 0.1).toFixed(2)
+            );
+
+            star.style.setProperty(
+                "--max-o",
+                (Math.random() * 0.4 + 0.6).toFixed(2)
+            );
+
+            fragment.appendChild(star);
+        }
+
+        starField.appendChild(fragment);
+
+    })();
+
+    // Button click sound — same square-wave "zap" synthesis as
+    // playClickSound() in app.js, kept self-contained here since
+    // this page doesn't load app.js. Applies to every button on
+    // this page (currently: START / COMING SOON).
+    let clickSoundCtx = null;
+
+    function playClickSound() {
+
+        const AudioContextClass =
+            window.AudioContext ||
+            window.webkitAudioContext;
+
+        if (!AudioContextClass) {
+            return;
+        }
+
+        if (!clickSoundCtx) {
+            clickSoundCtx = new AudioContextClass();
+        }
+
+        if (clickSoundCtx.state === "suspended") {
+            clickSoundCtx.resume();
+        }
+
+        const now = clickSoundCtx.currentTime;
+
+        const osc = clickSoundCtx.createOscillator();
+        const gain = clickSoundCtx.createGain();
+
+        osc.type = "square";
+
+        osc.frequency.setValueAtTime(1100, now);
+        osc.frequency.exponentialRampToValueAtTime(
+            120,
+            now + 0.15
+        );
+
+        gain.gain.setValueAtTime(0.16, now);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + 0.16
+        );
+
+        osc.connect(gain);
+        gain.connect(clickSoundCtx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.18);
+    }
+
+    document.addEventListener(
+        "click",
+        event => {
+
+            const button = event.target.closest("button");
+
+            if (button && !button.disabled) {
+                playClickSound();
+            }
+
+        },
+        true
+    );
+
+</script>
+
+</body>
+</html>
 ```
