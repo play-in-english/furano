@@ -940,24 +940,7 @@ nicknameForm.addEventListener(
 submitNickname
 );
 
-nicknameInput.addEventListener(
-'keydown',
-event => {
 
-
-if (
-  event.key === 'Enter'
-) {
-
-  event.preventDefault();
-
-  submitNickname();
-
-}
-
-
-}
-);
 
 /* ============================================================
 RETURNING PLAYER CONTINUE
