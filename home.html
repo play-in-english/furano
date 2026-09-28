@@ -336,10 +336,11 @@
         document.getElementById("welcome").textContent =
             "Choose your mission, " + nickname + "!";
 
-        // Returning player arriving at the GALAXY HUB: play the welcome
-        // audio once. (No-op if it was already played/consumed this visit.)
+        // Arriving at the GALAXY HUB: plays spaceship-welcome.mp3 for the
+        // first check-in of the day, or spaceship-welcomeback.mp3 for
+        // returning players. Once per visit (no-op if already played).
         if (window.WelcomeAudio) {
-            window.WelcomeAudio.play();
+            window.WelcomeAudio.playHubGreeting();
         }
     }
 
