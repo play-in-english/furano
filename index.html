@@ -34,21 +34,26 @@
   <!-- ======================================================
        CINEMATIC LAUNCH INTRO
        ======================================================
-       Plays once, automatically, on a genuine first-open of the
-       game (see shouldPlayLaunchIntro() in app.js). It draws its
-       own warp-speed star streaks onto #introStarCanvas and
-       launches a rocket with the words "えいごであそぼう" trailing
-       behind it like sparks. Fully non-interactive
-       (pointer-events: none) and always removes itself.
+       Plays once automatically on a genuine first-open of the
+       game (see shouldPlayLaunchIntro() in app.js). It draws
+       warp-speed star streaks onto #introStarCanvas and launches
+       a rocket with the words "LET'S GO!" trailing behind it
+       like sparks. Fully non-interactive and always removes itself.
        ====================================================== -->
+
   <div id="launchIntro" class="launch-intro" aria-hidden="true">
 
     <canvas
       id="introStarCanvas"
       class="intro-star-canvas"
+      aria-hidden="true"
     ></canvas>
 
-    <div class="intro-spacecraft" id="introSpacecraft" aria-hidden="true">
+    <div
+      class="intro-spacecraft"
+      id="introSpacecraft"
+      aria-hidden="true"
+    >
 
       <div class="intro-rocket-wrap">
         <div class="intro-engine-glow"></div>
@@ -61,10 +66,15 @@
         <span class="intro-char" style="--i:2">T</span>
         <span class="intro-char" style="--i:3">'</span>
         <span class="intro-char" style="--i:4">S</span>
-        <span class="intro-char" style="--i:5">  </span>
+        <span class="intro-char" style="--i:5">&nbsp;</span>
         <span class="intro-char" style="--i:6">G</span>
         <span class="intro-char" style="--i:7">O</span>
-        <span class="intro-bar" style="--i:8">!</span>
+        <span class="intro-char" style="--i:8">!</span>
+        <span
+          class="intro-bar"
+          style="--i:9"
+          aria-hidden="true"
+        ></span>
       </div>
 
     </div>
@@ -73,9 +83,10 @@
 
   <!-- Starts hidden via the existing .transition-hide class.
        playLaunchIntro() in app.js removes it at the right moment. -->
+
   <main class="app transition-hide" id="appShell">
 
-<div class="card">
+    <div class="card">
 
 
   <!-- ======================================================
