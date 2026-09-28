@@ -4467,6 +4467,582 @@ randRange(
 }
 
 /* ============================================================
+LAUNCH INTRO — CINEMATIC OPENING SEQUENCE (NEW)
+============================================================
+Plays once, automatically, on a genuinely fresh visit to
+index.html — i.e. NOT when arriving here via the "🚀 START"
+button on the Galaxy Hub (home.html sets the launchMission1 flag
+before redirecting back here), since that's an in-game
+navigation between screens, not "opening the game link". It also
+never plays when the existing daily-homepage logic (see
+showDailyHomepage() above) is about to immediately redirect away
+to home.html — a returning player reloading index.html with a
+nickname already saved — because nothing on index.html is ever
+actually shown to them in that case, so there'd be nothing for
+the intro to reveal into.
+
+In practice this means the intro plays exactly once per JST day,
+the first time index.html loads with no nickname saved yet — the
+existing "GALAXY CHECK-IN / enter nickname" moment.
+
+Sequence (~3.8s total):
+  1. Scene 1 — the star field brightens and a small spacecraft
+     fades in near the bottom of the screen.
+  2. Scene 2 — the spacecraft launches upward with a glowing
+     engine, a light trail, and background stars streaking past
+     it (drawn on the dedicated #introStarCanvas below).
+  3. Scene 3 — the streaks stretch further as the spacecraft
+     keeps climbing and shrinks/fades into the distance.
+  4. Scene 4 — the existing #galaxyFlash bloom (the SAME element
+     the between-screen galaxy-entrance transition already uses)
+     pulses once, the correct screen is put in place underneath
+     via showDailyHomepage(), and the intro crossfades out while
+     the app shell (already hidden via the existing
+     .app.transition-hide class) fades back in — landing on
+     GALAXY CHECK-IN exactly as if the player has arrived at the
+     Space Hub.
+
+Draws onto its OWN dedicated canvas (#introStarCanvas) with its
+own star array and its own requestAnimationFrame loop — entirely
+separate from warpCanvas/warpStars used by the between-question
+hyperspace transitions above, so the two can never collide, even
+if this ran at the same moment as a warp transition somehow would.
+Every element inside #launchIntro is pointer-events: none for its
+entire lifetime, so it can never block a tap on a button or input,
+however the timing plays out.
+============================================================ */
+
+const LAUNCH_INTRO_DURATION_MS = 3800;
+const LAUNCH_INTRO_ANTICIPATION_MS = 500;
+const LAUNCH_INTRO_REVEAL_MS = 700;
+const LAUNCH_INTRO_STAR_COUNT = 130;
+
+const launchIntroEl =
+document.getElementById(
+'launchIntro'
+);
+
+const introStarCanvas =
+document.getElementById(
+'introStarCanvas'
+);
+
+let introCtx = null;
+let introWarpStars = [];
+let introMaxRadius = 0;
+let introRAF = null;
+let introAnimStart = 0;
+
+function shouldPlayLaunchIntro() {
+
+if (
+window.matchMedia(
+'(prefers-reduced-motion: reduce)'
+).matches
+) {
+return false;
+}
+
+const launchMission =
+sessionStorage.getItem(
+'launchMission1'
+);
+
+/*
+  Arriving from the Galaxy Hub's START button is a navigation
+  BETWEEN game screens, not opening the game link — never
+  replay the intro for this.
+*/
+if (launchMission === 'true') {
+return false;
+}
+
+const nickname =
+loadNickname();
+
+/*
+  A returning player reloading index.html directly (no
+  launchMission1 flag) is about to be redirected straight to
+  home.html by showDailyHomepage() — index.html's content is
+  never shown, so there's nothing to play the intro in front of.
+*/
+if (nickname) {
+return false;
+}
+
+return true;
+
+}
+
+function setupIntroCanvas() {
+
+if (
+!introStarCanvas ||
+!introStarCanvas.getContext
+) {
+return;
+}
+
+introCtx =
+introStarCanvas.getContext('2d');
+
+resizeIntroCanvas();
+
+window.addEventListener(
+'resize',
+resizeIntroCanvas
+);
+
+}
+
+function resizeIntroCanvas() {
+
+if (!introCtx) {
+return;
+}
+
+const dpr =
+window.devicePixelRatio || 1;
+
+const width =
+window.innerWidth;
+
+const height =
+window.innerHeight;
+
+introStarCanvas.width =
+width * dpr;
+
+introStarCanvas.height =
+height * dpr;
+
+introStarCanvas.style.width =
+`${width}px`;
+
+introStarCanvas.style.height =
+`${height}px`;
+
+introCtx.setTransform(
+dpr,
+0,
+0,
+dpr,
+0,
+0
+);
+
+}
+
+function makeIntroWarpStar(
+nearCenter = false
+) {
+
+const roll =
+Math.random();
+
+return {
+
+
+angle:
+  Math.random() *
+  Math.PI *
+  2,
+
+r:
+  nearCenter
+    ? Math.random() * 18
+    :
+      Math.random() *
+      introMaxRadius *
+      0.55,
+
+spd:
+  0.5 +
+  Math.random() * 1.2,
+
+hue:
+  roll < 0.16
+    ? 'gold'
+    :
+      roll < 0.3
+        ? 'teal'
+        : 'white'
+
+
+};
+
+}
+
+function initIntroWarpStars(count) {
+
+introMaxRadius =
+Math.hypot(
+window.innerWidth,
+window.innerHeight
+) / 2 * 1.1;
+
+introWarpStars = [];
+
+for (
+let i = 0;
+i < count;
+i++
+) {
+
+
+introWarpStars.push(
+  makeIntroWarpStar(false)
+);
+
+
+}
+
+}
+
+function introWarpFrame(now) {
+
+if (!introCtx) {
+return;
+}
+
+const elapsed =
+now -
+introAnimStart;
+
+const progress =
+Math.min(
+elapsed /
+LAUNCH_INTRO_DURATION_MS,
+1
+);
+
+/*
+  Speed ramps up smoothly across the whole sequence (rather than
+  snapping on at a fixed moment), so Scene 3's warp-speed trails
+  grow naturally out of Scene 1's gentle star brightening.
+*/
+const speedFactor =
+0.12 +
+progress * progress * 4.6;
+
+const width =
+window.innerWidth;
+
+const height =
+window.innerHeight;
+
+const centerX =
+width / 2;
+
+/*
+  Biased toward the spacecraft's launch point near the bottom of
+  the screen, so stars appear to stream past IT as it climbs,
+  rather than from the screen's dead center.
+*/
+const centerY =
+height * 0.66;
+
+introCtx.fillStyle =
+'rgba(5, 6, 15, 0.22)';
+
+introCtx.fillRect(
+0,
+0,
+width,
+height
+);
+
+introWarpStars.forEach(
+(star, index) => {
+
+
+  const delta =
+    speedFactor *
+    star.spd *
+    (
+      2 +
+      star.r * 0.045
+    );
+
+
+  star.r += delta;
+
+
+  if (
+    star.r >
+    introMaxRadius
+  ) {
+
+    introWarpStars[index] =
+      makeIntroWarpStar(true);
+
+    return;
+
+  }
+
+
+  const ratio =
+    star.r /
+    introMaxRadius;
+
+
+  const x =
+    centerX +
+    Math.cos(
+      star.angle
+    ) *
+    star.r;
+
+
+  const y =
+    centerY +
+    Math.sin(
+      star.angle
+    ) *
+    star.r;
+
+
+  const size =
+    0.6 +
+    ratio * 3.2;
+
+
+  const alpha =
+    Math.min(
+      1,
+      0.12 +
+      ratio * 1.1
+    );
+
+
+  let color;
+
+
+  if (
+    star.hue === 'gold'
+  ) {
+
+    color =
+      `rgba(255,217,102,${alpha})`;
+
+  } else if (
+    star.hue === 'teal'
+  ) {
+
+    color =
+      `rgba(79,227,193,${alpha})`;
+
+  } else {
+
+    color =
+      `rgba(255,255,255,${alpha})`;
+
+  }
+
+
+  introCtx.beginPath();
+
+  introCtx.fillStyle =
+    color;
+
+  introCtx.arc(
+    x,
+    y,
+    size,
+    0,
+    Math.PI * 2
+  );
+
+  introCtx.fill();
+
+}
+
+
+);
+
+if (progress < 1) {
+
+
+introRAF =
+  requestAnimationFrame(
+    introWarpFrame
+  );
+
+
+}
+
+}
+
+function stopIntroWarpAnimation() {
+
+if (introRAF !== null) {
+
+
+cancelAnimationFrame(
+  introRAF
+);
+
+
+}
+
+introRAF = null;
+
+if (
+introCtx &&
+introStarCanvas
+) {
+
+
+introCtx.clearRect(
+  0,
+  0,
+  introStarCanvas.width,
+  introStarCanvas.height
+);
+
+
+}
+
+}
+
+function playLaunchIntro() {
+
+/*
+  Nothing to animate, or nothing to reveal into (reduced motion,
+  or the daily-homepage logic is about to redirect away): skip
+  straight to the existing flow with no delay, exactly as if the
+  intro were never added.
+*/
+if (
+!launchIntroEl ||
+!shouldPlayLaunchIntro()
+) {
+
+
+if (launchIntroEl) {
+
+  launchIntroEl.style.display =
+    'none';
+
+}
+
+if (appShell) {
+
+  appShell.classList.remove(
+    'transition-hide'
+  );
+
+}
+
+showDailyHomepage();
+
+return;
+
+
+}
+
+setupIntroCanvas();
+
+initIntroWarpStars(
+LAUNCH_INTRO_STAR_COUNT
+);
+
+introAnimStart =
+performance.now();
+
+introRAF =
+requestAnimationFrame(
+introWarpFrame
+);
+
+/* Scene 1: stars brighten, spacecraft fades in near the bottom. */
+launchIntroEl.classList.add(
+'phase-anticipation'
+);
+
+setTimeout(
+() => {
+
+
+  /* Scenes 2 + 3: launch, accelerate, climb, fade into the
+     distance — see the introRocketLaunch / introTrailGrow
+     keyframes in style.css. */
+  launchIntroEl.classList.add(
+    'phase-launch'
+  );
+
+},
+LAUNCH_INTRO_ANTICIPATION_MS
+
+
+);
+
+setTimeout(
+() => {
+
+
+  /*
+    Scene 4 — "arrival": reuse the SAME galaxy-flash bloom the
+    existing galaxy-entrance transition uses, put the correct
+    screen in place underneath (nickname entry — whatever
+    showDailyHomepage() decides), then crossfade the launch
+    intro out as the existing .transition-hide fade-in brings
+    the app shell back.
+  */
+
+  if (galaxyFlash) {
+
+    galaxyFlash.classList.remove(
+      'flash'
+    );
+
+    void galaxyFlash.offsetWidth;
+
+    galaxyFlash.classList.add(
+      'flash'
+    );
+
+  }
+
+  showDailyHomepage();
+
+  if (appShell) {
+
+    appShell.classList.remove(
+      'transition-hide'
+    );
+
+  }
+
+  launchIntroEl.classList.add(
+    'intro-done'
+  );
+
+},
+LAUNCH_INTRO_DURATION_MS -
+LAUNCH_INTRO_REVEAL_MS
+
+
+);
+
+setTimeout(
+() => {
+
+
+  stopIntroWarpAnimation();
+
+  launchIntroEl.style.display =
+    'none';
+
+},
+LAUNCH_INTRO_DURATION_MS
+
+
+);
+
+}
+
+/* ============================================================
 MIDNIGHT RESET
 ============================================================ */
 
@@ -4530,9 +5106,15 @@ No nickname today:
 
 Nickname already saved today:
 → returning check-in screen
+
+NEW: showDailyHomepage() itself is unchanged — it's now called
+FROM playLaunchIntro() (see the "LAUNCH INTRO" section above),
+once the cinematic opening sequence has finished (or immediately,
+with no delay, whenever the intro doesn't apply — reduced motion,
+or a returning player about to be redirected to home.html).
 */
 
-showDailyHomepage();
+playLaunchIntro();
 
 /*
 Ambient effects.
