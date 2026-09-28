@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -20,12 +19,11 @@
   <div class="stars" id="starField" aria-hidden="true"></div>
   <div class="ambient-layer" id="ambientLayer" aria-hidden="true"></div>
 
-<canvas
-id="warpCanvas"
-class="warp-canvas"
-aria-hidden="true"
-
-> </canvas>
+  <canvas
+    id="warpCanvas"
+    class="warp-canvas"
+    aria-hidden="true"
+  ></canvas>
 
   <div
     id="galaxyFlash"
@@ -34,22 +32,14 @@ aria-hidden="true"
   ></div>
 
   <!-- ======================================================
-       NEW: CINEMATIC LAUNCH INTRO
+       CINEMATIC LAUNCH INTRO
        ======================================================
        Plays once, automatically, on a genuine first-open of the
        game (see shouldPlayLaunchIntro() in app.js). It draws its
-       own warp-speed star streaks onto #introStarCanvas (a
-       dedicated canvas, separate from #warpCanvas used by the
-       in-game hyperspace transitions) and animates a small
-       spacecraft launching upward, over your EXISTING sky /
-       nebula / star background (nothing here duplicates them —
-       those layers stay visible underneath the whole time).
-
-       It is fully non-interactive (pointer-events: none for its
-       entire lifetime) so it can never block a tap, and it always
-       finishes and removes itself — see playLaunchIntro() in
-       app.js for the full sequence and its reduced-motion /
-       "skip if nothing to reveal into" fallbacks.
+       own warp-speed star streaks onto #introStarCanvas and
+       launches a rocket with the words "えいごであそぼう" trailing
+       behind it like sparks. Fully non-interactive
+       (pointer-events: none) and always removes itself.
        ====================================================== -->
   <div id="launchIntro" class="launch-intro" aria-hidden="true">
 
@@ -58,22 +48,31 @@ aria-hidden="true"
       class="intro-star-canvas"
     ></canvas>
 
-    <div class="intro-spacecraft" id="introSpacecraft">
-      <div class="intro-trail" aria-hidden="true"></div>
-      <div class="intro-engine-glow" aria-hidden="true"></div>
-      <div class="intro-rocket" aria-hidden="true">🚀</div>
+    <div class="intro-spacecraft" id="introSpacecraft" aria-hidden="true">
+
+      <div class="intro-rocket-wrap">
+        <div class="intro-engine-glow"></div>
+        <div class="intro-rocket">🚀</div>
+      </div>
+
+      <div class="intro-words">
+        <span class="intro-char" style="--i:0">え</span>
+        <span class="intro-char" style="--i:1">い</span>
+        <span class="intro-char" style="--i:2">ご</span>
+        <span class="intro-char" style="--i:3">で</span>
+        <span class="intro-char" style="--i:4">あ</span>
+        <span class="intro-char" style="--i:5">そ</span>
+        <span class="intro-char" style="--i:6">ぼ</span>
+        <span class="intro-char" style="--i:7">う</span>
+        <span class="intro-bar" style="--i:8"></span>
+      </div>
+
     </div>
 
   </div>
 
-  <!-- NEW: starts hidden (opacity 0 / scaled down) via the
-       EXISTING .transition-hide class already used by the
-       between-screen galaxy-entrance transition, so there is no
-       flash of the Check-In form before the launch intro has had
-       a chance to cover it. playLaunchIntro() in app.js removes
-       this class at the right moment (or immediately, if the
-       intro is skipped) to reveal whichever screen
-       showDailyHomepage() has put in place. -->
+  <!-- Starts hidden via the existing .transition-hide class.
+       playLaunchIntro() in app.js removes it at the right moment. -->
   <main class="app transition-hide" id="appShell">
 
 <div class="card">
@@ -125,21 +124,20 @@ aria-hidden="true"
           autocomplete="off"
         >
 
-       <button
-  id="nicknameSubmitBtn"
-  class="btn btn-primary btn-lg btn-block"
-  type="submit"
-  disabled
->
-  <img
-    src="images/salute-astronaut.png"
-    alt=""
-    class="mission-salute"
-    aria-hidden="true"
-  >
-  <span>Mission Accepted!</span>
-</button>
-  
+        <button
+          id="nicknameSubmitBtn"
+          class="btn btn-primary btn-lg btn-block"
+          type="submit"
+          disabled
+        >
+          <img
+            src="images/salute-astronaut.png"
+            alt=""
+            class="mission-salute"
+            aria-hidden="true"
+          >
+          <span>Mission Accepted!</span>
+        </button>
 
       </form>
 
@@ -186,7 +184,7 @@ aria-hidden="true"
 
       <p class="subtitle">
         宇宙探検の準備はできた？<br>
-       さあ、宇宙へ飛び出そう！
+        さあ、宇宙へ飛び出そう！
       </p>
 
       <div
@@ -199,18 +197,19 @@ aria-hidden="true"
       </div>
 
       <button
-  id="checkinBtn"
-  class="btn btn-primary btn-lg btn-block"
-  type="button"
->
-  <img
-    src="images/salute-astronaut.png"
-    alt=""
-    class="mission-salute"
-    aria-hidden="true"
-  >
-  <span>Mission Accepted!</span>
-</button>
+        id="checkinBtn"
+        class="btn btn-primary btn-lg btn-block"
+        type="button"
+      >
+        <img
+          src="images/salute-astronaut.png"
+          alt=""
+          class="mission-salute"
+          aria-hidden="true"
+        >
+        <span>Mission Accepted!</span>
+      </button>
+
       <button
         id="shareBtn"
         class="btn btn-secondary btn-block start-secondary-btn"
@@ -249,7 +248,6 @@ aria-hidden="true"
 
         <h1 class="title">
           SOUNDS from S.P.A.C.E.
-          
         </h1>
 
       </div>
@@ -262,7 +260,6 @@ aria-hidden="true"
       </p>
 
       <p class="subtitle">
-        
         👂音を聞いて、アルファベットを集めよう💰！
       </p>
 
@@ -283,16 +280,12 @@ aria-hidden="true"
         🚀 LET'S LAUNCH!
       </button>
 
-      <!-- NEW: lets the player back out to Home Base to pick a
-           different mission instead of continuing this one. If
-           they never tap it, nothing changes — they can still
-           tap LET'S LAUNCH! and keep going. -->
       <button
         id="homeFromStartBtn"
         class="btn btn-secondary btn-block start-secondary-btn"
         type="button"
       >
-         Go Back to 🪐GALAXY HUB
+        Go Back to 🪐GALAXY HUB
       </button>
 
     </div>
@@ -354,7 +347,7 @@ aria-hidden="true"
         >
           🔥 (MEDIUM)<br>FIND THE MISSING SOUND
           <span class="difficulty-sub">
-           足りない音はどれ？
+            足りない音はどれ？
           </span>
         </button>
 
@@ -371,8 +364,6 @@ aria-hidden="true"
 
       </div>
 
-      <!-- NEW: same Home Base escape hatch as the Start screen —
-           purely optional, doesn't affect anything unless clicked. -->
       <button
         id="homeFromDifficultyBtn"
         class="btn btn-secondary btn-block start-secondary-btn"
@@ -470,9 +461,9 @@ aria-hidden="true"
     >
 
       <p class="prompt">
-  Which letter did you hear? <br>
-  どのアルファベットの音かな？
-</p>
+        Which letter did you hear? <br>
+        どのアルファベットの音かな？
+      </p>
 
       <button
         id="playAudioBtn"
@@ -613,8 +604,6 @@ aria-hidden="true"
         🔄 Play Again
       </button>
 
-      <!-- NEW: from Results, go back to Home Base to pick a
-           different mission instead of playing this one again. -->
       <button
         id="homeFromResultsBtn"
         class="btn btn-secondary btn-block start-secondary-btn"
@@ -628,7 +617,6 @@ aria-hidden="true"
   </section>
 
 </div>
-
 
   </main>
 
