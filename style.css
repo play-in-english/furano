@@ -1161,12 +1161,10 @@ h1, h2, h3 {
   justify-content: center;
   height: var(--u);
 
-  /* Match the game's main display font */
   font-family: var(--font-display);
   font-weight: 800;
   font-size: calc(var(--u) * 0.86);
   line-height: 1;
-
   color: #fff4bd;
 
   -webkit-text-stroke: 1.5px #a84312;
@@ -1181,22 +1179,16 @@ h1, h2, h3 {
   opacity: 0;
 }
 
-  /* Uniform bright color for every character */
-  color: #fff4bd;
-
-  /* Dark outline keeps characters readable */
-  -webkit-text-stroke: 1.5px #a84312;
-  paint-order: stroke fill;
-
-  /* Bright white core with a golden-orange glow */
-  text-shadow:
-    0 0 5px #ffffff,
-    0 0 12px #ffe36b,
-    0 0 24px #ff9d24,
-    0 3px 5px rgba(0, 0, 0, 0.85);
-
-  opacity: 0;
-}
+/* Assign a delay index to each character */
+.intro-words .intro-char:nth-child(1) { --i: 0; }
+.intro-words .intro-char:nth-child(2) { --i: 1; }
+.intro-words .intro-char:nth-child(3) { --i: 2; }
+.intro-words .intro-char:nth-child(4) { --i: 3; }
+.intro-words .intro-char:nth-child(5) { --i: 4; }
+.intro-words .intro-char:nth-child(6) { --i: 5; }
+.intro-words .intro-char:nth-child(7) { --i: 6; }
+.intro-words .intro-char:nth-child(8) { --i: 7; }
+.intro-words .intro-char:nth-child(9) { --i: 8; }
 
 /* Character ignition and continuous glow */
 .launch-intro.phase-launch .intro-char {
@@ -1207,7 +1199,6 @@ h1, h2, h3 {
       calc(1200ms + var(--i) * 230ms) infinite alternate;
 }
 
-/* Each letter sparks into being */
 @keyframes introCharIgnite {
   0% {
     opacity: 0;
@@ -1228,7 +1219,7 @@ h1, h2, h3 {
   }
 }
 
-/* Subtle glow flicker without darkening the letters */
+/* Subtle glow flicker */
 @keyframes introCharFlicker {
   from {
     text-shadow:
@@ -1254,14 +1245,12 @@ h1, h2, h3 {
   inset: -35%;
   z-index: -1;
   border-radius: 50%;
-
   background: radial-gradient(
     circle,
     rgba(255, 255, 255, 0.95),
     rgba(255, 190, 80, 0.6) 35%,
     transparent 65%
   );
-
   opacity: 0;
 }
 
@@ -1283,7 +1272,11 @@ h1, h2, h3 {
   }
 }
 
-  /* Match the bright gold color of the Japanese characters */
+/* Final glowing trail */
+.intro-bar {
+  width: calc(var(--u) * 0.12);
+  height: calc(var(--u) * 1.2);
+  border-radius: 999px;
   background: linear-gradient(
     180deg,
     #ffffff 0%,
@@ -1291,14 +1284,12 @@ h1, h2, h3 {
     #ffe36b 75%,
     #ff9d24 100%
   );
-
-  /* Matching white core and golden glow */
   box-shadow:
     0 0 5px #ffffff,
     0 0 12px #ffe36b,
     0 0 24px #ff9d24;
-
   opacity: 0;
+  --i: 9;
 }
 
 .launch-intro.phase-launch .intro-bar {
@@ -1306,7 +1297,6 @@ h1, h2, h3 {
     introCharIgnite 700ms ease-out
     calc(500ms + var(--i) * 230ms) both;
 }
-
 /* ============================================================
    12. TAP-TO-LAUNCH HOMEPAGE
    ------------------------------------------------------------
