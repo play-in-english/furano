@@ -1138,7 +1138,10 @@ h1, h2, h3 {
   to   { transform: translate(-50%, 0) scale(1.35); opacity: 1; }
 }
 
-/* Word trail */
+/* ============================================================
+   WORD TRAIL — HIGH-LEGIBILITY GOLDEN FIRE
+   ============================================================ */
+
 .intro-words {
   display: flex;
   flex-direction: column;
@@ -1151,65 +1154,142 @@ h1, h2, h3 {
   align-items: center;
   justify-content: center;
   height: var(--u);
-  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, var(--font-display), sans-serif;
+
+  font-family:
+    "Hiragino Sans",
+    "Hiragino Kaku Gothic ProN",
+    "Noto Sans JP",
+    "Yu Gothic",
+    Meiryo,
+    var(--font-display),
+    sans-serif;
+
   font-weight: 900;
   font-size: calc(var(--u) * 0.86);
   line-height: 1;
-  /* Fire gradient down the column: gold at the top → orange-red at the bottom */
-  color: hsl(calc(50 - var(--i) * 4), 100%, 62%);
+
+  /* Uniform bright color for every character */
+  color: #fff4bd;
+
+  /* Dark outline keeps characters readable */
+  -webkit-text-stroke: 1.5px #a84312;
+  paint-order: stroke fill;
+
+  /* Bright white core with a golden-orange glow */
+  text-shadow:
+    0 0 5px #ffffff,
+    0 0 12px #ffe36b,
+    0 0 24px #ff9d24,
+    0 3px 5px rgba(0, 0, 0, 0.85);
+
   opacity: 0;
 }
 
+/* Character ignition and continuous glow */
 .launch-intro.phase-launch .intro-char {
   animation:
-    introCharIgnite 700ms cubic-bezier(0.2, 1.4, 0.4, 1) calc(500ms + var(--i) * 230ms) both,
-    introCharFlicker 260ms ease-in-out calc(1200ms + var(--i) * 230ms) infinite alternate;
+    introCharIgnite 700ms cubic-bezier(0.2, 1.4, 0.4, 1)
+      calc(500ms + var(--i) * 230ms) both,
+    introCharFlicker 260ms ease-in-out
+      calc(1200ms + var(--i) * 230ms) infinite alternate;
 }
 
-/* Each letter "sparks" into being: white-hot, oversized, then settles */
+/* Each letter sparks into being */
 @keyframes introCharIgnite {
-  0%   { opacity: 0; transform: scale(2.4) translateY(-30%); filter: blur(6px) brightness(3); }
-  45%  { opacity: 1; transform: scale(1.3);                  filter: blur(0)   brightness(2); }
-  100% { opacity: 1; transform: scale(1);                    filter: blur(0)   brightness(1); }
+  0% {
+    opacity: 0;
+    transform: scale(2.4) translateY(-30%);
+    filter: blur(6px) brightness(3);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.3);
+    filter: blur(0) brightness(2);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0) brightness(1);
+  }
 }
 
-/* Constant glow: white core, gold halo, orange bloom, faint flicker */
+/* Subtle glow flicker without darkening the letters */
 @keyframes introCharFlicker {
-  from { text-shadow: 0 0 6px #fff, 0 0 16px #ffd966, 0 0 30px #ff7a3c, 0 2px 4px rgba(0,0,0,.6); }
-  to   { text-shadow: 0 0 10px #fff, 0 0 26px #ffd966, 0 0 50px #ff5a2c, 0 2px 4px rgba(0,0,0,.6); }
+  from {
+    text-shadow:
+      0 0 5px #ffffff,
+      0 0 12px #ffe36b,
+      0 0 24px #ff9d24,
+      0 3px 5px rgba(0, 0, 0, 0.85);
+  }
+
+  to {
+    text-shadow:
+      0 0 8px #ffffff,
+      0 0 18px #ffe36b,
+      0 0 36px #ff9d24,
+      0 3px 5px rgba(0, 0, 0, 0.85);
+  }
 }
 
-/* Spark burst behind each letter as it ignites */
+/* Spark burst behind each letter */
 .intro-char::after {
   content: "";
   position: absolute;
   inset: -35%;
   z-index: -1;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(255, 190, 80, 0.6) 35%, transparent 65%);
+
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 0.95),
+    rgba(255, 190, 80, 0.6) 35%,
+    transparent 65%
+  );
+
   opacity: 0;
 }
 
 .launch-intro.phase-launch .intro-char::after {
-  animation: introSpark 600ms ease-out calc(500ms + var(--i) * 230ms) both;
+  animation:
+    introSpark 600ms ease-out
+    calc(500ms + var(--i) * 230ms) both;
 }
 
 @keyframes introSpark {
-  0%   { opacity: 1; transform: scale(0.3); }
-  100% { opacity: 0; transform: scale(1.8); }
+  0% {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
 }
 
-/* The glowing "❘" line at the end of the trail */
+/* Glowing line at the end of the word trail */
 .intro-bar {
   width: calc(var(--u) * 0.14);
   height: calc(var(--u) * 1.1);
   margin-top: calc(var(--u) * 0.05);
   border-radius: 999px;
-  background: linear-gradient(180deg, #ff7a3c, rgba(255, 111, 80, 0.4) 60%, transparent);
+
+  background: linear-gradient(
+    180deg,
+    #ff7a3c,
+    rgba(255, 111, 80, 0.4) 60%,
+    transparent
+  );
+
   box-shadow: 0 0 12px rgba(255, 122, 60, 0.9);
   opacity: 0;
 }
 
 .launch-intro.phase-launch .intro-bar {
-  animation: introCharIgnite 700ms ease-out calc(500ms + var(--i) * 230ms) both;
+  animation:
+    introCharIgnite 700ms ease-out
+    calc(500ms + var(--i) * 230ms) both;
 }
