@@ -96,7 +96,11 @@ Public API (window.WelcomeAudio):
   function tryPlay(audio, onBlocked) {
     const p = audio.play();
     if (p && typeof p.catch === 'function') {
-      p.catch(function () {
+      p.catch(function (error) {
+        console.warn(
+          'welcome-audio.js: could not play ' + audio.src + ' —',
+          error && error.name ? error.name : error
+        );
         if (onBlocked) onBlocked();
       });
     }
@@ -198,6 +202,8 @@ Public API (window.WelcomeAudio):
 
     launchAudio = makeAudio(LAUNCH_AUDIO_SRC);
     launchAudio.volume = 1;
+
+    console.log('welcome-audio.js: starting launch sound', launchAudio.src);
 
     fitRateToDuration(launchAudio, totalMs / 1000);
 
