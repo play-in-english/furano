@@ -42,19 +42,24 @@
 
 * { box-sizing: border-box; }
 
+/* NO SCROLLBARS, EVER: the page never scrolls. Instead, fitToScreen()
+   in app.js scales the whole card (via --fit-scale / CSS zoom) so it
+   always fits the available screen. */
 html, body {
   height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body {
   margin: 0;
-  min-height: 100vh;
-  min-height: 100svh;
-  min-height: 100dvh;
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
   font-family: var(--font-body);
   color: var(--ink-light);
   background: var(--sky-deep);
-  overflow-x: hidden;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -277,9 +282,10 @@ body.warping .app:not(.transition-hide) {
   width: 100%;
   padding: clamp(20px, 4vw, 36px) clamp(18px, 4vw, 32px) clamp(18px, 4vw, 32px);
   animation: floatY 7s ease-in-out infinite;
-  max-height: min(860px, 96svh, 96dvh);
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  /* No inner scrollbar: the card never scrolls. It is scaled to fit
+     by fitToScreen() in app.js, which sets --fit-scale. */
+  overflow: visible;
+  zoom: var(--fit-scale, 1);
 }
 
 .screen { display: none; }
@@ -883,6 +889,8 @@ h1, h2, h3 {
   letter-spacing: .04em;
 }
 
+/* No max-height / overflow-y here: the list never scrolls. The whole
+   card is scaled to fit by fitToScreen() in app.js instead. */
 .leaderboard-list {
   list-style: none;
   margin: 0;
@@ -890,8 +898,6 @@ h1, h2, h3 {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  max-height: 220px;
-  overflow-y: auto;
 }
 
 .leaderboard-row {
