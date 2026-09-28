@@ -1,81 +1,281 @@
 /* ============================================================
-WELCOME AUDIO — plays "Welcome to the English Galaxy!" ONCE per
-visit flow (shared by index.html and home.html)
+GALAXY AUDIO — launch / welcome / welcome-back
+(shared by index.html and home.html)
 ============================================================
-The welcome audio file (path is relative
-to the page, inside your existing audio folder). If the file is
-missing or the value is '', this module safely does nothing.
+Three sounds, all inside the audio/ folder:
+
+  spaceship-launch.mp3
+    Plays together with the cinematic launch intro on index.html,
+    for EVERY player (first-time and returning). Its playback speed
+    is slowed automatically so the sound lasts as long as the intro
+    (LAUNCH_INTRO_DURATION_MS, passed in from app.js). It never
+    plays faster than normal speed.
+
+  spaceship-welcome.mp3
+    Plays at the GALAXY HUB (home.html), right after the launch
+    intro, ONLY for the first check-in of the day (the player who
+    has just typed their nickname).
+
+  spaceship-welcomeback.mp3
+    Plays at the GALAXY HUB for RETURNING players (nickname already
+    saved for today).
 
 Rules implemented here:
-  - One Audio object, created lazily, never duplicated.
-  - A sessionStorage flag records that the welcome was delivered
-    (or deliberately skipped by leaving the check-in), so it can
-    never replay on another screen/page in the same visit.
-  - If the browser blocks autoplay, we wait for the FIRST user
-    tap/key press and try exactly once more. No retry loops.
+  - The hub greeting plays at most once per visit. A sessionStorage
+    flag records that it has really started, so going back and forth
+    between the Hub and the game never replays it.
+  - Every time the launch intro plays (a fresh visit) the hub-greeting
+    flag is reset, so returning players hear "welcome back" again
+    after each launch.
+  - If the browser blocks autoplay, we wait for the FIRST user tap /
+    key press and try exactly once more. No retry loops. (The launch
+    sound only does this while the intro is still running.)
+  - If a file is missing or its path is '', that sound is safely
+    skipped.
+
+Public API (window.WelcomeAudio):
+  playLaunch(durationMs)  — call when the launch intro starts
+  markFirstCheckin()      — call when the nickname is submitted
+  playHubGreeting()       — call when the Galaxy Hub loads
 ============================================================ */
 (function () {
 
-  const WELCOME_AUDIO_SRC = 'audio/spaceship-launch.mp3';
+  const LAUNCH_AUDIO_SRC = 'audio/spaceship-launch.mp3';
+  const WELCOME_AUDIO_SRC = 'audio/spaceship-welcome.mp3';
+  const WELCOMEBACK_AUDIO_SRC = 'audio/spaceship-welcomeback.mp3';
 
-  const DONE_KEY = 'galaxyAlphabetQuiz.welcomeAudioDone.v1';
+  // Set once the hub greeting has really started playing.
+  const DONE_KEY = 'galaxyAlphabetQuiz.hubGreetingDone.v2';
 
-  let audio = null;
-  let attempted = false;
-  let gestureBound = false;
+  // 'welcome' = the player just did their first check-in of the day.
+  const KIND_KEY = 'galaxyAlphabetQuiz.hubGreetingKind.v2';
 
-  function isDone() {
-    try { return sessionStorage.getItem(DONE_KEY) === 'true'; }
-    catch (e) { return false; }
+  // The launch sound is only ever slowed down, and never below this.
+  const MIN_PLAYBACK_RATE = 0.5;
+
+  // Volume fade-out at the very end of the launch sound.
+  const LAUNCH_FADE_MS = 400;
+
+  /* ---------- safe sessionStorage ---------- */
+
+  function sGet(key) {
+    try { return sessionStorage.getItem(key); }
+    catch (e) { return null; }
   }
 
-  function markDone() {
-    try { sessionStorage.setItem(DONE_KEY, 'true'); }
+  function sSet(key, value) {
+    try { sessionStorage.setItem(key, value); }
     catch (e) { /* ignore */ }
   }
 
-  function getAudio() {
-    if (!audio) {
-      audio = new Audio(WELCOME_AUDIO_SRC);
-      audio.preload = 'auto';
-      /* Counts as delivered only once it has really started. */
-      audio.addEventListener('playing', markDone, { once: true });
-    }
-    return audio;
+  function sRemove(key) {
+    try { sessionStorage.removeItem(key); }
+    catch (e) { /* ignore */ }
   }
 
-  function bindGestureFallback() {
-    if (gestureBound) return;
-    gestureBound = true;
+  /* ---------- shared helpers ---------- */
 
+  function makeAudio(src) {
+    const a = new Audio(src);
+    a.preload = 'auto';
+    return a;
+  }
+
+  // Waits for the first tap / key press, then runs `fn` once.
+  function onFirstGesture(fn) {
     const handler = function () {
       document.removeEventListener('pointerdown', handler, true);
       document.removeEventListener('keydown', handler, true);
-      if (isDone()) return;
-      const p = getAudio().play();
-      if (p && typeof p.catch === 'function') {
-        p.catch(function () { /* give up quietly */ });
-      }
+      fn();
     };
-
     document.addEventListener('pointerdown', handler, true);
     document.addEventListener('keydown', handler, true);
   }
 
-  function play() {
-    if (!WELCOME_AUDIO_SRC) {
-      console.warn('welcome-audio.js: WELCOME_AUDIO_SRC is empty — no welcome audio.');
-      return;
-    }
-    if (isDone() || attempted) return;
-    attempted = true;
-
-    const p = getAudio().play();
+  // play() with a single quiet fallback for blocked autoplay.
+  function tryPlay(audio, onBlocked) {
+    const p = audio.play();
     if (p && typeof p.catch === 'function') {
-      p.catch(function () { bindGestureFallback(); });
+      p.catch(function () {
+        if (onBlocked) onBlocked();
+      });
     }
   }
 
-  window.WelcomeAudio = { play: play, markDone: markDone, isDone: isDone };
+  /* ============================================================
+     LAUNCH SOUND (with the cinematic intro)
+     ============================================================ */
+
+  let launchAudio = null;
+  let launchActive = false;
+  let launchFadeTimer = null;
+  let launchEndTimer = null;
+
+  function stopLaunch() {
+    launchActive = false;
+
+    if (launchFadeTimer) {
+      clearInterval(launchFadeTimer);
+      launchFadeTimer = null;
+    }
+
+    if (launchEndTimer) {
+      clearTimeout(launchEndTimer);
+      launchEndTimer = null;
+    }
+
+    if (launchAudio) {
+      try { launchAudio.pause(); } catch (e) { /* ignore */ }
+    }
+  }
+
+  function fadeOutLaunch() {
+    if (!launchAudio || launchAudio.paused) {
+      return;
+    }
+
+    const steps = 10;
+    const stepMs = LAUNCH_FADE_MS / steps;
+    let n = 0;
+    const startVol = launchAudio.volume;
+
+    launchFadeTimer = setInterval(function () {
+      n++;
+      if (!launchAudio) return;
+      launchAudio.volume = Math.max(0, startVol * (1 - n / steps));
+      if (n >= steps) {
+        clearInterval(launchFadeTimer);
+        launchFadeTimer = null;
+      }
+    }, stepMs);
+  }
+
+  // Stretches the sound so it lasts about `targetSeconds`.
+  function fitRateToDuration(audio, targetSeconds) {
+    const apply = function () {
+      const naturalSeconds = audio.duration;
+
+      if (!isFinite(naturalSeconds) || naturalSeconds <= 0) {
+        return;
+      }
+
+      // Slower only: never faster than normal speed.
+      const rate = Math.min(
+        1,
+        Math.max(MIN_PLAYBACK_RATE, naturalSeconds / targetSeconds)
+      );
+
+      // Keep the voice/sound at its normal pitch while slowed down.
+      audio.preservesPitch = true;
+      audio.mozPreservesPitch = true;
+      audio.webkitPreservesPitch = true;
+
+      audio.playbackRate = rate;
+    };
+
+    if (audio.readyState >= 1) {
+      apply();
+    } else {
+      audio.addEventListener('loadedmetadata', apply, { once: true });
+    }
+  }
+
+  function playLaunch(durationMs) {
+
+    // A launch intro means a fresh visit: the hub greeting may play
+    // again afterwards (welcome-back for returning players).
+    sRemove(DONE_KEY);
+
+    if (!LAUNCH_AUDIO_SRC) {
+      return;
+    }
+
+    stopLaunch();
+
+    const totalMs = Math.max(1000, Number(durationMs) || 5600);
+
+    launchActive = true;
+
+    launchAudio = makeAudio(LAUNCH_AUDIO_SRC);
+    launchAudio.volume = 1;
+
+    fitRateToDuration(launchAudio, totalMs / 1000);
+
+    // Fade out at the end and make sure it never runs past the intro.
+    launchEndTimer = setTimeout(function () {
+      fadeOutLaunch();
+
+      launchEndTimer = setTimeout(stopLaunch, LAUNCH_FADE_MS + 50);
+    }, Math.max(0, totalMs - LAUNCH_FADE_MS));
+
+    tryPlay(launchAudio, function () {
+      // Autoplay blocked: try once on the first tap — but only if the
+      // intro is still running, so it never plays out of sync.
+      onFirstGesture(function () {
+        if (!launchActive || !launchAudio) return;
+        tryPlay(launchAudio, null);
+      });
+    });
+  }
+
+  /* ============================================================
+     HUB GREETING (Galaxy Hub — home.html)
+     ============================================================ */
+
+  let hubAudio = null;
+  let hubAttempted = false;
+
+  function isHubDone() {
+    return sGet(DONE_KEY) === 'true';
+  }
+
+  // Called when the nickname is submitted on GALAXY CHECK-IN, so the
+  // hub knows to play the FIRST-CHECK-IN welcome instead of welcome-back.
+  function markFirstCheckin() {
+    sSet(KIND_KEY, 'welcome');
+    sRemove(DONE_KEY);
+  }
+
+  function playHubGreeting() {
+
+    if (hubAttempted || isHubDone()) {
+      return;
+    }
+
+    hubAttempted = true;
+
+    const isFirstCheckin = sGet(KIND_KEY) === 'welcome';
+
+    const src =
+      isFirstCheckin
+        ? WELCOME_AUDIO_SRC
+        : WELCOMEBACK_AUDIO_SRC;
+
+    if (!src) {
+      console.warn('welcome-audio.js: hub greeting path is empty — no audio.');
+      return;
+    }
+
+    hubAudio = makeAudio(src);
+
+    // Counts as delivered only once it has really started playing.
+    hubAudio.addEventListener('playing', function () {
+      sSet(DONE_KEY, 'true');
+      sRemove(KIND_KEY);
+    }, { once: true });
+
+    tryPlay(hubAudio, function () {
+      onFirstGesture(function () {
+        if (isHubDone()) return;
+        tryPlay(hubAudio, null);
+      });
+    });
+  }
+
+  window.WelcomeAudio = {
+    playLaunch: playLaunch,
+    markFirstCheckin: markFirstCheckin,
+    playHubGreeting: playHubGreeting
+  };
 
 })();
