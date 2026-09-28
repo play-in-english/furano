@@ -1161,18 +1161,25 @@ h1, h2, h3 {
   justify-content: center;
   height: var(--u);
 
-  font-family:
-    "Hiragino Sans",
-    "Hiragino Kaku Gothic ProN",
-    "Noto Sans JP",
-    "Yu Gothic",
-    Meiryo,
-    var(--font-display),
-    sans-serif;
-
-  font-weight: 900;
+  /* Match the game's main display font */
+  font-family: var(--font-display);
+  font-weight: 800;
   font-size: calc(var(--u) * 0.86);
   line-height: 1;
+
+  color: #fff4bd;
+
+  -webkit-text-stroke: 1.5px #a84312;
+  paint-order: stroke fill;
+
+  text-shadow:
+    0 0 5px #ffffff,
+    0 0 12px #ffe36b,
+    0 0 24px #ff9d24,
+    0 3px 5px rgba(0, 0, 0, 0.85);
+
+  opacity: 0;
+}
 
   /* Uniform bright color for every character */
   color: #fff4bd;
