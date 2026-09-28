@@ -28,22 +28,27 @@
             box-sizing: border-box;
         }
 
+        /* NO SCROLLBARS, EVER: the page never scrolls. The fit-to-screen
+           script at the bottom scales .home-base (via --fit-scale / CSS
+           zoom) so it always fits the available screen. */
         html,
         body {
             height: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
         }
 
         body {
             margin: 0;
-            min-height: 100vh;
-            min-height: 100svh;
-            min-height: 100dvh;
+            height: 100vh;
+            height: 100svh;
+            height: 100dvh;
             font-family: var(--font-body);
             color: white;
             display: flex;
             justify-content: center;
             align-items: center;
-            overflow-x: hidden;
+            overflow: hidden;
             padding: max(16px, env(safe-area-inset-top))
                      max(16px, env(safe-area-inset-right))
                      max(16px, env(safe-area-inset-bottom))
@@ -168,6 +173,8 @@
             text-shadow:
                 0 2px 14px rgba(0, 0, 0, 0.6),
                 0 1px 3px rgba(0, 0, 0, 0.8);
+            /* Set automatically by the fit-to-screen script. */
+            zoom: var(--fit-scale, 1);
         }
 
         /* Planet above GALAXY HUB.
@@ -460,6 +467,80 @@
         },
         true
     );
+
+    // Fit to screen — no scrollbars on any device. Scales .home-base
+    // (CSS zoom via --fit-scale) so it always fits the available space.
+    (function () {
+
+        const box = document.querySelector(".home-base");
+        let raf = null;
+
+        if (!box) {
+            return;
+        }
+
+        function fit() {
+
+            const cs = getComputedStyle(document.body);
+
+            const availH =
+                document.body.clientHeight -
+                parseFloat(cs.paddingTop) -
+                parseFloat(cs.paddingBottom) -
+                12;
+
+            if (availH <= 0) {
+                return;
+            }
+
+            let scale = 1;
+            box.style.setProperty("--fit-scale", "1");
+
+            for (let i = 0; i < 6; i++) {
+
+                const h = box.getBoundingClientRect().height;
+
+                if (h <= 0) {
+                    return;
+                }
+
+                const ratio = availH / h;
+
+                if (ratio < 0.995 || (scale < 1 && ratio > 1.01)) {
+                    scale = Math.max(0.25, Math.min(1, scale * ratio * 0.995));
+                    box.style.setProperty("--fit-scale", scale.toFixed(4));
+                } else {
+                    break;
+                }
+            }
+        }
+
+        function schedule() {
+
+            if (raf !== null) {
+                return;
+            }
+
+            raf = requestAnimationFrame(() => {
+                raf = null;
+                fit();
+            });
+        }
+
+        if (window.ResizeObserver) {
+            new ResizeObserver(schedule).observe(box);
+        }
+
+        window.addEventListener("resize", schedule);
+        window.addEventListener("orientationchange", schedule);
+
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(schedule);
+        }
+
+        schedule();
+
+    })();
 
 </script>
 
