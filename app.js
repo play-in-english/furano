@@ -1,49 +1,23 @@
 /* ============================================================
 S.P.A.C.E. ALPHABETS — CLEAN GAME LOGIC
-=======================================
+============================================================
 
 DAILY FLOW
 
-## FIRST VISIT OF THE DAY
+FIRST VISIT OF THE DAY
+  GALAXY CHECK-IN → Enter nickname → HOME BASE (home.html)
+  → START MISSION PAGE → DIFFICULTY → GAME → RESULTS
 
-GALAXY CHECK-IN
-↓
-Enter nickname
-↓
-CONTINUE
-↓
-START MISSION PAGE
-↓
-START MISSION
-↓
-DIFFICULTY
-↓
-GAME
-↓
-RESULTS
+RETURNING VISIT SAME JST DAY
+  index.html redirects straight to home.html
 
-## RETURNING VISIT SAME JST DAY
-
-GALAXY CHECK-IN
-↓
-Welcome back, NICKNAME
-↓
-CONTINUE
-↓
-START MISSION PAGE
-
-## NEW JST DAY
-
-Nickname is automatically cleared.
-Player sees nickname entry again.
-
+NEW JST DAY
+  Nickname is automatically cleared.
+  Player sees nickname entry again.
 ============================================================ */
 
 /* ============================================================
 SUPABASE — ONLINE LEADERBOARD
-============================================================
-Replace these with your own project's values, found in:
-Supabase Dashboard → Project Settings → API
 ============================================================ */
 
 const SUPABASE_URL = 'https://chqyzmhivilmqdubkava.supabase.co';
@@ -70,11 +44,11 @@ const QUESTIONS_PER_GAME = 7;
 const STAR_COUNT = 90;
 
 /*
-NEW SCORING SYSTEM
+SCORING
 
 Each question is worth a MAXIMUM of 1,000 points:
-  700 base points for a correct answer
-  + up to 300 points of speed bonus.
+  500 base points for a correct answer
+  + up to 500 points of speed bonus.
 
 With 7 questions per mission, the maximum possible
 mission score is 7,000 points.
@@ -93,14 +67,14 @@ const SPEED_BONUS_SLOW_SECONDS = 7;
 const SPEED_BONUS_DECAY_RATE = 0.7; // higher = the bonus collapses even faster past the fast cutoff
 
 const MAX_MISSION_POINTS =
-QUESTIONS_PER_GAME *
-MAX_POINTS_PER_QUESTION;
+  QUESTIONS_PER_GAME *
+  MAX_POINTS_PER_QUESTION;
 
 const BEST_SCORE_KEY =
-'galaxyAlphabetQuiz.bestScore.v2';
+  'galaxyAlphabetQuiz.bestScore.v2';
 
 const NICKNAME_KEY =
-'galaxyAlphabetQuiz.nickname.v2';
+  'galaxyAlphabetQuiz.nickname.v2';
 
 const LEADERBOARD_MAX_ROWS = 5;
 
@@ -118,136 +92,99 @@ const QUESTION_WARP_ACCEL_MS = 450;
 const QUESTION_EXIT_MS = 320;
 const QUESTION_ENTER_MS = 360;
 
-const AUTO_ADVANCE_DELAY_MS = 2000; // currently unused — all modes require a manual "Next →" click now; kept here in case you want to bring auto-advance back for any mode later
+const AUTO_ADVANCE_DELAY_MS = 2000; // currently unused — all modes require a manual "Next →" click now
 const AUTOPLAY_DELAY_MS = 0; // wait this long after the question renders before the single automatic play
 
 /* ============================================================
-QUESTION SCORING (NEW)
+QUESTION SCORING
 ============================================================
-Each question is scored individually, based on:
-
-  1. Whether the answer is correct.
-  2. How quickly the student answered THAT question
-     (time from when the question was displayed to when
-     the student selected an answer).
-
-A wrong answer always earns 0 points, no matter how fast.
+A wrong answer always earns 0 points.
 
 A correct answer earns BASE_CORRECT_POINTS (500) plus a speed
 bonus of up to MAX_SPEED_BONUS (500):
 
-  - At SPEED_BONUS_FAST_SECONDS (1s) or faster, the full bonus
-    applies — 1,000 points.
-  - Past that, the bonus collapses SHARPLY (exponential decay,
-    not a straight line or gentle curve) — every second beyond
-    the 1-second mark costs a lot, so speed matters immediately,
-    not just eventually.
-  - SPEED_BONUS_SLOW_SECONDS (7s) is a hard floor: at or beyond
-    it, a correct answer is guaranteed to earn exactly the
-    minimum of 500 points. Answer correctly any faster than
-    that and you always earn MORE than 500.
+  - At SPEED_BONUS_FAST_SECONDS or faster: full bonus (1,000).
+  - Past that, the bonus collapses sharply (exponential decay).
+  - At or beyond SPEED_BONUS_SLOW_SECONDS: exactly 500.
 ============================================================ */
 
 function calcQuestionScore(seconds, isCorrect) {
 
-if (!isCorrect) {
-return 0;
-}
+  if (!isCorrect) {
+    return 0;
+  }
 
-const clamped =
-Math.max(
-0,
-Number(seconds) || 0
-);
+  const clamped =
+    Math.max(
+      0,
+      Number(seconds) || 0
+    );
 
-if (clamped <= SPEED_BONUS_FAST_SECONDS) {
-return MAX_POINTS_PER_QUESTION;
-}
+  if (clamped <= SPEED_BONUS_FAST_SECONDS) {
+    return MAX_POINTS_PER_QUESTION;
+  }
 
-if (clamped >= SPEED_BONUS_SLOW_SECONDS) {
-return BASE_CORRECT_POINTS;
-}
+  if (clamped >= SPEED_BONUS_SLOW_SECONDS) {
+    return BASE_CORRECT_POINTS;
+  }
 
-const secondsPastFast =
-clamped -
-SPEED_BONUS_FAST_SECONDS;
+  const secondsPastFast =
+    clamped -
+    SPEED_BONUS_FAST_SECONDS;
 
-/*
-  Exponential decay: the bonus is multiplied by
-  e^(-rate * secondsPastFast), so it drops fast right
-  away and then flattens out toward zero, instead of
-  fading gradually over the whole window.
-*/
+  const decay =
+    Math.exp(
+      -SPEED_BONUS_DECAY_RATE *
+      secondsPastFast
+    );
 
-const decay =
-Math.exp(
--SPEED_BONUS_DECAY_RATE *
-secondsPastFast
-);
+  const speedBonus =
+    MAX_SPEED_BONUS *
+    decay;
 
-const speedBonus =
-MAX_SPEED_BONUS *
-decay;
-
-return Math.round(
-BASE_CORRECT_POINTS +
-speedBonus
-);
+  return Math.round(
+    BASE_CORRECT_POINTS +
+    speedBonus
+  );
 }
 
 /* ============================================================
 STAR RATING
-============================================================
-Based on the percentage of the maximum possible mission score
-(MAX_MISSION_POINTS = 7,000 points: 7 questions × 1,000 points).
 ============================================================ */
 
 function calcStarRating(points) {
 
-if (points <= 0) return 0;
+  if (points <= 0) return 0;
 
-const percent =
-points / MAX_MISSION_POINTS;
+  const percent =
+    points / MAX_MISSION_POINTS;
 
-if (percent >= 0.9) return 5;
-if (percent >= 0.75) return 4;
-if (percent >= 0.6) return 3;
-if (percent >= 0.4) return 2;
+  if (percent >= 0.9) return 5;
+  if (percent >= 0.75) return 4;
+  if (percent >= 0.6) return 3;
+  if (percent >= 0.4) return 2;
 
-return 1; // any points above 0 but below 40%
+  return 1; // any points above 0 but below 40%
 
 }
 
 /* ============================================================
 LEADERBOARD SCORE (RESCALED TO 100)
 ============================================================
-This does NOT change the scoring rules at all — each question
-is still worth a max of MAX_POINTS_PER_QUESTION (1,000), and a
-mission still tops out at MAX_MISSION_POINTS (7,000). This is
-purely a display/storage conversion used ONLY for the shared
-leaderboard: it rescales a mission's raw point total onto a
-0–100 scale, rounded to 2 decimal places.
-
-Everything else — the in-game "Score: X / 7000" counter, the
-per-question "+950 pts" feedback, the results screen's
-"X POINTS", the star rating, and the personal Best Score — all
-keep using the raw, unscaled point total.
+Purely a display/storage conversion for the shared leaderboard:
+rescales the raw mission total onto 0–100, 2 decimal places.
+Everything else keeps using the raw point total.
 ============================================================ */
 
 function calcLeaderboardScore(totalPoints) {
 
-const rawPercent =
-(totalPoints / MAX_MISSION_POINTS) *
-100;
+  const rawPercent =
+    (totalPoints / MAX_MISSION_POINTS) *
+    100;
 
-/*
-  Round to 2 decimal places without floating-point
-  artifacts (e.g. avoids things like 71.699999999).
-*/
-
-return Math.round(
-rawPercent * 100
-) / 100;
+  return Math.round(
+    rawPercent * 100
+  ) / 100;
 
 }
 
@@ -256,59 +193,59 @@ JST
 ============================================================ */
 
 const JST_OFFSET_MS =
-9 * 60 * 60 * 1000;
+  9 * 60 * 60 * 1000;
 
 function getJstDateKey(date = new Date()) {
 
-const jst =
-new Date(
-date.getTime() +
-JST_OFFSET_MS
-);
+  const jst =
+    new Date(
+      date.getTime() +
+      JST_OFFSET_MS
+    );
 
-const year =
-jst.getUTCFullYear();
+  const year =
+    jst.getUTCFullYear();
 
-const month =
-String(
-jst.getUTCMonth() + 1
-).padStart(2, '0');
+  const month =
+    String(
+      jst.getUTCMonth() + 1
+    ).padStart(2, '0');
 
-const day =
-String(
-jst.getUTCDate()
-).padStart(2, '0');
+  const day =
+    String(
+      jst.getUTCDate()
+    ).padStart(2, '0');
 
-return `${year}-${month}-${day}`;
+  return `${year}-${month}-${day}`;
 }
 
 function msUntilNextJstMidnight() {
 
-const now =
-new Date();
+  const now =
+    new Date();
 
-const jst =
-new Date(
-now.getTime() +
-JST_OFFSET_MS
-);
+  const jst =
+    new Date(
+      now.getTime() +
+      JST_OFFSET_MS
+    );
 
-const tomorrow =
-new Date(
-Date.UTC(
-jst.getUTCFullYear(),
-jst.getUTCMonth(),
-jst.getUTCDate() + 1,
-0,
-0,
-0
-)
-);
+  const tomorrow =
+    new Date(
+      Date.UTC(
+        jst.getUTCFullYear(),
+        jst.getUTCMonth(),
+        jst.getUTCDate() + 1,
+        0,
+        0,
+        0
+      )
+    );
 
-return (
-tomorrow.getTime() -
-jst.getTime()
-);
+  return (
+    tomorrow.getTime() -
+    jst.getTime()
+  );
 }
 
 /* ============================================================
@@ -316,9 +253,9 @@ MODE LABELS
 ============================================================ */
 
 const MODE_LABELS = {
-easy: 'EASY',
-medium: 'MEDIUM',
-hard: 'HARD'
+  easy: 'EASY',
+  medium: 'MEDIUM',
+  hard: 'HARD'
 };
 
 /* ============================================================
@@ -327,33 +264,33 @@ STATE
 
 const state = {
 
-nickname: '',
+  nickname: '',
 
-mode: 'easy',
+  mode: 'easy',
 
-roundQuestions: [],
+  roundQuestions: [],
 
-currentIndex: 0,
+  currentIndex: 0,
 
-score: 0,
+  score: 0,
 
-correctCount: 0,
+  correctCount: 0,
 
-results: [],
+  results: [],
 
-answeredCurrent: false,
+  answeredCurrent: false,
 
-transitioning: false,
+  transitioning: false,
 
-startTime: null,
+  startTime: null,
 
-elapsedSeconds: null,
+  elapsedSeconds: null,
 
-questionStartTime: null,
+  questionStartTime: null,
 
-autoAdvanceTimeoutId: null,
+  autoAdvanceTimeoutId: null,
 
-autoplayTimeoutId: null
+  autoplayTimeoutId: null
 
 };
 
@@ -363,239 +300,152 @@ DOM
 
 const screens = {
 
-nickname:
-document.getElementById('nicknameScreen'),
+  nickname:
+    document.getElementById('nicknameScreen'),
 
-checkin:
-document.getElementById('checkinScreen'),
+  checkin:
+    document.getElementById('checkinScreen'),
 
-start:
-document.getElementById('startScreen'),
+  start:
+    document.getElementById('startScreen'),
 
-difficulty:
-document.getElementById('difficultyScreen'),
+  difficulty:
+    document.getElementById('difficultyScreen'),
 
-game:
-document.getElementById('gameScreen'),
+  game:
+    document.getElementById('gameScreen'),
 
-results:
-document.getElementById('resultsScreen')
+  results:
+    document.getElementById('resultsScreen')
 
 };
 
 const nicknameForm =
-document.getElementById(
-'nicknameForm'
-);
+  document.getElementById('nicknameForm');
 
 const nicknameInput =
-document.getElementById(
-'nicknameInput'
-);
+  document.getElementById('nicknameInput');
 
 const nicknameSubmitBtn =
-document.getElementById(
-'nicknameSubmitBtn'
-);
+  document.getElementById('nicknameSubmitBtn');
 
 const welcomeBackEl =
-document.getElementById(
-'welcomeBack'
-);
+  document.getElementById('welcomeBack');
 
 const startWelcomeEl =
-document.getElementById(
-'startWelcome'
-);
+  document.getElementById('startWelcome');
 
 const checkinBtn =
-document.getElementById(
-'checkinBtn'
-);
+  document.getElementById('checkinBtn');
 
 const shareBtn =
-document.getElementById(
-'shareBtn'
-);
+  document.getElementById('shareBtn');
 
 const startBtn =
-document.getElementById(
-'startBtn'
-);
+  document.getElementById('startBtn');
 
 const difficultyButtons =
-document.querySelectorAll(
-'.difficulty-btn'
-);
+  document.querySelectorAll('.difficulty-btn');
 
 const playAudioBtn =
-document.getElementById(
-'playAudioBtn'
-);
+  document.getElementById('playAudioBtn');
 
 const letterAudio =
-document.getElementById(
-'letterAudio'
-);
+  document.getElementById('letterAudio');
 
 const optionsGrid =
-document.getElementById(
-'optionsGrid'
-);
+  document.getElementById('optionsGrid');
 
 const feedbackEl =
-document.getElementById(
-'feedback'
-);
+  document.getElementById('feedback');
 
 const nextBtn =
-document.getElementById(
-'nextBtn'
-);
+  document.getElementById('nextBtn');
 
 const questionCounter =
-document.getElementById(
-'questionCounter'
-);
+  document.getElementById('questionCounter');
 
 const scoreCounter =
-document.getElementById(
-'scoreCounter'
-);
+  document.getElementById('scoreCounter');
 
 const modePill =
-document.getElementById(
-'modePill'
-);
+  document.getElementById('modePill');
 
 const timerPill =
-document.getElementById(
-'timerPill'
-);
+  document.getElementById('timerPill');
 
 const blackholeBtn =
-document.getElementById(
-'blackholeBtn'
-);
+  document.getElementById('blackholeBtn');
 
 const constellationEl =
-document.getElementById(
-'constellation'
-);
+  document.getElementById('constellation');
 
 const resultsScore =
-document.getElementById(
-'resultsScore'
-);
+  document.getElementById('resultsScore');
 
 const resultsMsg =
-document.getElementById(
-'resultsMsg'
-);
+  document.getElementById('resultsMsg');
 
 const resultsStars =
-document.getElementById(
-'resultsStars'
-);
+  document.getElementById('resultsStars');
 
 const resultsBest =
-document.getElementById(
-'resultsBest'
-);
+  document.getElementById('resultsBest');
 
 const championCountdownEl =
-document.getElementById(
-'championCountdown'
-);
+  document.getElementById('championCountdown');
 
 const leaderboardTitleEl =
-document.getElementById(
-'leaderboardTitle'
-);
+  document.getElementById('leaderboardTitle');
 
 const leaderboardListEl =
-document.getElementById(
-'leaderboardList'
-);
+  document.getElementById('leaderboardList');
 
 const playAgainBtn =
-document.getElementById(
-'playAgainBtn'
-);
+  document.getElementById('playAgainBtn');
 
 const starField =
-document.getElementById(
-'starField'
-);
+  document.getElementById('starField');
 
 const ambientLayer =
-document.getElementById(
-'ambientLayer'
-);
+  document.getElementById('ambientLayer');
 
 const warpCanvas =
-document.getElementById(
-'warpCanvas'
-);
+  document.getElementById('warpCanvas');
 
 const galaxyFlash =
-document.getElementById(
-'galaxyFlash'
-);
+  document.getElementById('galaxyFlash');
 
 const appShell =
-document.getElementById(
-'appShell'
-);
+  document.getElementById('appShell');
 
 const questionContent =
-document.getElementById(
-'questionContent'
-);
+  document.getElementById('questionContent');
 
 const resultsContent =
-document.getElementById(
-'resultsContent'
-);
+  document.getElementById('resultsContent');
 
 const startContent =
-document.getElementById(
-'startContent'
-);
+  document.getElementById('startContent');
 
-// NEW: "Home Base" buttons — placed on the Start Mission,
-// Difficulty, and Results screens so a player can back out to
-// home.html (mission select) at any point WITHOUT losing their
-// nickname or their spot; if they never click it, they simply
-// keep playing the current mission as normal. The in-game
-// black-hole button already sends the player home mid-question,
-// so these cover the screens the black hole doesn't reach.
+// "Home Base" buttons on the Start Mission, Difficulty, and Results
+// screens — back out to home.html without losing the nickname.
 const homeFromStartBtn =
-document.getElementById(
-'homeFromStartBtn'
-);
+  document.getElementById('homeFromStartBtn');
 
 const homeFromDifficultyBtn =
-document.getElementById(
-'homeFromDifficultyBtn'
-);
+  document.getElementById('homeFromDifficultyBtn');
 
 const homeFromResultsBtn =
-document.getElementById(
-'homeFromResultsBtn'
-);
+  document.getElementById('homeFromResultsBtn');
 
-// NEW: reference to the existing "Which letter did you hear?"
-// paragraph inside the game screen, found by its existing class
-// (no HTML changes needed). Used so Medium/Hard questions can show
-// their own prompt (e.g. a masked word) — see renderQuestion().
+// The "Which letter did you hear?" paragraph inside the game screen.
+// Used so Medium/Hard questions can show their own prompt.
 const promptEl =
-document.querySelector(
-'#gameScreen .prompt'
-);
+  document.querySelector('#gameScreen .prompt');
 
 console.log(
-'S.P.A.C.E. ALPHABETS: app.js loaded.'
+  'S.P.A.C.E. ALPHABETS: app.js loaded.'
 );
 
 /* ============================================================
@@ -604,34 +454,34 @@ SAFE STORAGE
 
 function storageGet(key) {
 
-try {
-return localStorage.getItem(key);
-} catch (error) {
-return null;
-}
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    return null;
+  }
 
 }
 
 function storageSet(key, value) {
 
-try {
-localStorage.setItem(
-key,
-value
-);
-} catch (error) {
-/* Ignore storage failure */
-}
+  try {
+    localStorage.setItem(
+      key,
+      value
+    );
+  } catch (error) {
+    /* Ignore storage failure */
+  }
 
 }
 
 function storageRemove(key) {
 
-try {
-localStorage.removeItem(key);
-} catch (error) {
-/* Ignore */
-}
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    /* Ignore */
+  }
 
 }
 
@@ -641,94 +491,81 @@ NICKNAME
 
 function sanitizeNickname(raw) {
 
-return String(raw || '')
-.trim()
-.toUpperCase()
-.slice(0, 12);
+  return String(raw || '')
+    .trim()
+    .toUpperCase()
+    .slice(0, 12);
 }
 
 function saveNickname(nickname) {
 
-storageSet(
-NICKNAME_KEY,
-JSON.stringify({
+  storageSet(
+    NICKNAME_KEY,
+    JSON.stringify({
 
+      nickname: nickname,
 
-  nickname: nickname,
+      dateKey:
+        getJstDateKey()
 
-  dateKey:
-    getJstDateKey()
-
-})
-
-
-);
+    })
+  );
 
 }
 
 function loadNickname() {
 
-const raw =
-storageGet(
-NICKNAME_KEY
-);
+  const raw =
+    storageGet(
+      NICKNAME_KEY
+    );
 
-if (!raw) {
-return null;
-}
+  if (!raw) {
+    return null;
+  }
 
-try {
+  try {
 
+    const data =
+      JSON.parse(raw);
 
-const data =
-  JSON.parse(raw);
+    if (
+      !data ||
+      typeof data.nickname !== 'string' ||
+      !data.nickname.trim()
+    ) {
+      return null;
+    }
 
+    /*
+      The nickname is valid ONLY for today's JST date.
+    */
 
-if (
-  !data ||
-  typeof data.nickname !== 'string' ||
-  !data.nickname.trim()
-) {
-  return null;
-}
+    if (
+      data.dateKey !==
+      getJstDateKey()
+    ) {
 
+      storageRemove(
+        NICKNAME_KEY
+      );
 
-/*
-  IMPORTANT:
+      return null;
+    }
 
-  The nickname is valid ONLY for
-  today's JST date.
-*/
+    return sanitizeNickname(
+      data.nickname
+    );
 
-if (
-  data.dateKey !==
-  getJstDateKey()
-) {
+  } catch (error) {
 
-  storageRemove(
-    NICKNAME_KEY
-  );
+    storageRemove(
+      NICKNAME_KEY
+    );
 
-  return null;
-}
+    return null;
 
-
-return sanitizeNickname(
-  data.nickname
-);
-
-
-} catch (error) {
-
-
-storageRemove(
-  NICKNAME_KEY
-);
-
-return null;
-
-
-}
+  }
 
 }
 
@@ -738,37 +575,32 @@ SCREEN NAVIGATION
 
 function showScreen(name) {
 
-Object.values(
-screens
-).forEach(
-screen => {
+  Object.values(
+    screens
+  ).forEach(
+    screen => {
 
+      if (!screen) {
+        return;
+      }
 
-  if (!screen) {
-    return;
-  }
+      screen.classList.remove(
+        'active'
+      );
 
-  screen.classList.remove(
-    'active'
+    }
   );
 
-}
+  const target =
+    screens[name];
 
+  if (target) {
 
-);
+    target.classList.add(
+      'active'
+    );
 
-const target =
-screens[name];
-
-if (target) {
-
-
-target.classList.add(
-  'active'
-);
-
-
-}
+  }
 
 }
 
@@ -778,24 +610,63 @@ DAILY HOMEPAGE
 
 function showDailyHomepage() {
 
-const launchMission =
-sessionStorage.getItem(
-  'launchMission1'
-);
+  const launchMission =
+    sessionStorage.getItem(
+      'launchMission1'
+    );
 
-const nickname =
-loadNickname();
+  const nickname =
+    loadNickname();
 
-/* HOME BASE → Mission 1 */
-if (
-  launchMission === 'true' &&
-  nickname
-) {
+  /* HOME BASE → Mission 1 */
+  if (
+    launchMission === 'true' &&
+    nickname
+  ) {
 
-  sessionStorage.removeItem(
-    'launchMission1'
-  );
+    sessionStorage.removeItem(
+      'launchMission1'
+    );
 
+    state.nickname = nickname;
+
+    try {
+      sessionStorage.setItem(
+        'playerNickname',
+        nickname
+      );
+    } catch (error) {
+      /* Ignore sessionStorage failure */
+    }
+
+    startWelcomeEl.textContent =
+      `Are you ready, ${nickname}?`;
+
+    showScreen('start');
+
+    return;
+  }
+
+  /* FIRST VISIT OF THE DAY */
+  if (!nickname) {
+
+    state.nickname = '';
+    nicknameInput.value = '';
+    nicknameSubmitBtn.disabled = true;
+
+    showScreen('nickname');
+
+    setTimeout(
+      () => {
+        nicknameInput.focus();
+      },
+      50
+    );
+
+    return;
+  }
+
+  /* Existing nickname → HOME BASE */
   state.nickname = nickname;
 
   try {
@@ -807,87 +678,38 @@ if (
     /* Ignore sessionStorage failure */
   }
 
-  startWelcomeEl.textContent =
-    `Are you ready, ${nickname}?`;
-
-  showScreen('start');
-
-  return;
-}
-
-/* FIRST VISIT OF THE DAY */
-if (!nickname) {
-
-  state.nickname = '';
-  nicknameInput.value = '';
-  nicknameSubmitBtn.disabled = true;
-
-  showScreen('nickname');
-
-  setTimeout(
-    () => {
-      nicknameInput.focus();
-    },
-    50
-  );
-
-  return;
-}
-
-/* Existing nickname → HOME BASE */
-state.nickname = nickname;
-
-try {
-  sessionStorage.setItem(
-    'playerNickname',
-    nickname
-  );
-} catch (error) {
-  /* Ignore sessionStorage failure */
-}
-
-window.location.href =
-  'home.html';
+  window.location.href =
+    'home.html';
 }
 
 /* ============================================================
-GO TO HOME BASE (NEW)
-============================================================
-Used by the "🏠 Home Base" buttons on the Start Mission,
-Difficulty, and Results screens. Unlike the black-hole button,
-this does NOT play a transition or touch the round/timer state
-— it's meant for screens where no question is in progress, so a
-simple, immediate navigation is enough. The nickname stays saved
-in localStorage/sessionStorage, so home.html will greet the same
-player and they can jump straight back into a mission.
+GO TO HOME BASE
 ============================================================ */
 
 function goToHomeBase() {
 
-window.location.href =
-'home.html';
+  window.location.href =
+    'home.html';
 
 }
 
 [
-homeFromStartBtn,
-homeFromDifficultyBtn,
-homeFromResultsBtn
+  homeFromStartBtn,
+  homeFromDifficultyBtn,
+  homeFromResultsBtn
 ].forEach(
-button => {
+  button => {
 
+    if (!button) {
+      return;
+    }
 
-if (!button) {
-  return;
-}
+    button.addEventListener(
+      'click',
+      goToHomeBase
+    );
 
-button.addEventListener(
-  'click',
-  goToHomeBase
-);
-
-
-}
+  }
 );
 
 /* ============================================================
@@ -896,91 +718,84 @@ NICKNAME SUBMISSION
 
 function submitNickname(event) {
 
-if (event) {
-event.preventDefault();
-}
+  if (event) {
+    event.preventDefault();
+  }
 
-const nickname =
-sanitizeNickname(
-nicknameInput.value
-);
+  const nickname =
+    sanitizeNickname(
+      nicknameInput.value
+    );
 
-if (!nickname) {
+  if (!nickname) {
 
-nicknameInput.focus();
+    nicknameInput.focus();
 
-return;
+    return;
 
-}
+  }
 
-/*
-Save nickname immediately.
-*/
+  state.nickname =
+    nickname;
 
-state.nickname =
-nickname;
-
-saveNickname(
-nickname
-);
-
-try {
-  sessionStorage.setItem(
-    'playerNickname',
+  saveNickname(
     nickname
   );
-} catch (error) {
-  /* Ignore sessionStorage failure */
+
+  try {
+    sessionStorage.setItem(
+      'playerNickname',
+      nickname
+    );
+  } catch (error) {
+    /* Ignore sessionStorage failure */
+  }
+
+  /* NICKNAME → HOME BASE */
+  window.location.href =
+    'home.html';
+
 }
 
-/* NICKNAME → HOME BASE */
-window.location.href =
-  'home.html';
-
-}
 /* ============================================================
 NICKNAME INPUT
 ============================================================ */
 
 nicknameInput.addEventListener(
-'input',
-() => {
+  'input',
+  () => {
 
+    const nickname =
+      sanitizeNickname(
+        nicknameInput.value
+      );
 
-const nickname =
-  sanitizeNickname(
-    nicknameInput.value
-  );
+    nicknameSubmitBtn.disabled =
+      nickname.length === 0;
 
-nicknameSubmitBtn.disabled =
-  nickname.length === 0;
-
-
-}
+  }
 );
 
 nicknameForm.addEventListener(
-'submit',
-submitNickname
+  'submit',
+  submitNickname
 );
 
 nicknameInput.addEventListener(
-'keydown',
-event => {
+  'keydown',
+  event => {
 
+    if (
+      event.key === 'Enter'
+    ) {
 
-if (
-  event.key === 'Enter'
-) {
+      event.preventDefault();
 
-  event.preventDefault();
+      submitNickname();
 
-  submitNickname();
+    }
 
-}
-
-
-}
+  }
 );
 
 /* ============================================================
@@ -988,63 +803,41 @@ RETURNING PLAYER CONTINUE
 ============================================================ */
 
 checkinBtn.addEventListener(
-'click',
-() => {
+  'click',
+  () => {
 
+    /*
+      Re-check localStorage — the player may have left the page
+      open across JST midnight.
+    */
 
-/*
-  Re-check localStorage.
+    const nickname =
+      loadNickname();
 
-  This is important because the
-  player may leave the page open
-  across JST midnight.
-*/
+    if (!nickname) {
 
-const nickname =
-  loadNickname();
+      state.nickname = '';
 
+      nicknameInput.value = '';
 
-/*
-  If the date has changed,
-  nickname is no longer valid.
-*/
+      nicknameSubmitBtn.disabled = true;
 
-if (!nickname) {
+      showScreen('nickname');
 
-  state.nickname = '';
+      nicknameInput.focus();
 
-  nicknameInput.value = '';
+      return;
+    }
 
-  nicknameSubmitBtn.disabled = true;
+    state.nickname =
+      nickname;
 
-  showScreen('nickname');
+    startWelcomeEl.textContent =
+      `Are you ready, ${nickname}?`;
 
-  nicknameInput.focus();
+    showScreen('start');
 
-  return;
-}
-
-
-state.nickname =
-  nickname;
-
-
-startWelcomeEl.textContent =
-  `Are you ready, ${nickname}?`;
-
-
-/*
-  RETURNING PLAYER:
-
-  CHECK-IN
-     ↓
-  START MISSION PAGE
-*/
-
-showScreen('start');
-
-
-}
+  }
 );
 
 /* ============================================================
@@ -1052,156 +845,6 @@ START MISSION → DIFFICULTY
 ============================================================ */
 
 startBtn.addEventListener(
-'click',
-() => {
-
-
-if (
-  state.transitioning
-) {
-  return;
-}
-
-
-/*
-  Make absolutely sure a valid
-  nickname still exists.
-*/
-
-const nickname =
-  loadNickname();
-
-
-if (!nickname) {
-
-  showDailyHomepage();
-
-  return;
-}
-
-
-state.nickname =
-  nickname;
-
-
-state.transitioning =
-  false;
-
-
-showScreen(
-  'difficulty'
-);
-
-
-}
-);
-
-/* ============================================================
-SHUFFLE
-============================================================ */
-
-function shuffle(array) {
-
-const result =
-array.slice();
-
-for (
-let i = result.length - 1;
-i > 0;
-i--
-) {
-
-
-const j =
-  Math.floor(
-    Math.random() *
-    (i + 1)
-  );
-
-
-[
-  result[i],
-  result[j]
-] = [
-  result[j],
-  result[i]
-];
-
-
-}
-
-return result;
-
-}
-
-/* ============================================================
-QUESTION SELECTION
-============================================================ */
-
-function pickRoundQuestions() {
-
-/*
-questions.js must contain:
-
-
-  QUESTION_BANKS.easy
-  QUESTION_BANKS.medium
-  QUESTION_BANKS.hard
-
-
-*/
-
-if (
-typeof QUESTION_BANKS ===
-'undefined'
-) {
-
-
-console.error(
-  'QUESTION_BANKS is missing. Check questions.js.'
-);
-
-return [];
-
-
-}
-
-const bank =
-QUESTION_BANKS[state.mode] ||
-QUESTION_BANKS.easy ||
-[];
-
-return shuffle(
-bank
-).slice(
-0,
-QUESTIONS_PER_GAME
-);
-
-}
-
-/* ============================================================
-DIFFICULTY
-============================================================ */
-
-function setDifficultyButtonsDisabled(
-disabled
-) {
-
-difficultyButtons.forEach(
-button => {
-button.disabled =
-disabled;
-}
-);
-
-}
-
-difficultyButtons.forEach(
-button => {
-
-
-button.addEventListener(
   'click',
   () => {
 
@@ -1211,19 +854,144 @@ button.addEventListener(
       return;
     }
 
+    const nickname =
+      loadNickname();
 
-    state.mode =
-      button.dataset.mode ||
-      'easy';
+    if (!nickname) {
 
+      showDailyHomepage();
 
-    beginGalaxyEntrance();
+      return;
+    }
+
+    state.nickname =
+      nickname;
+
+    state.transitioning =
+      false;
+
+    showScreen(
+      'difficulty'
+    );
 
   }
 );
 
+/* ============================================================
+SHUFFLE
+============================================================ */
+
+function shuffle(array) {
+
+  const result =
+    array.slice();
+
+  for (
+    let i = result.length - 1;
+    i > 0;
+    i--
+  ) {
+
+    const j =
+      Math.floor(
+        Math.random() *
+        (i + 1)
+      );
+
+    [
+      result[i],
+      result[j]
+    ] = [
+      result[j],
+      result[i]
+    ];
+
+  }
+
+  return result;
 
 }
+
+/* ============================================================
+QUESTION SELECTION
+============================================================ */
+
+function pickRoundQuestions() {
+
+  /*
+    questions.js must contain:
+      QUESTION_BANKS.easy
+      QUESTION_BANKS.medium
+      QUESTION_BANKS.hard
+  */
+
+  if (
+    typeof QUESTION_BANKS ===
+    'undefined'
+  ) {
+
+    console.error(
+      'QUESTION_BANKS is missing. Check questions.js.'
+    );
+
+    return [];
+
+  }
+
+  const bank =
+    QUESTION_BANKS[state.mode] ||
+    QUESTION_BANKS.easy ||
+    [];
+
+  return shuffle(
+    bank
+  ).slice(
+    0,
+    QUESTIONS_PER_GAME
+  );
+
+}
+
+/* ============================================================
+DIFFICULTY
+============================================================ */
+
+function setDifficultyButtonsDisabled(
+  disabled
+) {
+
+  difficultyButtons.forEach(
+    button => {
+      button.disabled =
+        disabled;
+    }
+  );
+
+}
+
+difficultyButtons.forEach(
+  button => {
+
+    button.addEventListener(
+      'click',
+      () => {
+
+        if (
+          state.transitioning
+        ) {
+          return;
+        }
+
+        state.mode =
+          button.dataset.mode ||
+          'easy';
+
+        beginGalaxyEntrance();
+
+      }
+    );
+
+  }
 );
 
 /* ============================================================
@@ -1231,94 +999,92 @@ TIMER
 ============================================================ */
 
 let gameTimerIntervalId =
-null;
+  null;
 
 function formatTime(seconds) {
 
-const total =
-Math.max(
-0,
-Math.round(
-Number(seconds) || 0
-)
-);
+  const total =
+    Math.max(
+      0,
+      Math.round(
+        Number(seconds) || 0
+      )
+    );
 
-const minutes =
-Math.floor(
-total / 60
-);
+  const minutes =
+    Math.floor(
+      total / 60
+    );
 
-const secondsPart =
-total % 60;
+  const secondsPart =
+    total % 60;
 
-return (
-`${minutes}:` +
-String(
-secondsPart
-).padStart(2, '0')
-);
+  return (
+    `${minutes}:` +
+    String(
+      secondsPart
+    ).padStart(2, '0')
+  );
 
 }
 
 function startRoundTimer() {
 
-stopGameTimer();
+  stopGameTimer();
 
-state.startTime =
-performance.now();
+  state.startTime =
+    performance.now();
 
-state.elapsedSeconds =
-null;
+  state.elapsedSeconds =
+    null;
 
-updateTimerDisplay();
+  updateTimerDisplay();
 
-gameTimerIntervalId =
-setInterval(
-updateTimerDisplay,
-250
-);
+  gameTimerIntervalId =
+    setInterval(
+      updateTimerDisplay,
+      250
+    );
 
 }
 
 function stopGameTimer() {
 
-if (
-gameTimerIntervalId !== null
-) {
+  if (
+    gameTimerIntervalId !== null
+  ) {
 
+    clearInterval(
+      gameTimerIntervalId
+    );
 
-clearInterval(
-  gameTimerIntervalId
-);
+    gameTimerIntervalId =
+      null;
 
-gameTimerIntervalId =
-  null;
-
-
-}
+  }
 
 }
 
 function updateTimerDisplay() {
 
-if (
-!timerPill ||
-state.startTime === null
-) {
-return;
-}
+  if (
+    !timerPill ||
+    state.startTime === null
+  ) {
+    return;
+  }
 
-const seconds =
-state.elapsedSeconds !== null
-? state.elapsedSeconds
-:
-(
-performance.now() -
-state.startTime
-) / 1000;
+  const seconds =
+    state.elapsedSeconds !== null
+      ? state.elapsedSeconds
+      :
+        (
+          performance.now() -
+          state.startTime
+        ) / 1000;
 
-timerPill.textContent =
-`⏱ ${formatTime(seconds)}`;
+  timerPill.textContent =
+    `⏱ ${formatTime(seconds)}`;
 
 }
 
@@ -1332,323 +1098,302 @@ let warpMaxRadius = 0;
 let warpRAF = null;
 let warpAnimStart = 0;
 let warpAccelMsActive =
-WARP_ACCEL_MS;
+  WARP_ACCEL_MS;
 
 function setupWarpCanvas() {
 
-if (
-!warpCanvas ||
-!warpCanvas.getContext
-) {
-return;
-}
+  if (
+    !warpCanvas ||
+    !warpCanvas.getContext
+  ) {
+    return;
+  }
 
-warpCtx =
-warpCanvas.getContext('2d');
+  warpCtx =
+    warpCanvas.getContext('2d');
 
-resizeWarpCanvas();
+  resizeWarpCanvas();
 
-window.addEventListener(
-'resize',
-resizeWarpCanvas
-);
+  window.addEventListener(
+    'resize',
+    resizeWarpCanvas
+  );
 
 }
 
 function resizeWarpCanvas() {
 
-if (!warpCtx) {
-return;
-}
+  if (!warpCtx) {
+    return;
+  }
 
-const dpr =
-window.devicePixelRatio || 1;
+  const dpr =
+    window.devicePixelRatio || 1;
 
-const width =
-window.innerWidth;
+  const width =
+    window.innerWidth;
 
-const height =
-window.innerHeight;
+  const height =
+    window.innerHeight;
 
-warpCanvas.width =
-width * dpr;
+  warpCanvas.width =
+    width * dpr;
 
-warpCanvas.height =
-height * dpr;
+  warpCanvas.height =
+    height * dpr;
 
-warpCanvas.style.width =
-`${width}px`;
+  warpCanvas.style.width =
+    `${width}px`;
 
-warpCanvas.style.height =
-`${height}px`;
+  warpCanvas.style.height =
+    `${height}px`;
 
-warpCtx.setTransform(
-dpr,
-0,
-0,
-dpr,
-0,
-0
-);
+  warpCtx.setTransform(
+    dpr,
+    0,
+    0,
+    dpr,
+    0,
+    0
+  );
 
 }
 
 function makeWarpStar(
-nearCenter = false
+  nearCenter = false
 ) {
 
-const roll =
-Math.random();
+  const roll =
+    Math.random();
 
-return {
+  return {
 
-
-angle:
-  Math.random() *
-  Math.PI *
-  2,
-
-r:
-  nearCenter
-    ? Math.random() * 24
-    :
+    angle:
       Math.random() *
-      warpMaxRadius *
-      0.5,
+      Math.PI *
+      2,
 
-spd:
-  0.6 +
-  Math.random() * 1.4,
+    r:
+      nearCenter
+        ? Math.random() * 24
+        :
+          Math.random() *
+          warpMaxRadius *
+          0.5,
 
-hue:
-  roll < 0.14
-    ? 'gold'
-    :
-      roll < 0.26
-        ? 'teal'
-        : 'white'
+    spd:
+      0.6 +
+      Math.random() * 1.4,
 
+    hue:
+      roll < 0.14
+        ? 'gold'
+        :
+          roll < 0.26
+            ? 'teal'
+            : 'white'
 
-};
+  };
 
 }
 
 function initWarpStars(count) {
 
-warpMaxRadius =
-Math.hypot(
-window.innerWidth,
-window.innerHeight
-) / 2 * 1.05;
+  warpMaxRadius =
+    Math.hypot(
+      window.innerWidth,
+      window.innerHeight
+    ) / 2 * 1.05;
 
-warpStars = [];
+  warpStars = [];
 
-for (
-let i = 0;
-i < count;
-i++
-) {
+  for (
+    let i = 0;
+    i < count;
+    i++
+  ) {
 
+    warpStars.push(
+      makeWarpStar(false)
+    );
 
-warpStars.push(
-  makeWarpStar(false)
-);
-
-
-}
+  }
 
 }
 
 function warpFrame(now) {
 
-if (!warpCtx) {
-return;
-}
-
-const elapsed =
-now -
-warpAnimStart;
-
-const progress =
-Math.min(
-elapsed /
-warpAccelMsActive,
-1
-);
-
-const eased =
-progress *
-progress;
-
-const speedFactor =
-0.35 +
-eased * 5.5;
-
-const width =
-window.innerWidth;
-
-const height =
-window.innerHeight;
-
-const centerX =
-width / 2;
-
-const centerY =
-height / 2;
-
-warpCtx.fillStyle =
-'rgba(6, 8, 24, 0.28)';
-
-warpCtx.fillRect(
-0,
-0,
-width,
-height
-);
-
-warpStars.forEach(
-(star, index) => {
-
-
-  const delta =
-    speedFactor *
-    star.spd *
-    (
-      2 +
-      star.r * 0.045
-    );
-
-
-  star.r += delta;
-
-
-  if (
-    star.r >
-    warpMaxRadius
-  ) {
-
-    warpStars[index] =
-      makeWarpStar(true);
-
+  if (!warpCtx) {
     return;
-
   }
 
+  const elapsed =
+    now -
+    warpAnimStart;
 
-  const ratio =
-    star.r /
-    warpMaxRadius;
-
-
-  const x =
-    centerX +
-    Math.cos(
-      star.angle
-    ) *
-    star.r;
-
-
-  const y =
-    centerY +
-    Math.sin(
-      star.angle
-    ) *
-    star.r;
-
-
-  const size =
-    0.6 +
-    ratio * 3.6;
-
-
-  const alpha =
+  const progress =
     Math.min(
-      1,
-      0.2 +
-      ratio * 1.1
+      elapsed /
+      warpAccelMsActive,
+      1
     );
 
+  const eased =
+    progress *
+    progress;
 
-  let color;
+  const speedFactor =
+    0.35 +
+    eased * 5.5;
 
+  const width =
+    window.innerWidth;
 
-  if (
-    star.hue === 'gold'
-  ) {
+  const height =
+    window.innerHeight;
 
-    color =
-      `rgba(255,217,102,${alpha})`;
+  const centerX =
+    width / 2;
 
-  } else if (
-    star.hue === 'teal'
-  ) {
-
-    color =
-      `rgba(79,227,193,${alpha})`;
-
-  } else {
-
-    color =
-      `rgba(255,255,255,${alpha})`;
-
-  }
-
-
-  warpCtx.beginPath();
+  const centerY =
+    height / 2;
 
   warpCtx.fillStyle =
-    color;
+    'rgba(6, 8, 24, 0.28)';
 
-  warpCtx.arc(
-    x,
-    y,
-    size,
+  warpCtx.fillRect(
     0,
-    Math.PI * 2
+    0,
+    width,
+    height
   );
 
-  warpCtx.fill();
+  warpStars.forEach(
+    (star, index) => {
 
-}
+      const delta =
+        speedFactor *
+        star.spd *
+        (
+          2 +
+          star.r * 0.045
+        );
 
+      star.r += delta;
 
-);
+      if (
+        star.r >
+        warpMaxRadius
+      ) {
 
-warpRAF =
-requestAnimationFrame(
-warpFrame
-);
+        warpStars[index] =
+          makeWarpStar(true);
+
+        return;
+
+      }
+
+      const ratio =
+        star.r /
+        warpMaxRadius;
+
+      const x =
+        centerX +
+        Math.cos(
+          star.angle
+        ) *
+        star.r;
+
+      const y =
+        centerY +
+        Math.sin(
+          star.angle
+        ) *
+        star.r;
+
+      const size =
+        0.6 +
+        ratio * 3.6;
+
+      const alpha =
+        Math.min(
+          1,
+          0.2 +
+          ratio * 1.1
+        );
+
+      let color;
+
+      if (
+        star.hue === 'gold'
+      ) {
+
+        color =
+          `rgba(255,217,102,${alpha})`;
+
+      } else if (
+        star.hue === 'teal'
+      ) {
+
+        color =
+          `rgba(79,227,193,${alpha})`;
+
+      } else {
+
+        color =
+          `rgba(255,255,255,${alpha})`;
+
+      }
+
+      warpCtx.beginPath();
+
+      warpCtx.fillStyle =
+        color;
+
+      warpCtx.arc(
+        x,
+        y,
+        size,
+        0,
+        Math.PI * 2
+      );
+
+      warpCtx.fill();
+
+    }
+  );
+
+  warpRAF =
+    requestAnimationFrame(
+      warpFrame
+    );
 
 }
 
 function stopWarpAnimation() {
 
-if (
-warpRAF !== null
-) {
+  if (
+    warpRAF !== null
+  ) {
 
+    cancelAnimationFrame(
+      warpRAF
+    );
 
-cancelAnimationFrame(
-  warpRAF
-);
+  }
 
+  warpRAF = null;
 
-}
+  if (warpCtx) {
 
-warpRAF = null;
+    warpCtx.clearRect(
+      0,
+      0,
+      warpCanvas.width,
+      warpCanvas.height
+    );
 
-if (warpCtx) {
-
-
-warpCtx.clearRect(
-  0,
-  0,
-  warpCanvas.width,
-  warpCanvas.height
-);
-
-
-}
+  }
 
 }
 
@@ -1658,182 +1403,164 @@ GALAXY ENTRANCE
 
 function beginGalaxyEntrance() {
 
-if (
-state.transitioning
-) {
-return;
-}
-
-state.transitioning =
-true;
-
-setDifficultyButtonsDisabled(
-true
-);
-
-/*
-TIMER STARTS WHEN THE
-MISSION ACTUALLY BEGINS.
-*/
-
-startRoundTimer();
-
-/*
-If animation isn't available,
-simply start the game.
-*/
-
-if (
-!warpCtx
-) {
-
-
-startGame();
-
-state.transitioning =
-  false;
-
-setDifficultyButtonsDisabled(
-  false
-);
-
-return;
-
-
-}
-
-if (
-window.matchMedia(
-'(prefers-reduced-motion: reduce)'
-).matches
-) {
-
-
-startGame();
-
-state.transitioning =
-  false;
-
-setDifficultyButtonsDisabled(
-  false
-);
-
-return;
-
-
-}
-
-appShell.classList.add(
-'transition-hide'
-);
-
-document.body.classList.add(
-'warping'
-);
-
-warpAccelMsActive =
-WARP_ACCEL_MS;
-
-initWarpStars(
-WARP_STAR_COUNT
-);
-
-warpAnimStart =
-performance.now();
-
-warpCanvas.classList.add(
-'active'
-);
-
-stopWarpAnimation();
-
-warpRAF =
-requestAnimationFrame(
-warpFrame
-);
-
-setTimeout(
-() => {
-
-
-  if (!galaxyFlash) {
+  if (
+    state.transitioning
+  ) {
     return;
   }
 
-  galaxyFlash.classList.remove(
-    'flash'
+  state.transitioning =
+    true;
+
+  setDifficultyButtonsDisabled(
+    true
   );
 
-  void galaxyFlash.offsetWidth;
+  /*
+    TIMER STARTS WHEN THE MISSION ACTUALLY BEGINS.
+  */
 
-  galaxyFlash.classList.add(
-    'flash'
-  );
+  startRoundTimer();
 
-},
-WARP_ACCEL_MS
+  /*
+    If animation isn't available, simply start the game.
+  */
 
+  if (
+    !warpCtx
+  ) {
 
-);
+    startGame();
 
-setTimeout(
-() => {
+    state.transitioning =
+      false;
 
+    setDifficultyButtonsDisabled(
+      false
+    );
 
-  startGame();
+    return;
 
-},
-WARP_ACCEL_MS +
-WARP_HOLD_MS
+  }
 
+  if (
+    window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches
+  ) {
 
-);
+    startGame();
 
-setTimeout(
-() => {
+    state.transitioning =
+      false;
 
+    setDifficultyButtonsDisabled(
+      false
+    );
 
-  appShell.classList.remove(
+    return;
+
+  }
+
+  appShell.classList.add(
     'transition-hide'
   );
 
-  warpCanvas.classList.remove(
-    'active'
-  );
-
-  document.body.classList.remove(
+  document.body.classList.add(
     'warping'
   );
 
-},
-WARP_ACCEL_MS +
-WARP_HOLD_MS +
-120
+  warpAccelMsActive =
+    WARP_ACCEL_MS;
 
+  initWarpStars(
+    WARP_STAR_COUNT
+  );
 
-);
+  warpAnimStart =
+    performance.now();
 
-setTimeout(
-() => {
-
+  warpCanvas.classList.add(
+    'active'
+  );
 
   stopWarpAnimation();
 
-  state.transitioning =
-    false;
+  warpRAF =
+    requestAnimationFrame(
+      warpFrame
+    );
 
-  setDifficultyButtonsDisabled(
-    false
+  setTimeout(
+    () => {
+
+      if (!galaxyFlash) {
+        return;
+      }
+
+      galaxyFlash.classList.remove(
+        'flash'
+      );
+
+      void galaxyFlash.offsetWidth;
+
+      galaxyFlash.classList.add(
+        'flash'
+      );
+
+    },
+    WARP_ACCEL_MS
   );
 
-},
-WARP_ACCEL_MS +
-WARP_HOLD_MS +
-120 +
-WARP_EXIT_MS
+  setTimeout(
+    () => {
 
+      startGame();
 
-);
+    },
+    WARP_ACCEL_MS +
+    WARP_HOLD_MS
+  );
+
+  setTimeout(
+    () => {
+
+      appShell.classList.remove(
+        'transition-hide'
+      );
+
+      warpCanvas.classList.remove(
+        'active'
+      );
+
+      document.body.classList.remove(
+        'warping'
+      );
+
+    },
+    WARP_ACCEL_MS +
+    WARP_HOLD_MS +
+    120
+  );
+
+  setTimeout(
+    () => {
+
+      stopWarpAnimation();
+
+      state.transitioning =
+        false;
+
+      setDifficultyButtonsDisabled(
+        false
+      );
+
+    },
+    WARP_ACCEL_MS +
+    WARP_HOLD_MS +
+    120 +
+    WARP_EXIT_MS
+  );
 
 }
 
@@ -1843,47 +1570,45 @@ START GAME
 
 function startGame() {
 
-clearAutoAdvanceTimer();
-clearAutoplayTimer();
+  clearAutoAdvanceTimer();
+  clearAutoplayTimer();
 
-state.roundQuestions =
-pickRoundQuestions();
+  state.roundQuestions =
+    pickRoundQuestions();
 
-if (
-state.roundQuestions.length === 0
-) {
+  if (
+    state.roundQuestions.length === 0
+  ) {
 
+    console.error(
+      'No questions available for this mode.'
+    );
 
-console.error(
-  'No questions available for this mode.'
-);
+    stopGameTimer();
 
-stopGameTimer();
+    showScreen('difficulty');
 
-showScreen('difficulty');
+    return;
 
-return;
+  }
 
+  state.currentIndex = 0;
 
-}
+  state.score = 0;
 
-state.currentIndex = 0;
+  state.correctCount = 0;
 
-state.score = 0;
+  state.results = [];
 
-state.correctCount = 0;
+  state.answeredCurrent = false;
 
-state.results = [];
+  modePill.textContent =
+    MODE_LABELS[state.mode] ||
+    'EASY';
 
-state.answeredCurrent = false;
+  showScreen('game');
 
-modePill.textContent =
-MODE_LABELS[state.mode] ||
-'EASY';
-
-showScreen('game');
-
-renderQuestion();
+  renderQuestion();
 
 }
 
@@ -1892,168 +1617,149 @@ QUESTION TRANSITION
 ============================================================ */
 
 function playQuestionWarpBurst(
-visibleMs
+  visibleMs
 ) {
 
-if (!warpCtx) {
-return;
-}
+  if (!warpCtx) {
+    return;
+  }
 
-document.body.classList.add(
-'warping'
-);
-
-warpAccelMsActive =
-QUESTION_WARP_ACCEL_MS;
-
-initWarpStars(
-QUESTION_WARP_STAR_COUNT
-);
-
-warpAnimStart =
-performance.now();
-
-stopWarpAnimation();
-
-warpCanvas.classList.add(
-'active'
-);
-
-warpRAF =
-requestAnimationFrame(
-warpFrame
-);
-
-setTimeout(
-() => {
-
-
-  warpCanvas.classList.remove(
-    'active'
-  );
-
-  document.body.classList.remove(
+  document.body.classList.add(
     'warping'
   );
 
-},
-visibleMs
+  warpAccelMsActive =
+    QUESTION_WARP_ACCEL_MS;
 
+  initWarpStars(
+    QUESTION_WARP_STAR_COUNT
+  );
 
-);
-
-setTimeout(
-() => {
-
+  warpAnimStart =
+    performance.now();
 
   stopWarpAnimation();
 
-},
-visibleMs + 650
+  warpCanvas.classList.add(
+    'active'
+  );
 
+  warpRAF =
+    requestAnimationFrame(
+      warpFrame
+    );
 
-);
+  setTimeout(
+    () => {
+
+      warpCanvas.classList.remove(
+        'active'
+      );
+
+      document.body.classList.remove(
+        'warping'
+      );
+
+    },
+    visibleMs
+  );
+
+  setTimeout(
+    () => {
+
+      stopWarpAnimation();
+
+    },
+    visibleMs + 650
+  );
 
 }
 
 function playGalaxyZoomTransition(
-exitEl,
-enterEl,
-onSwap,
-exitClass = 'q-exit'
+  exitEl,
+  enterEl,
+  onSwap,
+  exitClass = 'q-exit'
 ) {
 
-const reducedMotion =
-window.matchMedia(
-'(prefers-reduced-motion: reduce)'
-).matches;
+  const reducedMotion =
+    window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches;
 
-if (reducedMotion) {
+  if (reducedMotion) {
 
+    onSwap();
 
-onSwap();
+    return;
 
-return;
+  }
 
+  playQuestionWarpBurst(
+    QUESTION_EXIT_MS +
+    QUESTION_ENTER_MS -
+    60
+  );
 
-}
-
-playQuestionWarpBurst(
-QUESTION_EXIT_MS +
-QUESTION_ENTER_MS -
-60
-);
-
-if (exitEl) {
-
-
-exitEl.classList.remove(
-  'q-enter',
-  'q-exit',
-  'q-suck'
-);
-
-
-exitEl.classList.add(
-  exitClass
-);
-
-
-}
-
-setTimeout(
-() => {
-
-
-  onSwap();
-
-
-  if (
-    exitEl &&
-    exitEl !== enterEl
-  ) {
+  if (exitEl) {
 
     exitEl.classList.remove(
+      'q-enter',
+      'q-exit',
+      'q-suck'
+    );
+
+    exitEl.classList.add(
       exitClass
     );
 
   }
 
+  setTimeout(
+    () => {
 
-  if (enterEl) {
+      onSwap();
 
-    enterEl.classList.remove(
-      'q-exit',
-      'q-suck',
-      'q-enter'
-    );
+      if (
+        exitEl &&
+        exitEl !== enterEl
+      ) {
 
-
-    enterEl.classList.add(
-      'q-enter'
-    );
-
-
-    void enterEl.offsetWidth;
-
-
-    requestAnimationFrame(
-      () => {
-
-        enterEl.classList.remove(
-          'q-enter'
+        exitEl.classList.remove(
+          exitClass
         );
 
       }
-    );
 
-  }
+      if (enterEl) {
 
-},
-QUESTION_EXIT_MS
+        enterEl.classList.remove(
+          'q-exit',
+          'q-suck',
+          'q-enter'
+        );
 
+        enterEl.classList.add(
+          'q-enter'
+        );
 
-);
+        void enterEl.offsetWidth;
+
+        requestAnimationFrame(
+          () => {
+
+            enterEl.classList.remove(
+              'q-enter'
+            );
+
+          }
+        );
+
+      }
+
+    },
+    QUESTION_EXIT_MS
+  );
 
 }
 
@@ -2063,39 +1769,35 @@ QUESTION TIMERS
 
 function clearAutoAdvanceTimer() {
 
-if (
-state.autoAdvanceTimeoutId !== null
-) {
+  if (
+    state.autoAdvanceTimeoutId !== null
+  ) {
 
+    clearTimeout(
+      state.autoAdvanceTimeoutId
+    );
 
-clearTimeout(
-  state.autoAdvanceTimeoutId
-);
+    state.autoAdvanceTimeoutId =
+      null;
 
-state.autoAdvanceTimeoutId =
-  null;
-
-
-}
+  }
 
 }
 
 function clearAutoplayTimer() {
 
-if (
-state.autoplayTimeoutId !== null
-) {
+  if (
+    state.autoplayTimeoutId !== null
+  ) {
 
+    clearTimeout(
+      state.autoplayTimeoutId
+    );
 
-clearTimeout(
-  state.autoplayTimeoutId
-);
+    state.autoplayTimeoutId =
+      null;
 
-state.autoplayTimeoutId =
-  null;
-
-
-}
+  }
 
 }
 
@@ -2105,157 +1807,146 @@ CONSTELLATION
 
 function renderConstellation() {
 
-if (!constellationEl) {
-return;
-}
+  if (!constellationEl) {
+    return;
+  }
 
-const total =
-state.roundQuestions.length;
+  const total =
+    state.roundQuestions.length;
 
-if (total === 0) {
-return;
-}
+  if (total === 0) {
+    return;
+  }
 
-const width = 600;
-const height = 54;
-const padding = 30;
+  const width = 600;
+  const height = 54;
+  const padding = 30;
 
-const step =
-total > 1
-?
-(
-width -
-padding * 2
-) /
-(total - 1)
-:
-0;
+  const step =
+    total > 1
+      ?
+        (
+          width -
+          padding * 2
+        ) /
+        (total - 1)
+      :
+        0;
 
-const y =
-height / 2;
+  const y =
+    height / 2;
 
-let path =
-`M ${padding} ${y}`;
+  let path =
+    `M ${padding} ${y}`;
 
-let nodes = '';
+  let nodes = '';
 
-for (
-let i = 0;
-i < total;
-i++
-) {
+  for (
+    let i = 0;
+    i < total;
+    i++
+  ) {
 
+    const x =
+      padding +
+      step * i;
 
-const x =
-  padding +
-  step * i;
+    if (i > 0) {
 
+      path +=
+        ` L ${x} ${y}`;
 
-if (i > 0) {
+    }
 
-  path +=
-    ` L ${x} ${y}`;
+    let cls =
+      'constellation-node';
 
-}
+    if (
+      i < state.results.length
+    ) {
 
+      cls +=
+        state.results[i]
+          ? ' done'
+          : ' wrong-node';
 
-let cls =
-  'constellation-node';
+    } else if (
+      i === state.currentIndex
+    ) {
 
+      cls += ' current';
 
-if (
-  i < state.results.length
-) {
+    }
 
-  cls +=
-    state.results[i]
-      ? ' done'
-      : ' wrong-node';
+    const radius =
+      i === state.currentIndex &&
+      i >= state.results.length
+        ? 8
+        : 6;
 
-} else if (
-  i === state.currentIndex
-) {
+    nodes +=
+      `<circle class="${cls}" cx="${x}" cy="${y}" r="${radius}"></circle>`;
 
-  cls += ' current';
+  }
 
-}
+  constellationEl.innerHTML = `
 
+    <svg
+      viewBox="0 0 ${width} ${height}"
+      preserveAspectRatio="xMidYMid meet"
+    >
 
-const radius =
-  i === state.currentIndex &&
-  i >= state.results.length
-    ? 8
-    : 6;
+      <path
+        class="constellation-line"
+        d="${path}"
+      ></path>
 
+      ${nodes}
 
-nodes +=
-  `<circle class="${cls}" cx="${x}" cy="${y}" r="${radius}"></circle>`;
+    </svg>
 
+    <div
+      class="rocket"
+      id="rocketIcon"
+      aria-hidden="true"
+    >
+      🚀
+    </div>
 
-}
+  `;
 
-constellationEl.innerHTML = `
+  const rocket =
+    document.getElementById(
+      'rocketIcon'
+    );
 
+  const progressIndex =
+    Math.min(
+      state.currentIndex,
+      total - 1
+    );
 
-<svg
-  viewBox="0 0 ${width} ${height}"
-  preserveAspectRatio="xMidYMid meet"
->
+  const xPercent =
+    total > 1
+      ?
+        (
+          (
+            padding +
+            step *
+            progressIndex
+          ) /
+          width
+        ) *
+        100
+      :
+        50;
 
-  <path
-    class="constellation-line"
-    d="${path}"
-  ></path>
+  if (rocket) {
 
-  ${nodes}
+    rocket.style.left =
+      `${xPercent}%`;
 
-</svg>
-
-<div
-  class="rocket"
-  id="rocketIcon"
-  aria-hidden="true"
->
-  🚀
-</div>
-
-
-`;
-
-const rocket =
-document.getElementById(
-'rocketIcon'
-);
-
-const progressIndex =
-Math.min(
-state.currentIndex,
-total - 1
-);
-
-const xPercent =
-total > 1
-?
-(
-(
-padding +
-step *
-progressIndex
-) /
-width
-) *
-100
-:
-50;
-
-if (rocket) {
-
-
-rocket.style.left =
-  `${xPercent}%`;
-
-
-}
+  }
 
 }
 
@@ -2263,213 +1954,177 @@ rocket.style.left =
 RENDER QUESTION
 ============================================================ */
 
-// NEW: builds the Medium-mode prompt as HTML instead of plain
-// text. It wraps the run of underscores in q.display (e.g. the
-// "__" in "SIST__") in a <span id="blankSlot"> so
-// revealMediumAnswer() can later swap just that piece for the
-// real letters and animate it in. It also places the word-meaning
-// slot (#wordMeaningWrap / #wordMeaningText) as its own line right
-// below the word — e.g.:
-//   What sound is missing?
-//   SISTER
-//   意味：姉/妹
-// — hidden by default; revealMediumAnswer() makes it a block
-// element once shown, which is what pushes it onto its own new,
-// centered line without needing an explicit line break here.
+// Builds the Medium-mode prompt as HTML. The run of underscores in
+// q.display (e.g. "__" in "SIST__") is wrapped in <span id="blankSlot">
+// so revealMediumAnswer() can swap it for the real letters. The
+// word-meaning slot sits on its own line below the word, hidden until
+// revealed.
 function buildMediumPromptHTML(q) {
 
-const segments =
-String(q.display || '')
-.split(/(_+)/);
+  const segments =
+    String(q.display || '')
+      .split(/(_+)/);
 
-let wordHtml = '';
+  let wordHtml = '';
 
-segments.forEach(
-segment => {
+  segments.forEach(
+    segment => {
 
+      if (/^_+$/.test(segment)) {
 
-  if (/^_+$/.test(segment)) {
+        wordHtml +=
+          `<span class="blank-slot" id="blankSlot">${segment}</span>`;
 
-    wordHtml +=
-      `<span class="blank-slot" id="blankSlot">${segment}</span>`;
+      } else {
 
-  } else {
+        wordHtml +=
+          escapeHtml(segment);
 
-    wordHtml +=
-      escapeHtml(segment);
+      }
 
-  }
+    }
+  );
 
-
-}
-);
-
-return (
-`What sound is missing?<br><span class="word-line">${wordHtml}</span><span class="word-meaning-wrap" id="wordMeaningWrap" aria-hidden="true"><span id="wordMeaningText" class="word-meaning-text"></span></span>`
-);
+  return (
+    `What sound is missing?<br><span class="word-line">${wordHtml}</span><span class="word-meaning-wrap" id="wordMeaningWrap" aria-hidden="true"><span id="wordMeaningText" class="word-meaning-text"></span></span>`
+  );
 
 }
 
 function renderQuestion() {
 
-clearAutoAdvanceTimer();
-clearAutoplayTimer();
+  clearAutoAdvanceTimer();
+  clearAutoplayTimer();
 
-state.answeredCurrent =
-false;
+  state.answeredCurrent =
+    false;
 
-const q =
-state.roundQuestions[
-state.currentIndex
-];
+  const q =
+    state.roundQuestions[
+      state.currentIndex
+    ];
 
-if (!q) {
+  if (!q) {
 
+    showResults();
 
-showResults();
+    return;
 
-return;
+  }
 
+  const total =
+    state.roundQuestions.length;
 
-}
+  questionCounter.textContent =
+    `Question ${state.currentIndex + 1} / ${total}`;
 
-const total =
-state.roundQuestions.length;
+  scoreCounter.textContent =
+    `Score: ${state.score} / ${MAX_MISSION_POINTS}`;
 
-questionCounter.textContent =
-`Question ${state.currentIndex + 1} / ${total}`;
+  renderConstellation();
 
-scoreCounter.textContent =
-`Score: ${state.score} / ${MAX_MISSION_POINTS}`;
+  // Medium mode shows its masked word with a targetable blank span.
+  // Easy/Hard keep using the plain-text prompt.
+  if (promptEl) {
 
-renderConstellation();
+    if (
+      state.mode === 'medium' &&
+      q.display
+    ) {
 
-// NEW: Medium mode shows its masked word with a targetable
-// blank span (and an inline image slot right after it) so the
-// correct sound and its illustration can fade in together once
-// answered — see revealMediumAnswer(). Easy/Hard are unaffected
-// and keep using the plain-text prompt exactly as before.
-if (promptEl) {
+      promptEl.innerHTML =
+        buildMediumPromptHTML(q);
 
-if (
-  state.mode === 'medium' &&
-  q.display
-) {
+    } else {
 
-  promptEl.innerHTML =
-    buildMediumPromptHTML(q);
+      promptEl.textContent =
+        q.prompt ||
+        'Which letter did you hear?';
 
-} else {
+    }
 
-  promptEl.textContent =
-    q.prompt ||
-    'Which letter did you hear?';
+  }
 
-}
+  /*
+    AUDIO — questions.js should provide: audio: "audio/example.mp3"
+  */
 
-}
+  letterAudio.pause();
 
-/*
-AUDIO
+  letterAudio.currentTime = 0;
 
+  letterAudio.src =
+    q.audio || '';
 
-questions.js should provide:
+  letterAudio.onended = null;
 
-  audio: "audio/example.mp3"
-
-
-*/
-
-letterAudio.pause();
-
-letterAudio.currentTime = 0;
-
-letterAudio.src =
-q.audio || '';
-
-letterAudio.onended = null;
-
-playAudioBtn.classList.remove(
-'playing'
-);
-
-feedbackEl.textContent = '';
-
-feedbackEl.className =
-'feedback';
-
-nextBtn.style.display =
-'none';
-
-optionsGrid.innerHTML = '';
-
-const options =
-Array.isArray(q.options)
-? q.options
-: [];
-
-shuffle(options).forEach(
-option => {
-
-
-  const button =
-    document.createElement(
-      'button'
-    );
-
-
-  button.type =
-    'button';
-
-  button.className =
-    'option-btn';
-
-  button.textContent =
-    option;
-
-
-  button.setAttribute(
-    'aria-label',
-    `Answer ${option}`
+  playAudioBtn.classList.remove(
+    'playing'
   );
 
+  feedbackEl.textContent = '';
 
-  button.addEventListener(
-    'click',
-    () => {
+  feedbackEl.className =
+    'feedback';
 
-      handleAnswer(
-        option,
-        button,
-        q.correctAnswer
+  nextBtn.style.display =
+    'none';
+
+  optionsGrid.innerHTML = '';
+
+  const options =
+    Array.isArray(q.options)
+      ? q.options
+      : [];
+
+  shuffle(options).forEach(
+    option => {
+
+      const button =
+        document.createElement(
+          'button'
+        );
+
+      button.type =
+        'button';
+
+      button.className =
+        'option-btn';
+
+      button.textContent =
+        option;
+
+      button.setAttribute(
+        'aria-label',
+        `Answer ${option}`
+      );
+
+      button.addEventListener(
+        'click',
+        () => {
+
+          handleAnswer(
+            option,
+            button,
+            q.correctAnswer
+          );
+
+        }
+      );
+
+      optionsGrid.appendChild(
+        button
       );
 
     }
   );
 
+  // The response-time clock doesn't start here — it starts only once
+  // the audio actually begins playing (see playCurrentAudio()), so
+  // loading lag before playback never eats into the speed bonus.
+  state.questionStartTime = null;
 
-  optionsGrid.appendChild(
-    button
-  );
-
-}
-
-
-);
-
-/*
-  The per-question SCORING timer starts now, the
-  moment this question (and its answer options) is
-  actually displayed to the student. It stops the
-  instant an answer is selected — see handleAnswer().
-*/
-
-// The response-time clock doesn't start here — it starts only once
-// the audio actually begins playing (see playCurrentAudio()), so
-// loading lag before playback never eats into the speed bonus.
-state.questionStartTime = null;
-
-startAutoplaySequence();
+  startAutoplaySequence();
 
 }
 
@@ -2479,114 +2134,82 @@ AUDIO
 
 function playCurrentAudio() {
 
-if (
-!letterAudio.src
-) {
-console.warn(
-'No audio file assigned to this question.'
-);
-
-
-return;
-
-
-}
-
-letterAudio.currentTime = 0;
-
-playAudioBtn.classList.add(
-'playing'
-);
-
-const promise =
-letterAudio.play();
-
-if (
-promise &&
-typeof promise.catch === 'function'
-) {
-
-
-promise.catch(
-  error => {
-
-    console.warn(
-      'Audio could not play:',
-      error
-    );
-
-    playAudioBtn.classList.remove(
-      'playing'
-    );
-
-  }
-);
-
-
-}
-
-/*
-  The response-time / speed-bonus clock starts the instant the
-  audio actually BEGINS playing (the browser's 'playing' event),
-  not when playback is merely requested. If the audio lags,
-  buffers, or fails outright, this event never fires and the
-  clock never starts — the student can still answer or guess,
-  but that question simply won't earn a speed bonus (see the
-  fallback in handleAnswer()).
-
-  Guarded so a manual replay via the "Play Sound" button doesn't
-  reset a clock that's already running.
-*/
-
-letterAudio.onplaying =
-() => {
-
-
   if (
-    state.questionStartTime === null
+    !letterAudio.src
   ) {
+    console.warn(
+      'No audio file assigned to this question.'
+    );
 
-    state.questionStartTime =
-      performance.now();
+    return;
 
   }
 
+  letterAudio.currentTime = 0;
 
-};
-
-letterAudio.onended =
-() => {
-
-
-  playAudioBtn.classList.remove(
+  playAudioBtn.classList.add(
     'playing'
   );
 
+  const promise =
+    letterAudio.play();
 
-};
+  if (
+    promise &&
+    typeof promise.catch === 'function'
+  ) {
 
+    promise.catch(
+      error => {
+
+        console.warn(
+          'Audio could not play:',
+          error
+        );
+
+        playAudioBtn.classList.remove(
+          'playing'
+        );
+
+      }
+    );
+
+  }
+
+  /*
+    The response-time / speed-bonus clock starts the instant the
+    audio actually BEGINS playing (the 'playing' event). If the
+    audio never plays, the clock never starts and that question
+    earns no speed bonus (see the fallback in handleAnswer()).
+    Guarded so a manual replay doesn't reset a running clock.
+  */
+
+  letterAudio.onplaying =
+    () => {
+
+      if (
+        state.questionStartTime === null
+      ) {
+
+        state.questionStartTime =
+          performance.now();
+
+      }
+
+    };
+
+  letterAudio.onended =
+    () => {
+
+      playAudioBtn.classList.remove(
+        'playing'
+      );
+
+    };
 
 }
 
 function startAutoplaySequence() {
-
-if (
-state.answeredCurrent
-) {
-return;
-}
-
-/*
-  Plays automatically ONCE, AUTOPLAY_DELAY_MS after the question
-  appears — giving the transition a moment to settle before the
-  sound starts. After that, the student can replay it at their own
-  pace with the "Play Sound" button.
-*/
-
-state.autoplayTimeoutId =
-setTimeout(
-() => {
-
 
   if (
     state.answeredCurrent
@@ -2594,109 +2217,100 @@ setTimeout(
     return;
   }
 
+  /*
+    Plays automatically ONCE, AUTOPLAY_DELAY_MS after the question
+    appears. After that, the student can replay with "Play Sound".
+  */
 
-  playCurrentAudio();
+  state.autoplayTimeoutId =
+    setTimeout(
+      () => {
 
-},
-AUTOPLAY_DELAY_MS
-);
+        if (
+          state.answeredCurrent
+        ) {
+          return;
+        }
+
+        playCurrentAudio();
+
+      },
+      AUTOPLAY_DELAY_MS
+    );
 
 }
 
 playAudioBtn.addEventListener(
-'click',
-() => {
+  'click',
+  () => {
 
+    clearAutoplayTimer();
 
-clearAutoplayTimer();
+    playCurrentAudio();
 
-playCurrentAudio();
-
-
-}
+  }
 );
 
 /* ============================================================
-MEDIUM MODE — ANSWER REVEAL (blank fill-in + word image)
+MEDIUM MODE — ANSWER REVEAL
 ============================================================
 Called once per question, right after the student answers, ONLY
-in Medium mode. It:
-
-  1. Swaps the underscores in the blank span for the real
-     letters (q.correctAnswer) and adds a class that triggers a
-     CSS fade/pop-in animation (see .blank-slot.blank-revealed
-     in style.css).
-  2. Fades in the word's Japanese translation (q.japanese) right
-     beside it, so players can see what the word means.
-
-This always reveals the CORRECT answer, whether the student got
-it right or wrong — same as the existing text feedback already
-does ("It was 'X'.").
+in Medium mode. Swaps the underscores for the real letters (with
+a pop-in animation) and fades in the Japanese meaning below.
+Always reveals the CORRECT answer, right or wrong.
 ============================================================ */
 
 function revealMediumAnswer(q) {
 
-if (!q) {
-return;
-}
+  if (!q) {
+    return;
+  }
 
-const blankSlot =
-document.getElementById(
-'blankSlot'
-);
+  const blankSlot =
+    document.getElementById(
+      'blankSlot'
+    );
 
-if (
-blankSlot &&
-q.correctAnswer
-) {
-
-
-blankSlot.textContent =
-  String(
+  if (
+    blankSlot &&
     q.correctAnswer
-  ).toUpperCase();
+  ) {
 
+    blankSlot.textContent =
+      String(
+        q.correctAnswer
+      ).toUpperCase();
 
-blankSlot.classList.add(
-  'blank-revealed'
-);
+    blankSlot.classList.add(
+      'blank-revealed'
+    );
 
+  }
 
-}
+  const wordMeaningWrap =
+    document.getElementById(
+      'wordMeaningWrap'
+    );
 
-// Looked up fresh here (rather than cached at page load) because
-// this markup is regenerated inline inside the prompt for every
-// new question — see buildMediumPromptHTML().
-const wordMeaningWrap =
-document.getElementById(
-'wordMeaningWrap'
-);
+  const wordMeaningText =
+    document.getElementById(
+      'wordMeaningText'
+    );
 
-const wordMeaningText =
-document.getElementById(
-'wordMeaningText'
-);
+  if (
+    wordMeaningWrap &&
+    wordMeaningText &&
+    q.japanese
+  ) {
 
-if (
-wordMeaningWrap &&
-wordMeaningText &&
-q.japanese
-) {
+    wordMeaningText.textContent =
+      `意味：${q.japanese}`;
 
+    wordMeaningWrap.classList.add(
+      'show'
+    );
 
-// "意味：" (meaning:) label in front of the translation, e.g.
-// "意味：姉/妹" — easy to change here if you'd rather show it
-// differently.
-wordMeaningText.textContent =
-  `意味：${q.japanese}`;
-
-
-wordMeaningWrap.classList.add(
-  'show'
-);
-
-
-}
+  }
 
 }
 
@@ -2705,234 +2319,199 @@ ANSWER
 ============================================================ */
 
 function handleAnswer(
-selected,
-clickedButton,
-correct
+  selected,
+  clickedButton,
+  correct
 ) {
-
-if (
-state.answeredCurrent
-) {
-return;
-}
-
-state.answeredCurrent =
-true;
-
-clearAutoplayTimer();
-
-const q =
-state.roundQuestions[
-state.currentIndex
-];
-
-const multipleCorrect =
-Array.isArray(correct);
-
-const isCorrect =
-multipleCorrect
-?
-correct.includes(selected)
-:
-selected === correct;
-
-state.results[
-state.currentIndex
-] =
-isCorrect;
-
-const buttons =
-optionsGrid.querySelectorAll(
-'.option-btn'
-);
-
-buttons.forEach(
-button => {
-
-
-  button.disabled =
-    true;
-
-
-  const buttonIsCorrect =
-    multipleCorrect
-      ?
-        correct.includes(
-          button.textContent
-        )
-      :
-        button.textContent ===
-        correct;
-
 
   if (
-    buttonIsCorrect
+    state.answeredCurrent
   ) {
+    return;
+  }
 
-    button.classList.add(
-      'correct'
+  state.answeredCurrent =
+    true;
+
+  clearAutoplayTimer();
+
+  const q =
+    state.roundQuestions[
+      state.currentIndex
+    ];
+
+  const multipleCorrect =
+    Array.isArray(correct);
+
+  const isCorrect =
+    multipleCorrect
+      ?
+        correct.includes(selected)
+      :
+        selected === correct;
+
+  state.results[
+    state.currentIndex
+  ] =
+    isCorrect;
+
+  const buttons =
+    optionsGrid.querySelectorAll(
+      '.option-btn'
     );
 
-  } else if (
-    button === clickedButton
-  ) {
+  buttons.forEach(
+    button => {
 
-    button.classList.add(
-      'incorrect'
+      button.disabled =
+        true;
+
+      const buttonIsCorrect =
+        multipleCorrect
+          ?
+            correct.includes(
+              button.textContent
+            )
+          :
+            button.textContent ===
+            correct;
+
+      if (
+        buttonIsCorrect
+      ) {
+
+        button.classList.add(
+          'correct'
+        );
+
+      } else if (
+        button === clickedButton
+      ) {
+
+        button.classList.add(
+          'incorrect'
+        );
+
+      } else {
+
+        button.classList.add(
+          'dimmed'
+        );
+
+      }
+
+    }
+  );
+
+  /*
+    If the clock never started (audio never actually played),
+    that means "no speed bonus", not "instant answer". Feeding
+    calcQuestionScore() SPEED_BONUS_SLOW_SECONDS makes a correct
+    answer land exactly on the BASE_CORRECT_POINTS floor.
+  */
+  const questionResponseSeconds =
+    state.questionStartTime !== null
+      ? (
+          performance.now() -
+          state.questionStartTime
+        ) / 1000
+      : SPEED_BONUS_SLOW_SECONDS;
+
+  const pointsEarned =
+    calcQuestionScore(
+      questionResponseSeconds,
+      isCorrect
+    );
+
+  if (isCorrect) {
+
+    state.correctCount++;
+
+    state.score += pointsEarned;
+
+    playCorrectSound();
+
+    feedbackEl.textContent =
+      `✓ Correct! +${pointsEarned} pts`;
+
+    feedbackEl.classList.add(
+      'correct-text'
     );
 
   } else {
 
-    button.classList.add(
-      'dimmed'
+    const answer =
+      multipleCorrect
+        ? correct.join(' / ')
+        : correct;
+
+    playIncorrectSound();
+
+    feedbackEl.textContent =
+      `✗ Try again! It was "${answer}".`;
+
+    feedbackEl.classList.add(
+      'incorrect-text'
     );
 
   }
 
-}
+  feedbackEl.classList.add(
+    'show'
+  );
 
+  scoreCounter.textContent =
+    `Score: ${state.score} / ${MAX_MISSION_POINTS}`;
 
-);
+  renderConstellation();
 
-/*
-  QUESTION RESPONSE TIME:
+  // Medium mode reveals the missing sound, win or lose.
+  if (
+    state.mode === 'medium'
+  ) {
 
-  Time from when the question was displayed
-  (state.questionStartTime, set in renderQuestion())
-  to right now, when the answer was selected. This is
-  independent of the overall mission timer.
-*/
+    revealMediumAnswer(q);
 
-/*
-  If the clock never started (audio never actually played —
-  lag, blocked autoplay, load failure, etc.), that means "no
-  speed bonus", not "instant answer". Feeding calcQuestionScore()
-  a time at/after SPEED_BONUS_SLOW_SECONDS makes a correct answer
-  land exactly on the BASE_CORRECT_POINTS floor with zero bonus,
-  instead of accidentally granting the max bonus.
-*/
-const questionResponseSeconds =
-state.questionStartTime !== null
-? (
-    performance.now() -
-    state.questionStartTime
-  ) / 1000
-: SPEED_BONUS_SLOW_SECONDS;
+  }
 
-const pointsEarned =
-calcQuestionScore(
-questionResponseSeconds,
-isCorrect
-);
+  const isLast =
+    state.currentIndex + 1 >=
+    state.roundQuestions.length;
 
-if (isCorrect) {
+  /*
+    Stop the timer immediately after the final answer.
+  */
 
+  if (
+    isLast &&
+    state.startTime !== null
+  ) {
 
-state.correctCount++;
+    state.elapsedSeconds =
+      (
+        performance.now() -
+        state.startTime
+      ) / 1000;
 
-state.score += pointsEarned;
+    stopGameTimer();
 
+    updateTimerDisplay();
 
-playCorrectSound();
+  }
 
+  nextBtn.textContent =
+    isLast
+      ? 'See Results →'
+      : 'Next →';
 
-feedbackEl.textContent =
-  `✓ Correct! +${pointsEarned} pts`;
+  nextBtn.style.display =
+    'inline-block';
 
-feedbackEl.classList.add(
-  'correct-text'
-);
+  clearAutoAdvanceTimer();
 
-
-} else {
-
-
-const answer =
-  multipleCorrect
-    ? correct.join(' / ')
-    : correct;
-
-
-playIncorrectSound();
-
-
-feedbackEl.textContent =
-  `✗ Try again! It was "${answer}".`;
-
-feedbackEl.classList.add(
-  'incorrect-text'
-);
-
-
-}
-
-feedbackEl.classList.add(
-'show'
-);
-
-scoreCounter.textContent =
-`Score: ${state.score} / ${MAX_MISSION_POINTS}`;
-
-renderConstellation();
-
-// NEW: Medium mode reveals the missing sound in the blank and
-// fades in the word's illustration, win or lose. Easy/Hard are
-// untouched.
-if (
-state.mode === 'medium'
-) {
-
-revealMediumAnswer(q);
-
-}
-
-const isLast =
-state.currentIndex + 1 >=
-state.roundQuestions.length;
-
-/*
-Stop the timer immediately
-after the final answer.
-*/
-
-if (
-isLast &&
-state.startTime !== null
-) {
-
-
-state.elapsedSeconds =
-  (
-    performance.now() -
-    state.startTime
-  ) / 1000;
-
-
-stopGameTimer();
-
-updateTimerDisplay();
-
-
-}
-
-nextBtn.textContent =
-isLast
-? 'See Results →'
-: 'Next →';
-
-nextBtn.style.display =
-'inline-block';
-
-clearAutoAdvanceTimer();
-
-/*
-  All three modes (Easy, Medium, Hard) now require a manual
-  "Next →" click to advance — no mode auto-advances anymore.
-  Scoring/timing logic (the per-question speed bonus, mission
-  timer, etc.) is completely unaffected by this; it only changes
-  when the NEXT question appears, not how the current one was
-  scored.
-*/
+  /*
+    All three modes require a manual "Next →" click to advance.
+  */
 
 }
 
@@ -2942,163 +2521,147 @@ ADVANCE
 
 function advanceFromCurrentQuestion() {
 
-if (
-state.transitioning
-) {
-return;
-}
-
-if (
-!state.answeredCurrent
-) {
-return;
-}
-
-clearAutoAdvanceTimer();
-
-state.transitioning =
-true;
-
-nextBtn.disabled =
-true;
-
-const isLast =
-state.currentIndex + 1 >=
-state.roundQuestions.length;
-
-playGalaxyZoomTransition(
-questionContent,
-isLast
-? resultsContent
-: questionContent,
-() => {
-
-
-  if (isLast) {
-
-    showResults();
-
-  } else {
-
-    state.currentIndex++;
-
-    renderQuestion();
-
+  if (
+    state.transitioning
+  ) {
+    return;
   }
 
-}
+  if (
+    !state.answeredCurrent
+  ) {
+    return;
+  }
 
-
-);
-
-setTimeout(
-() => {
-
+  clearAutoAdvanceTimer();
 
   state.transitioning =
-    false;
+    true;
 
   nextBtn.disabled =
-    false;
+    true;
 
-},
-QUESTION_EXIT_MS +
-QUESTION_ENTER_MS +
-60
+  const isLast =
+    state.currentIndex + 1 >=
+    state.roundQuestions.length;
 
+  playGalaxyZoomTransition(
+    questionContent,
+    isLast
+      ? resultsContent
+      : questionContent,
+    () => {
 
-);
+      if (isLast) {
+
+        showResults();
+
+      } else {
+
+        state.currentIndex++;
+
+        renderQuestion();
+
+      }
+
+    }
+  );
+
+  setTimeout(
+    () => {
+
+      state.transitioning =
+        false;
+
+      nextBtn.disabled =
+        false;
+
+    },
+    QUESTION_EXIT_MS +
+    QUESTION_ENTER_MS +
+    60
+  );
 
 }
 
 nextBtn.addEventListener(
-'click',
-advanceFromCurrentQuestion
+  'click',
+  advanceFromCurrentQuestion
 );
 
 /* ============================================================
 BEST SCORE
 ============================================================
-This stays in localStorage — it's a per-device "your personal
-best today" tracker, separate from the shared online leaderboard.
+Stays in localStorage — a per-device "your personal best today"
+tracker, separate from the shared online leaderboard.
 ============================================================ */
 
 function loadBestScore() {
 
-const raw =
-storageGet(
-BEST_SCORE_KEY
-);
+  const raw =
+    storageGet(
+      BEST_SCORE_KEY
+    );
 
-if (!raw) {
-return null;
-}
+  if (!raw) {
+    return null;
+  }
 
-try {
+  try {
 
+    const data =
+      JSON.parse(raw);
 
-const data =
-  JSON.parse(raw);
+    if (
+      !data ||
+      typeof data.points !== 'number'
+    ) {
+      return null;
+    }
 
+    if (
+      data.dateKey !==
+      getJstDateKey()
+    ) {
+      return null;
+    }
 
-if (
-  !data ||
-  typeof data.points !== 'number'
-) {
-  return null;
-}
+    return data;
 
+  } catch (error) {
 
-if (
-  data.dateKey !==
-  getJstDateKey()
-) {
-  return null;
-}
+    return null;
 
-
-return data;
-
-
-} catch (error) {
-
-
-return null;
-
-
-}
+  }
 
 }
 
 function saveBestScore(
-points,
-correctAnswers,
-timeSeconds
+  points,
+  correctAnswers,
+  timeSeconds
 ) {
 
-storageSet(
-BEST_SCORE_KEY,
-JSON.stringify({
+  storageSet(
+    BEST_SCORE_KEY,
+    JSON.stringify({
 
+      points: points,
 
-  points: points,
+      correctAnswers:
+        correctAnswers,
 
-  correctAnswers:
-    correctAnswers,
+      timeSeconds:
+        timeSeconds,
 
-  timeSeconds:
-    timeSeconds,
+      dateKey:
+        getJstDateKey(),
 
-  dateKey:
-    getJstDateKey(),
+      savedAt:
+        Date.now()
 
-  savedAt:
-    Date.now()
-
-})
-
-
-);
+    })
+  );
 
 }
 
@@ -3108,137 +2671,128 @@ LEADERBOARD (SUPABASE — SHARED ACROSS ALL PLAYERS)
 Table: leaderboard_entries
   mode          text
   nickname      text
-  score         numeric(5,2)  -- rescaled 0.00–100.00 (see
-                               -- calcLeaderboardScore()); the
-                               -- underlying scoring rules are
-                               -- still out of MAX_MISSION_POINTS,
-                               -- this column just stores the
-                               -- rescaled leaderboard value
+  score         numeric(5,2)  -- rescaled 0.00–100.00
   time_seconds  numeric
   date_key      text   (JST day, e.g. '2026-09-04')
   unique (mode, nickname, date_key)
 
-NOTE: if this column was previously created as `int`, you'll
-need to alter it to `numeric(5,2)` in Supabase (Table Editor,
-or `alter table leaderboard_entries alter column score type
-numeric(5,2);`) so the decimal places aren't truncated.
+NOTE: if `score` was previously created as `int`, alter it:
+  alter table leaderboard_entries alter column score type numeric(5,2);
 
 Only today's (JST) rows are ever read or written, so the board
-naturally resets at JST midnight without needing a cleanup job.
+naturally resets at JST midnight without a cleanup job.
 ============================================================ */
 
 async function loadLeaderboard(mode) {
 
-if (!supabaseClient) {
-return { entries: [] };
-}
+  if (!supabaseClient) {
+    return { entries: [] };
+  }
 
-const { data, error } =
-  await supabaseClient
-    .from('leaderboard_entries')
-    .select('nickname, score, time_seconds')
-    .eq('mode', mode)
-    .eq('date_key', getJstDateKey())
-    .order('score', { ascending: false })
-    .order('time_seconds', { ascending: true })
-    .limit(LEADERBOARD_MAX_ROWS);
+  const { data, error } =
+    await supabaseClient
+      .from('leaderboard_entries')
+      .select('nickname, score, time_seconds')
+      .eq('mode', mode)
+      .eq('date_key', getJstDateKey())
+      .order('score', { ascending: false })
+      .order('time_seconds', { ascending: true })
+      .limit(LEADERBOARD_MAX_ROWS);
 
-if (error) {
+  if (error) {
 
-  console.error(
-    'Failed to load leaderboard:',
-    error
-  );
+    console.error(
+      'Failed to load leaderboard:',
+      error
+    );
 
-  return { entries: [] };
+    return { entries: [] };
 
-}
+  }
 
-return {
-  entries:
-    (data || []).map(
-      row => ({
-        nickname: row.nickname,
-        score: row.score,
-        timeSeconds: row.time_seconds
-      })
-    )
-};
+  return {
+    entries:
+      (data || []).map(
+        row => ({
+          nickname: row.nickname,
+          score: row.score,
+          timeSeconds: row.time_seconds
+        })
+      )
+  };
 
 }
 
 async function recordLeaderboardResult(
-mode,
-nickname,
-score,
-timeSeconds
+  mode,
+  nickname,
+  score,
+  timeSeconds
 ) {
 
-if (!supabaseClient) {
-return { entries: [] };
-}
+  if (!supabaseClient) {
+    return { entries: [] };
+  }
 
-/*
-  Check the player's existing row for today (if any),
-  so we only overwrite it with a BETTER result — same
-  rule the old localStorage version used.
-*/
+  /*
+    Check the player's existing row for today (if any), so we only
+    overwrite it with a BETTER result.
+  */
 
-const { data: existing, error: fetchError } =
-  await supabaseClient
-    .from('leaderboard_entries')
-    .select('score, time_seconds')
-    .eq('mode', mode)
-    .eq('nickname', nickname)
-    .eq('date_key', getJstDateKey())
-    .maybeSingle();
-
-if (fetchError) {
-  console.error(
-    'Failed to check existing score:',
-    fetchError
-  );
-}
-
-const better =
-  !existing ||
-  score > existing.score ||
-  (
-    score === existing.score &&
-    timeSeconds < existing.time_seconds
-  );
-
-if (better) {
-
-  const { error: upsertError } =
+  const { data: existing, error: fetchError } =
     await supabaseClient
       .from('leaderboard_entries')
-      .upsert(
-        {
-          mode: mode,
-          nickname: nickname,
-          score: score,
-          time_seconds: timeSeconds,
-          date_key: getJstDateKey()
-        },
-        { onConflict: 'mode,nickname,date_key' }
-      );
+      .select('score, time_seconds')
+      .eq('mode', mode)
+      .eq('nickname', nickname)
+      .eq('date_key', getJstDateKey())
+      .maybeSingle();
 
-  if (upsertError) {
+  if (fetchError) {
     console.error(
-      'Failed to save score:',
-      upsertError
+      'Failed to check existing score:',
+      fetchError
     );
   }
 
-}
+  const better =
+    !existing ||
+    score > existing.score ||
+    (
+      score === existing.score &&
+      timeSeconds < existing.time_seconds
+    );
 
-/*
-  Return the fresh top-N board either way, so the
-  results screen always shows the current standings.
-*/
+  if (better) {
 
-return loadLeaderboard(mode);
+    const { error: upsertError } =
+      await supabaseClient
+        .from('leaderboard_entries')
+        .upsert(
+          {
+            mode: mode,
+            nickname: nickname,
+            score: score,
+            time_seconds: timeSeconds,
+            date_key: getJstDateKey()
+          },
+          { onConflict: 'mode,nickname,date_key' }
+        );
+
+    if (upsertError) {
+      console.error(
+        'Failed to save score:',
+        upsertError
+      );
+    }
+
+  }
+
+  /*
+    Return the fresh top-N board either way.
+  */
+
+  return loadLeaderboard(mode);
 
 }
 
@@ -3248,139 +2802,125 @@ LEADERBOARD RENDER
 
 function escapeHtml(text) {
 
-const div =
-document.createElement(
-'div'
-);
+  const div =
+    document.createElement(
+      'div'
+    );
 
-div.textContent =
-text;
+  div.textContent =
+    text;
 
-return div.innerHTML;
+  return div.innerHTML;
 
 }
 
 function renderLeaderboard(
-mode,
-board
+  mode,
+  board
 ) {
 
-leaderboardTitleEl.textContent =
-`${
+  leaderboardTitleEl.textContent =
+    `${
       MODE_LABELS[mode] ||
       mode.toUpperCase()
     } LEADERBOARD`;
 
-/*
-  board.entries already comes back from Supabase
-  sorted (score desc, time asc) and capped at
-  LEADERBOARD_MAX_ROWS, so no extra sorting/slicing
-  is needed here.
-*/
+  const entries =
+    board.entries || [];
 
-const entries =
-board.entries || [];
+  if (
+    entries.length === 0
+  ) {
 
-if (
-entries.length === 0
-) {
-
-
-leaderboardListEl.innerHTML =
-  `
-  <li class="leaderboard-empty">
-    Be the first Space Explorer on today’s board!
-  </li>
-  `;
-
-return;
-
-
-}
-
-leaderboardListEl.innerHTML =
-entries
-.map(
-(entry, index) => {
-
-
-      const rank =
-        index + 1;
-
-
-      const medal =
-        rank === 1
-          ? '🥇'
-          :
-            rank === 2
-              ? '🥈'
-              :
-                rank === 3
-                  ? '🥉'
-                  : String(rank);
-
-
-      const isMe =
-        entry.nickname ===
-        state.nickname;
-
-
-      return `
-
-        <li
-          class="leaderboard-row rank-${rank}${
-            isMe ? ' me' : ''
-          }"
-        >
-
-          <span class="leaderboard-rank">
-            ${medal}
-          </span>
-
-          <span class="leaderboard-name">
-            ${escapeHtml(
-              entry.nickname
-            )}
-            ${isMe ? ' (you)' : ''}
-          </span>
-
-          <span class="leaderboard-meta">
-
-            <span class="lb-score">
-              ${Number(entry.score).toFixed(2)} pts
-            </span>
-
-            ${formatTime(
-              entry.timeSeconds
-            )}
-
-          </span>
-
-        </li>
-
+    leaderboardListEl.innerHTML =
+      `
+      <li class="leaderboard-empty">
+        Be the first Space Explorer on today’s board!
+      </li>
       `;
 
-    }
-  )
-  .join('');
+    return;
 
+  }
+
+  leaderboardListEl.innerHTML =
+    entries
+      .map(
+        (entry, index) => {
+
+          const rank =
+            index + 1;
+
+          const medal =
+            rank === 1
+              ? '🥇'
+              :
+                rank === 2
+                  ? '🥈'
+                  :
+                    rank === 3
+                      ? '🥉'
+                      : String(rank);
+
+          const isMe =
+            entry.nickname ===
+            state.nickname;
+
+          return `
+
+            <li
+              class="leaderboard-row rank-${rank}${
+                isMe ? ' me' : ''
+              }"
+            >
+
+              <span class="leaderboard-rank">
+                ${medal}
+              </span>
+
+              <span class="leaderboard-name">
+                ${escapeHtml(
+                  entry.nickname
+                )}
+                ${isMe ? ' (you)' : ''}
+              </span>
+
+              <span class="leaderboard-meta">
+
+                <span class="lb-score">
+                  ${Number(entry.score).toFixed(2)} pts
+                </span>
+
+                ${formatTime(
+                  entry.timeSeconds
+                )}
+
+              </span>
+
+            </li>
+
+          `;
+
+        }
+      )
+      .join('');
 
 }
 
 function renderLeaderboardLoading(mode) {
 
-leaderboardTitleEl.textContent =
-`${
+  leaderboardTitleEl.textContent =
+    `${
       MODE_LABELS[mode] ||
       mode.toUpperCase()
     } LEADERBOARD`;
 
-leaderboardListEl.innerHTML =
-`
-<li class="leaderboard-empty">
-  Loading today’s explorers...
-</li>
-`;
+  leaderboardListEl.innerHTML =
+    `
+    <li class="leaderboard-empty">
+      Loading today’s explorers...
+    </li>
+    `;
 
 }
 
@@ -3390,168 +2930,153 @@ RESULTS
 
 async function showResults() {
 
-const total =
-state.roundQuestions.length;
+  const total =
+    state.roundQuestions.length;
 
-const timeTaken =
-state.elapsedSeconds !== null
-? state.elapsedSeconds
-: 0;
+  const timeTaken =
+    state.elapsedSeconds !== null
+      ? state.elapsedSeconds
+      : 0;
 
-/*
-  The mission score is simply the sum of the
-  per-question scores already accumulated in
-  state.score as each question was answered
-  (see calcQuestionScore() / handleAnswer()).
-*/
+  /*
+    The mission score is the sum of the per-question scores
+    already accumulated in state.score.
+  */
 
-const totalPoints =
-state.score;
+  const totalPoints =
+    state.score;
 
-resultsScore.textContent =
-`${totalPoints} POINTS`;
+  resultsScore.textContent =
+    `${totalPoints} POINTS`;
 
-const ratio =
-total > 0
-? state.correctCount / total
-: 0;
+  const ratio =
+    total > 0
+      ? state.correctCount / total
+      : 0;
 
-let message;
+  let message;
 
-if (
-ratio === 1
-) {
+  if (
+    ratio === 1
+  ) {
 
+    message =
+      'Perfect mission — you heard every letter!';
 
-message =
-  'Perfect mission — you heard every letter!';
+  } else if (
+    ratio >= 0.7
+  ) {
 
+    message =
+      'Awesome listening, space explorer!';
 
-} else if (
-ratio >= 0.7
-) {
+  } else if (
+    ratio >= 0.4
+  ) {
 
+    message =
+      'Nice work! Keep practicing those sounds.';
 
-message =
-  'Awesome listening, space explorer!';
+  } else {
 
+    message =
+      'Good try! Let’s blast off again and listen closely.';
 
-} else if (
-ratio >= 0.4
-) {
+  }
 
+  resultsMsg.textContent =
+    message;
 
-message =
-  'Nice work! Keep practicing those sounds.';
+  const filled =
+    calcStarRating(
+      totalPoints
+    );
 
+  resultsStars.textContent =
+    '⭐'.repeat(
+      filled
+    ) +
+    '☆'.repeat(
+      5 - filled
+    );
 
-} else {
+  const previousBest =
+    loadBestScore();
 
+  const isNewBest =
+    !previousBest ||
+    totalPoints >
+    previousBest.points;
 
-message =
-  'Good try! Let’s blast off again and listen closely.';
+  if (isNewBest) {
 
+    saveBestScore(
+      totalPoints,
+      state.correctCount,
+      timeTaken
+    );
 
-}
+  }
 
-resultsMsg.textContent =
-message;
+  const bestPoints =
+    isNewBest
+      ? totalPoints
+      : previousBest.points;
 
-const filled =
-calcStarRating(
-totalPoints
-);
+  resultsBest.textContent =
+    (
+      isNewBest
+        ? "🏆 Today's New Best! "
+        : "🏆 Today's Best: "
+    ) +
+    bestPoints +
+    ' POINTS';
 
-resultsStars.textContent =
-'⭐'.repeat(
-filled
-) +
-'☆'.repeat(
-5 - filled
-);
-
-const previousBest =
-loadBestScore();
-
-const isNewBest =
-!previousBest ||
-totalPoints >
-previousBest.points;
-
-if (isNewBest) {
-
-
-saveBestScore(
-  totalPoints,
-  state.correctCount,
-  timeTaken
-);
-
-
-}
-
-const bestPoints =
-isNewBest
-? totalPoints
-: previousBest.points;
-
-resultsBest.textContent =
-(
-isNewBest
-? "🏆 Today's New Best! "
-: "🏆 Today's Best: "
-) +
-bestPoints +
-' POINTS';
-
-resultsBest.classList.toggle(
-'new-best',
-isNewBest
-);
-
-/*
-  Show the results screen right away with a
-  "Loading..." leaderboard placeholder, then fill
-  it in once the Supabase round-trip finishes —
-  avoids the results screen feeling stuck/blank
-  while waiting on the network.
-*/
-
-renderLeaderboardLoading(
-state.mode
-);
-
-startChampionCountdown();
-
-showScreen(
-'results'
-);
-
-const board =
-await recordLeaderboardResult(
-state.mode,
-state.nickname,
-calcLeaderboardScore(totalPoints),
-timeTaken
-);
-
-/*
-  Guard: only paint the fetched board if the player
-  is still looking at this mode's results (they could
-  have mashed "black hole" and left already).
-*/
-
-if (
-screens.results.classList.contains('active') &&
-state.mode === state.mode
-) {
-
-  renderLeaderboard(
-    state.mode,
-    board
+  resultsBest.classList.toggle(
+    'new-best',
+    isNewBest
   );
 
-}
+  /*
+    Show the results screen right away with a "Loading..."
+    leaderboard placeholder, then fill it in once the Supabase
+    round-trip finishes.
+  */
+
+  renderLeaderboardLoading(
+    state.mode
+  );
+
+  startChampionCountdown();
+
+  showScreen(
+    'results'
+  );
+
+  const board =
+    await recordLeaderboardResult(
+      state.mode,
+      state.nickname,
+      calcLeaderboardScore(totalPoints),
+      timeTaken
+    );
+
+  /*
+    Guard: only paint the fetched board if the player is still
+    looking at the results screen.
+  */
+
+  if (
+    screens.results.classList.contains('active') &&
+    state.mode === state.mode
+  ) {
+
+    renderLeaderboard(
+      state.mode,
+      board
+    );
+
+  }
 
 }
 
@@ -3560,64 +3085,62 @@ CHAMPION COUNTDOWN
 ============================================================ */
 
 let championCountdownIntervalId =
-null;
+  null;
 
 function updateChampionCountdown() {
 
-const msLeft =
-msUntilNextJstMidnight();
+  const msLeft =
+    msUntilNextJstMidnight();
 
-const totalMinutes =
-Math.max(
-0,
-Math.floor(
-msLeft / 60000
-)
-);
+  const totalMinutes =
+    Math.max(
+      0,
+      Math.floor(
+        msLeft / 60000
+      )
+    );
 
-const hours =
-Math.floor(
-totalMinutes / 60
-);
+  const hours =
+    Math.floor(
+      totalMinutes / 60
+    );
 
-const minutes =
-totalMinutes % 60;
+  const minutes =
+    totalMinutes % 60;
 
-championCountdownEl.textContent =
-`⏳ You have ${hours} hours ${minutes} minutes left to become the new CHAMPION!`;
+  championCountdownEl.textContent =
+    `⏳ You have ${hours} hours ${minutes} minutes left to become the new CHAMPION!`;
 
 }
 
 function startChampionCountdown() {
 
-stopChampionCountdown();
+  stopChampionCountdown();
 
-updateChampionCountdown();
+  updateChampionCountdown();
 
-championCountdownIntervalId =
-setInterval(
-updateChampionCountdown,
-30000
-);
+  championCountdownIntervalId =
+    setInterval(
+      updateChampionCountdown,
+      30000
+    );
 
 }
 
 function stopChampionCountdown() {
 
-if (
-championCountdownIntervalId !== null
-) {
+  if (
+    championCountdownIntervalId !== null
+  ) {
 
+    clearInterval(
+      championCountdownIntervalId
+    );
 
-clearInterval(
-  championCountdownIntervalId
-);
+    championCountdownIntervalId =
+      null;
 
-championCountdownIntervalId =
-  null;
-
-
-}
+  }
 
 }
 
@@ -3626,58 +3149,51 @@ PLAY AGAIN
 ============================================================ */
 
 playAgainBtn.addEventListener(
-'click',
-() => {
-
-
-if (
-  state.transitioning
-) {
-  return;
-}
-
-
-state.transitioning =
-  true;
-
-
-playAgainBtn.disabled =
-  true;
-
-
-stopChampionCountdown();
-
-
-playGalaxyZoomTransition(
-  resultsContent,
-  startContent,
+  'click',
   () => {
 
-    showScreen(
-      'difficulty'
+    if (
+      state.transitioning
+    ) {
+      return;
+    }
+
+    state.transitioning =
+      true;
+
+    playAgainBtn.disabled =
+      true;
+
+    stopChampionCountdown();
+
+    playGalaxyZoomTransition(
+      resultsContent,
+      startContent,
+      () => {
+
+        showScreen(
+          'difficulty'
+        );
+
+      }
+    );
+
+    setTimeout(
+      () => {
+
+        state.transitioning =
+          false;
+
+        playAgainBtn.disabled =
+          false;
+
+      },
+      QUESTION_EXIT_MS +
+      QUESTION_ENTER_MS +
+      60
     );
 
   }
-);
-
-
-setTimeout(
-  () => {
-
-    state.transitioning =
-      false;
-
-    playAgainBtn.disabled =
-      false;
-
-  },
-  QUESTION_EXIT_MS +
-  QUESTION_ENTER_MS +
-  60
-);
-
-
-}
 );
 
 /* ============================================================
@@ -3685,71 +3201,61 @@ BLACK HOLE
 ============================================================ */
 
 blackholeBtn.addEventListener(
-'click',
-() => {
-
-
-if (
-  state.transitioning
-) {
-  return;
-}
-
-
-state.transitioning =
-  true;
-
-
-blackholeBtn.disabled =
-  true;
-
-
-clearAutoAdvanceTimer();
-
-clearAutoplayTimer();
-
-stopGameTimer();
-
-letterAudio.pause();
-
-
-playGalaxyZoomTransition(
-  questionContent,
-  null,
+  'click',
   () => {
 
-    /*
-      IMPORTANT:
-
-      This returns to the daily
-      homepage, NOT nickname entry,
-      as long as the same JST day.
-    */
-
-    showDailyHomepage();
-
-  },
-  'q-suck'
-);
-
-
-setTimeout(
-  () => {
+    if (
+      state.transitioning
+    ) {
+      return;
+    }
 
     state.transitioning =
-      false;
+      true;
 
     blackholeBtn.disabled =
-      false;
+      true;
 
-  },
-  QUESTION_EXIT_MS +
-  QUESTION_ENTER_MS +
-  60
-);
+    clearAutoAdvanceTimer();
 
+    clearAutoplayTimer();
 
-}
+    stopGameTimer();
+
+    letterAudio.pause();
+
+    playGalaxyZoomTransition(
+      questionContent,
+      null,
+      () => {
+
+        /*
+          Returns to the daily homepage, NOT nickname entry,
+          as long as it is the same JST day.
+        */
+
+        showDailyHomepage();
+
+      },
+      'q-suck'
+    );
+
+    setTimeout(
+      () => {
+
+        state.transitioning =
+          false;
+
+        blackholeBtn.disabled =
+          false;
+
+      },
+      QUESTION_EXIT_MS +
+      QUESTION_ENTER_MS +
+      60
+    );
+
+  }
 );
 
 /* ============================================================
@@ -3757,108 +3263,98 @@ SHARE
 ============================================================ */
 
 function showShareFeedback(
-message,
-duration = 2000
+  message,
+  duration = 2000
 ) {
 
-const original =
-shareBtn.textContent;
-
-shareBtn.textContent =
-message;
-
-shareBtn.disabled =
-true;
-
-setTimeout(
-() => {
-
+  const original =
+    shareBtn.textContent;
 
   shareBtn.textContent =
-    original;
+    message;
 
   shareBtn.disabled =
-    false;
+    true;
 
-},
-duration
+  setTimeout(
+    () => {
 
+      shareBtn.textContent =
+        original;
 
-);
+      shareBtn.disabled =
+        false;
+
+    },
+    duration
+  );
 
 }
 
 shareBtn.addEventListener(
-'click',
-async () => {
+  'click',
+  async () => {
 
+    const shareData = {
 
-const shareData = {
+      title:
+        document.title,
 
-  title:
-    document.title,
+      text:
+        'Come play the Galaxy Alphabet Quiz with me! 🚀',
 
-  text:
-    'Come play the Galaxy Alphabet Quiz with me! 🚀',
+      url:
+        window.location.href
 
-  url:
-    window.location.href
+    };
 
-};
+    if (
+      navigator.share
+    ) {
 
+      try {
 
-if (
-  navigator.share
-) {
+        await navigator.share(
+          shareData
+        );
 
-  try {
+      } catch (error) {
+        /* User cancelled */
+      }
 
-    await navigator.share(
-      shareData
-    );
+      return;
 
-  } catch (error) {
-    /* User cancelled */
-  }
+    }
 
-  return;
+    if (
+      navigator.clipboard &&
+      navigator.clipboard.writeText
+    ) {
 
-}
+      try {
 
+        await navigator.clipboard.writeText(
+          shareData.url
+        );
 
-if (
-  navigator.clipboard &&
-  navigator.clipboard.writeText
-) {
+        showShareFeedback(
+          '✅ Link Copied!'
+        );
 
-  try {
+        return;
 
-    await navigator.clipboard.writeText(
+      } catch (error) {
+        /* Continue */
+      }
+
+    }
+
+    window.prompt(
+      'Copy this link to share:',
       shareData.url
     );
 
-
-    showShareFeedback(
-      '✅ Link Copied!'
-    );
-
-
-    return;
-
-  } catch (error) {
-    /* Continue */
   }
-
-}
-
-
-window.prompt(
-  'Copy this link to share:',
-  shareData.url
-);
-
-
-}
 );
 
 /* ============================================================
@@ -3866,269 +3362,250 @@ BUTTON SOUND
 ============================================================ */
 
 let clickSoundCtx =
-null;
+  null;
 
 /*
   Shared AudioContext used by every synthesized sound effect below
-  (generic click, correct answer, incorrect answer) so they don't
-  each spin up their own context.
+  (generic click, incorrect answer).
 */
 function getSoundCtx() {
 
-const AudioContextClass =
-window.AudioContext ||
-window.webkitAudioContext;
+  const AudioContextClass =
+    window.AudioContext ||
+    window.webkitAudioContext;
 
-if (!AudioContextClass) {
-return null;
-}
+  if (!AudioContextClass) {
+    return null;
+  }
 
-if (!clickSoundCtx) {
+  if (!clickSoundCtx) {
 
+    clickSoundCtx =
+      new AudioContextClass();
 
-clickSoundCtx =
-  new AudioContextClass();
+  }
 
+  if (
+    clickSoundCtx.state ===
+    'suspended'
+  ) {
 
-}
+    clickSoundCtx.resume();
 
-if (
-clickSoundCtx.state ===
-'suspended'
-) {
+  }
 
-
-clickSoundCtx.resume();
-
-
-}
-
-return clickSoundCtx;
+  return clickSoundCtx;
 
 }
 
 function playClickSound() {
 
-const ctx =
-getSoundCtx();
+  const ctx =
+    getSoundCtx();
 
-if (!ctx) {
-return;
-}
+  if (!ctx) {
+    return;
+  }
 
-const now =
-ctx.currentTime;
+  const now =
+    ctx.currentTime;
 
-const osc =
-ctx.createOscillator();
+  const osc =
+    ctx.createOscillator();
 
-const gain =
-ctx.createGain();
+  const gain =
+    ctx.createGain();
 
-osc.type =
-'square';
+  osc.type =
+    'square';
 
-osc.frequency.setValueAtTime(
-1100,
-now
-);
+  osc.frequency.setValueAtTime(
+    1100,
+    now
+  );
 
-osc.frequency.exponentialRampToValueAtTime(
-120,
-now + 0.15
-);
+  osc.frequency.exponentialRampToValueAtTime(
+    120,
+    now + 0.15
+  );
 
-gain.gain.setValueAtTime(
-0.16,
-now
-);
+  gain.gain.setValueAtTime(
+    0.16,
+    now
+  );
 
-gain.gain.exponentialRampToValueAtTime(
-0.001,
-now + 0.16
-);
+  gain.gain.exponentialRampToValueAtTime(
+    0.001,
+    now + 0.16
+  );
 
-osc.connect(gain);
+  osc.connect(gain);
 
-gain.connect(
-ctx.destination
-);
+  gain.connect(
+    ctx.destination
+  );
 
-osc.start(now);
+  osc.start(now);
 
-osc.stop(
-now + 0.18
-);
+  osc.stop(
+    now + 0.18
+  );
 
 }
 
 /*
   CORRECT ANSWER SOUND
-  ------------------------------------------------------------
-  Plays the "Twinkle/Sparkle" sound effect (ShidenBeatsMusic,
-  Pixabay) from audio/correct-twinkle.mp3 instead of a
-  synthesized tone. Reuses one Audio object and rewinds it each
-  time, so rapid-fire correct answers restart cleanly instead of
-  overlapping or lagging.
+  Plays audio/correct-twinkle.mp3. Reuses one Audio object and
+  rewinds it each time, so rapid-fire correct answers restart
+  cleanly instead of overlapping.
 */
 let correctAnswerAudio =
-null;
+  null;
 
 function playCorrectSound() {
 
-if (!correctAnswerAudio) {
+  if (!correctAnswerAudio) {
 
+    correctAnswerAudio =
+      new Audio(
+        'audio/correct-twinkle.mp3'
+      );
 
-correctAnswerAudio =
-  new Audio(
-    'audio/correct-twinkle.mp3'
-  );
+  }
 
+  correctAnswerAudio.currentTime = 0;
 
-}
+  const promise =
+    correctAnswerAudio.play();
 
-correctAnswerAudio.currentTime = 0;
+  if (
+    promise &&
+    typeof promise.catch === 'function'
+  ) {
 
-const promise =
-correctAnswerAudio.play();
+    promise.catch(
+      error => {
 
-if (
-promise &&
-typeof promise.catch === 'function'
-) {
+        console.warn(
+          'Correct-answer sound could not play:',
+          error
+        );
 
-
-promise.catch(
-  error => {
-
-    console.warn(
-      'Correct-answer sound could not play:',
-      error
+      }
     );
 
   }
-);
-
-
-}
 
 }
 
 /*
   INCORRECT ANSWER SOUND
-  ------------------------------------------------------------
-  A short zap that gets pulled downward in pitch while a lowpass
-  filter closes over it, like it's being sucked into and muffled
-  by a black hole — obvious, but cut off quickly rather than left
-  ringing out.
+  A short zap pulled downward in pitch while a lowpass filter
+  closes over it, like being sucked into a black hole.
 */
 function playIncorrectSound() {
 
-const ctx =
-getSoundCtx();
+  const ctx =
+    getSoundCtx();
 
-if (!ctx) {
-return;
-}
+  if (!ctx) {
+    return;
+  }
 
-const now =
-ctx.currentTime;
+  const now =
+    ctx.currentTime;
 
-const osc =
-ctx.createOscillator();
+  const osc =
+    ctx.createOscillator();
 
-const gain =
-ctx.createGain();
+  const gain =
+    ctx.createGain();
 
-const filter =
-ctx.createBiquadFilter();
+  const filter =
+    ctx.createBiquadFilter();
 
-osc.type =
-'sawtooth';
+  osc.type =
+    'sawtooth';
 
-filter.type =
-'lowpass';
+  filter.type =
+    'lowpass';
 
-filter.Q.value = 6;
+  filter.Q.value = 6;
 
-filter.frequency.setValueAtTime(
-3000,
-now
-);
+  filter.frequency.setValueAtTime(
+    3000,
+    now
+  );
 
-filter.frequency.exponentialRampToValueAtTime(
-80,
-now + 0.22
-);
+  filter.frequency.exponentialRampToValueAtTime(
+    80,
+    now + 0.22
+  );
 
-osc.frequency.setValueAtTime(
-900,
-now
-);
+  osc.frequency.setValueAtTime(
+    900,
+    now
+  );
 
-osc.frequency.exponentialRampToValueAtTime(
-60,
-now + 0.22
-);
+  osc.frequency.exponentialRampToValueAtTime(
+    60,
+    now + 0.22
+  );
 
-gain.gain.setValueAtTime(
-0.22,
-now
-);
+  gain.gain.setValueAtTime(
+    0.22,
+    now
+  );
 
-gain.gain.exponentialRampToValueAtTime(
-0.0001,
-now + 0.2
-);
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    now + 0.2
+  );
 
-osc.connect(filter);
+  osc.connect(filter);
 
-filter.connect(gain);
+  filter.connect(gain);
 
-gain.connect(
-ctx.destination
-);
+  gain.connect(
+    ctx.destination
+  );
 
-osc.start(now);
+  osc.start(now);
 
-osc.stop(
-now + 0.22
-);
+  osc.stop(
+    now + 0.22
+  );
 
 }
 
 /*
   Generic button click sound plays for every button EXCEPT the
   answer options — those get playCorrectSound() / playIncorrectSound()
-  instead (triggered from handleAnswer()), so a single click never
-  plays two sounds at once.
+  instead, so a single click never plays two sounds at once.
 */
 document.addEventListener(
-'click',
-event => {
+  'click',
+  event => {
 
+    const button =
+      event.target.closest(
+        'button'
+      );
 
-const button =
-  event.target.closest(
-    'button'
-  );
+    if (
+      button &&
+      !button.disabled &&
+      !button.classList.contains(
+        'option-btn'
+      )
+    ) {
 
+      playClickSound();
 
-if (
-  button &&
-  !button.disabled &&
-  !button.classList.contains(
-    'option-btn'
-  )
-) {
+    }
 
-  playClickSound();
-
-}
-
-
-},
-true
+  },
+  true
 );
 
 /* ============================================================
@@ -4137,102 +3614,89 @@ BACKGROUND STARS
 
 function buildStarField() {
 
-if (!starField) {
-return;
-}
+  if (!starField) {
+    return;
+  }
 
-starField.innerHTML =
-'';
+  starField.innerHTML =
+    '';
 
-const fragment =
-document.createDocumentFragment();
+  const fragment =
+    document.createDocumentFragment();
 
-for (
-let i = 0;
-i < STAR_COUNT;
-i++
-) {
+  for (
+    let i = 0;
+    i < STAR_COUNT;
+    i++
+  ) {
 
+    const star =
+      document.createElement(
+        'div'
+      );
 
-const star =
-  document.createElement(
-    'div'
+    const size =
+      Math.random() < 0.15
+        ?
+          Math.random() * 2 +
+          2.5
+        :
+          Math.random() * 1.5 +
+          1;
+
+    star.className =
+      size > 3
+        ? 'star big'
+        : 'star';
+
+    star.style.left =
+      `${Math.random() * 100}vw`;
+
+    star.style.top =
+      `${Math.random() * 100}vh`;
+
+    star.style.width =
+      `${size}px`;
+
+    star.style.height =
+      `${size}px`;
+
+    star.style.animationDuration =
+      `${(
+        Math.random() * 3 +
+        2.5
+      ).toFixed(2)}s`;
+
+    star.style.animationDelay =
+      `${(
+        Math.random() * 4
+      ).toFixed(2)}s`;
+
+    star.style.setProperty(
+      '--min-o',
+      (
+        Math.random() * 0.25 +
+        0.1
+      ).toFixed(2)
+    );
+
+    star.style.setProperty(
+      '--max-o',
+      (
+        Math.random() * 0.4 +
+        0.6
+      ).toFixed(2)
+    );
+
+    fragment.appendChild(
+      star
+    );
+
+  }
+
+  starField.appendChild(
+    fragment
   );
-
-
-const size =
-  Math.random() < 0.15
-    ?
-      Math.random() * 2 +
-      2.5
-    :
-      Math.random() * 1.5 +
-      1;
-
-
-star.className =
-  size > 3
-    ? 'star big'
-    : 'star';
-
-
-star.style.left =
-  `${Math.random() * 100}vw`;
-
-
-star.style.top =
-  `${Math.random() * 100}vh`;
-
-
-star.style.width =
-  `${size}px`;
-
-
-star.style.height =
-  `${size}px`;
-
-
-star.style.animationDuration =
-  `${(
-    Math.random() * 3 +
-    2.5
-  ).toFixed(2)}s`;
-
-
-star.style.animationDelay =
-  `${(
-    Math.random() * 4
-  ).toFixed(2)}s`;
-
-
-star.style.setProperty(
-  '--min-o',
-  (
-    Math.random() * 0.25 +
-    0.1
-  ).toFixed(2)
-);
-
-
-star.style.setProperty(
-  '--max-o',
-  (
-    Math.random() * 0.4 +
-    0.6
-  ).toFixed(2)
-);
-
-
-fragment.appendChild(
-  star
-);
-
-
-}
-
-starField.appendChild(
-fragment
-);
 
 }
 
@@ -4247,285 +3711,253 @@ const FLOATING_SATELLITE_MIN_DELAY_MS = 5000;
 const FLOATING_SATELLITE_MAX_DELAY_MS = 11000;
 
 function randRange(
-min,
-max
+  min,
+  max
 ) {
 
-return (
-Math.random() *
-(max - min) +
-min
-);
+  return (
+    Math.random() *
+    (max - min) +
+    min
+  );
 
 }
 
 let activeShootingStars =
-0;
+  0;
 
 function spawnShootingStar() {
 
-if (!ambientLayer) {
-return;
-}
+  if (!ambientLayer) {
+    return;
+  }
 
-if (
-activeShootingStars >= 3
-) {
-return;
-}
+  if (
+    activeShootingStars >= 3
+  ) {
+    return;
+  }
 
-const el =
-document.createElement(
-'div'
-);
+  const el =
+    document.createElement(
+      'div'
+    );
 
-el.className =
-'shooting-star';
+  el.className =
+    'shooting-star';
 
-const near =
-Math.random() < 0.3;
+  const near =
+    Math.random() < 0.3;
 
-el.style.top =
-`${randRange(-5,55)}%`;
+  el.style.top =
+    `${randRange(-5,55)}%`;
 
-el.style.left =
-`${randRange(0,100)}%`;
+  el.style.left =
+    `${randRange(0,100)}%`;
 
-el.style.width =
-`${randRange(
+  el.style.width =
+    `${randRange(
       near ? 55 : 22,
       near ? 90 : 42
     )}px`;
 
-el.style.height =
-near ? '2.2px' : '1.2px';
+  el.style.height =
+    near ? '2.2px' : '1.2px';
 
-el.style.setProperty(
-'--angle',
-`${randRange(15,35)}deg`
-);
+  el.style.setProperty(
+    '--angle',
+    `${randRange(15,35)}deg`
+  );
 
-el.style.setProperty(
-'--distance',
-`${randRange(
+  el.style.setProperty(
+    '--distance',
+    `${randRange(
       near ? 150 : 80,
       near ? 230 : 150
     )}px`
-);
+  );
 
-el.style.setProperty(
-'--peak-opacity',
-near ? '1' : '0.6'
-);
+  el.style.setProperty(
+    '--peak-opacity',
+    near ? '1' : '0.6'
+  );
 
-el.style.animationDuration =
-`${randRange(
+  el.style.animationDuration =
+    `${randRange(
       near ? 550 : 420,
       near ? 850 : 680
     )}ms`;
 
-activeShootingStars++;
+  activeShootingStars++;
 
-el.addEventListener(
-'animationend',
-() => {
+  el.addEventListener(
+    'animationend',
+    () => {
 
+      el.remove();
 
-  el.remove();
+      activeShootingStars--;
 
-  activeShootingStars--;
+    }
+  );
 
-}
-
-
-);
-
-ambientLayer.appendChild(
-el
-);
+  ambientLayer.appendChild(
+    el
+  );
 
 }
 
 function scheduleShootingStars() {
 
-setTimeout(
-() => {
+  setTimeout(
+    () => {
 
+      spawnShootingStar();
 
-  spawnShootingStar();
+      scheduleShootingStars();
 
-  scheduleShootingStars();
-
-},
-randRange(
-  SHOOTING_STAR_MIN_DELAY_MS,
-  SHOOTING_STAR_MAX_DELAY_MS
-)
-
-
-);
+    },
+    randRange(
+      SHOOTING_STAR_MIN_DELAY_MS,
+      SHOOTING_STAR_MAX_DELAY_MS
+    )
+  );
 
 }
 
 let activeSatellites =
-0;
+  0;
 
 function spawnFloatingSatellite() {
 
-if (!ambientLayer) {
-return;
-}
+  if (!ambientLayer) {
+    return;
+  }
 
-if (
-activeSatellites >= 3
-) {
-return;
-}
+  if (
+    activeSatellites >= 3
+  ) {
+    return;
+  }
 
-const el =
-document.createElement(
-'div'
-);
+  const el =
+    document.createElement(
+      'div'
+    );
 
-el.className =
-'floating-satellite';
+  el.className =
+    'floating-satellite';
 
-el.textContent =
-'🛰️';
+  el.textContent =
+    '🛰️';
 
-el.style.top =
-`${randRange(5,90)}%`;
+  el.style.top =
+    `${randRange(5,90)}%`;
 
-el.style.left =
-`${randRange(0,100)}%`;
+  el.style.left =
+    `${randRange(0,100)}%`;
 
-el.style.fontSize =
-`${randRange(20,32)}px`;
+  el.style.fontSize =
+    `${randRange(20,32)}px`;
 
-el.style.setProperty(
-'--dx',
-`${randRange(-500,500)}px`
-);
+  el.style.setProperty(
+    '--dx',
+    `${randRange(-500,500)}px`
+  );
 
-el.style.setProperty(
-'--dy',
-`${randRange(-250,250)}px`
-);
+  el.style.setProperty(
+    '--dy',
+    `${randRange(-250,250)}px`
+  );
 
-el.style.setProperty(
-'--spin',
-`${randRange(-420,420)}deg`
-);
+  el.style.setProperty(
+    '--spin',
+    `${randRange(-420,420)}deg`
+  );
 
-el.style.animationDuration =
-`${randRange(
+  el.style.animationDuration =
+    `${randRange(
       10000,
       18000
     )}ms`;
 
-activeSatellites++;
+  activeSatellites++;
 
-el.addEventListener(
-'animationend',
-() => {
+  el.addEventListener(
+    'animationend',
+    () => {
 
+      el.remove();
 
-  el.remove();
+      activeSatellites--;
 
-  activeSatellites--;
+    }
+  );
 
-}
-
-
-);
-
-ambientLayer.appendChild(
-el
-);
+  ambientLayer.appendChild(
+    el
+  );
 
 }
 
 function scheduleFloatingSatellites() {
 
-setTimeout(
-() => {
+  setTimeout(
+    () => {
 
+      spawnFloatingSatellite();
 
-  spawnFloatingSatellite();
+      scheduleFloatingSatellites();
 
-  scheduleFloatingSatellites();
-
-},
-randRange(
-  FLOATING_SATELLITE_MIN_DELAY_MS,
-  FLOATING_SATELLITE_MAX_DELAY_MS
-)
-
-
-);
+    },
+    randRange(
+      FLOATING_SATELLITE_MIN_DELAY_MS,
+      FLOATING_SATELLITE_MAX_DELAY_MS
+    )
+  );
 
 }
 
 /* ============================================================
-LAUNCH INTRO — CINEMATIC OPENING SEQUENCE (NEW)
+LAUNCH INTRO — CINEMATIC OPENING SEQUENCE
 ============================================================
 Plays once, automatically, on a genuinely fresh visit to
-index.html — i.e. NOT when arriving here via the "🚀 START"
-button on the Galaxy Hub (home.html sets the launchMission1 flag
-before redirecting back here), since that's an in-game
-navigation between screens, not "opening the game link". It also
-never plays when the existing daily-homepage logic (see
-showDailyHomepage() above) is about to immediately redirect away
-to home.html — a returning player reloading index.html with a
-nickname already saved — because nothing on index.html is ever
-actually shown to them in that case, so there'd be nothing for
-the intro to reveal into.
+index.html — NOT when arriving via the Galaxy Hub's START button
+(launchMission1 flag), and NOT when a returning player is about
+to be redirected straight to home.html.
 
-In practice this means the intro plays exactly once per JST day,
-the first time index.html loads with no nickname saved yet — the
-existing "GALAXY CHECK-IN / enter nickname" moment.
+A rocket launches upward with the words "えいごであそぼう" trailing
+behind it like sparks, over stars streaking past on a dedicated
+canvas (#introStarCanvas), separate from the in-game warp canvas.
 
-Sequence (~3.8s total):
-  1. Scene 1 — the star field brightens and a small spacecraft
-     fades in near the bottom of the screen.
-  2. Scene 2 — the spacecraft launches upward with a glowing
-     engine, a light trail, and background stars streaking past
-     it (drawn on the dedicated #introStarCanvas below).
-  3. Scene 3 — the streaks stretch further as the spacecraft
-     keeps climbing and shrinks/fades into the distance.
-  4. Scene 4 — the existing #galaxyFlash bloom (the SAME element
-     the between-screen galaxy-entrance transition already uses)
-     pulses once, the correct screen is put in place underneath
-     via showDailyHomepage(), and the intro crossfades out while
-     the app shell (already hidden via the existing
-     .app.transition-hide class) fades back in — landing on
-     GALAXY CHECK-IN exactly as if the player has arrived at the
-     Space Hub.
+Sequence (LAUNCH_INTRO_DURATION_MS total):
+  Scene 1 — stars brighten, rocket fades in near the bottom.
+  Scene 2 — rocket rises; letters ignite one by one, top to
+            bottom, and the stack HOLDS so the words can be read.
+  Scene 3 — the stack accelerates off the top of the screen.
+  Scene 4 — galaxy flash, the correct screen is put in place
+            underneath via showDailyHomepage(), and the intro
+            crossfades out.
 
-Draws onto its OWN dedicated canvas (#introStarCanvas) with its
-own star array and its own requestAnimationFrame loop — entirely
-separate from warpCanvas/warpStars used by the between-question
-hyperspace transitions above, so the two can never collide, even
-if this ran at the same moment as a warp transition somehow would.
-Every element inside #launchIntro is pointer-events: none for its
-entire lifetime, so it can never block a tap on a button or input,
-however the timing plays out.
+Timings here must stay in sync with style.css section 11
+(introStackLaunch is 5000ms and starts after the 500ms
+anticipation phase, so it ends at 5500ms).
 ============================================================ */
 
-const LAUNCH_INTRO_DURATION_MS = 3800;
+const LAUNCH_INTRO_DURATION_MS = 5600; // was 3800
 const LAUNCH_INTRO_ANTICIPATION_MS = 500;
 const LAUNCH_INTRO_REVEAL_MS = 700;
 const LAUNCH_INTRO_STAR_COUNT = 130;
 
 const launchIntroEl =
-document.getElementById(
-'launchIntro'
-);
+  document.getElementById(
+    'launchIntro'
+  );
 
 const introStarCanvas =
-document.getElementById(
-'introStarCanvas'
-);
+  document.getElementById(
+    'introStarCanvas'
+  );
 
 let introCtx = null;
 let introWarpStars = [];
@@ -4535,510 +3967,467 @@ let introAnimStart = 0;
 
 function shouldPlayLaunchIntro() {
 
-if (
-window.matchMedia(
-'(prefers-reduced-motion: reduce)'
-).matches
-) {
-return false;
-}
+  if (
+    window.matchMedia(
+      '(prefers-reduced-motion: reduce)'
+    ).matches
+  ) {
+    return false;
+  }
 
-const launchMission =
-sessionStorage.getItem(
-'launchMission1'
-);
+  const launchMission =
+    sessionStorage.getItem(
+      'launchMission1'
+    );
 
-/*
-  Arriving from the Galaxy Hub's START button is a navigation
-  BETWEEN game screens, not opening the game link — never
-  replay the intro for this.
-*/
-if (launchMission === 'true') {
-return false;
-}
+  /*
+    Arriving from the Galaxy Hub's START button is a navigation
+    BETWEEN game screens — never replay the intro for this.
+  */
+  if (launchMission === 'true') {
+    return false;
+  }
 
-const nickname =
-loadNickname();
+  const nickname =
+    loadNickname();
 
-/*
-  A returning player reloading index.html directly (no
-  launchMission1 flag) is about to be redirected straight to
-  home.html by showDailyHomepage() — index.html's content is
-  never shown, so there's nothing to play the intro in front of.
-*/
-if (nickname) {
-return false;
-}
+  /*
+    A returning player is about to be redirected straight to
+    home.html, so there's nothing to play the intro in front of.
+  */
+  if (nickname) {
+    return false;
+  }
 
-return true;
+  return true;
 
 }
 
 function setupIntroCanvas() {
 
-if (
-!introStarCanvas ||
-!introStarCanvas.getContext
-) {
-return;
-}
+  if (
+    !introStarCanvas ||
+    !introStarCanvas.getContext
+  ) {
+    return;
+  }
 
-introCtx =
-introStarCanvas.getContext('2d');
+  introCtx =
+    introStarCanvas.getContext('2d');
 
-resizeIntroCanvas();
+  resizeIntroCanvas();
 
-window.addEventListener(
-'resize',
-resizeIntroCanvas
-);
+  window.addEventListener(
+    'resize',
+    resizeIntroCanvas
+  );
 
 }
 
 function resizeIntroCanvas() {
 
-if (!introCtx) {
-return;
-}
+  if (!introCtx) {
+    return;
+  }
 
-const dpr =
-window.devicePixelRatio || 1;
+  const dpr =
+    window.devicePixelRatio || 1;
 
-const width =
-window.innerWidth;
+  const width =
+    window.innerWidth;
 
-const height =
-window.innerHeight;
+  const height =
+    window.innerHeight;
 
-introStarCanvas.width =
-width * dpr;
+  introStarCanvas.width =
+    width * dpr;
 
-introStarCanvas.height =
-height * dpr;
+  introStarCanvas.height =
+    height * dpr;
 
-introStarCanvas.style.width =
-`${width}px`;
+  introStarCanvas.style.width =
+    `${width}px`;
 
-introStarCanvas.style.height =
-`${height}px`;
+  introStarCanvas.style.height =
+    `${height}px`;
 
-introCtx.setTransform(
-dpr,
-0,
-0,
-dpr,
-0,
-0
-);
+  introCtx.setTransform(
+    dpr,
+    0,
+    0,
+    dpr,
+    0,
+    0
+  );
 
 }
 
 function makeIntroWarpStar(
-nearCenter = false
+  nearCenter = false
 ) {
 
-const roll =
-Math.random();
+  const roll =
+    Math.random();
 
-return {
+  return {
 
-
-angle:
-  Math.random() *
-  Math.PI *
-  2,
-
-r:
-  nearCenter
-    ? Math.random() * 18
-    :
+    angle:
       Math.random() *
-      introMaxRadius *
-      0.55,
+      Math.PI *
+      2,
 
-spd:
-  0.5 +
-  Math.random() * 1.2,
+    r:
+      nearCenter
+        ? Math.random() * 18
+        :
+          Math.random() *
+          introMaxRadius *
+          0.55,
 
-hue:
-  roll < 0.16
-    ? 'gold'
-    :
-      roll < 0.3
-        ? 'teal'
-        : 'white'
+    spd:
+      0.5 +
+      Math.random() * 1.2,
 
+    hue:
+      roll < 0.16
+        ? 'gold'
+        :
+          roll < 0.3
+            ? 'teal'
+            : 'white'
 
-};
+  };
 
 }
 
 function initIntroWarpStars(count) {
 
-introMaxRadius =
-Math.hypot(
-window.innerWidth,
-window.innerHeight
-) / 2 * 1.1;
+  introMaxRadius =
+    Math.hypot(
+      window.innerWidth,
+      window.innerHeight
+    ) / 2 * 1.1;
 
-introWarpStars = [];
+  introWarpStars = [];
 
-for (
-let i = 0;
-i < count;
-i++
-) {
+  for (
+    let i = 0;
+    i < count;
+    i++
+  ) {
 
+    introWarpStars.push(
+      makeIntroWarpStar(false)
+    );
 
-introWarpStars.push(
-  makeIntroWarpStar(false)
-);
-
-
-}
+  }
 
 }
 
 function introWarpFrame(now) {
 
-if (!introCtx) {
-return;
-}
-
-const elapsed =
-now -
-introAnimStart;
-
-const progress =
-Math.min(
-elapsed /
-LAUNCH_INTRO_DURATION_MS,
-1
-);
-
-/*
-  Speed ramps up smoothly across the whole sequence (rather than
-  snapping on at a fixed moment), so Scene 3's warp-speed trails
-  grow naturally out of Scene 1's gentle star brightening.
-*/
-const speedFactor =
-0.12 +
-progress * progress * 4.6;
-
-const width =
-window.innerWidth;
-
-const height =
-window.innerHeight;
-
-const centerX =
-width / 2;
-
-/*
-  Biased toward the spacecraft's launch point near the bottom of
-  the screen, so stars appear to stream past IT as it climbs,
-  rather than from the screen's dead center.
-*/
-const centerY =
-height * 0.66;
-
-introCtx.fillStyle =
-'rgba(5, 6, 15, 0.22)';
-
-introCtx.fillRect(
-0,
-0,
-width,
-height
-);
-
-introWarpStars.forEach(
-(star, index) => {
-
-
-  const delta =
-    speedFactor *
-    star.spd *
-    (
-      2 +
-      star.r * 0.045
-    );
-
-
-  star.r += delta;
-
-
-  if (
-    star.r >
-    introMaxRadius
-  ) {
-
-    introWarpStars[index] =
-      makeIntroWarpStar(true);
-
+  if (!introCtx) {
     return;
-
   }
 
+  const elapsed =
+    now -
+    introAnimStart;
 
-  const ratio =
-    star.r /
-    introMaxRadius;
-
-
-  const x =
-    centerX +
-    Math.cos(
-      star.angle
-    ) *
-    star.r;
-
-
-  const y =
-    centerY +
-    Math.sin(
-      star.angle
-    ) *
-    star.r;
-
-
-  const size =
-    0.6 +
-    ratio * 3.2;
-
-
-  const alpha =
+  const progress =
     Math.min(
-      1,
-      0.12 +
-      ratio * 1.1
+      elapsed /
+      LAUNCH_INTRO_DURATION_MS,
+      1
     );
 
+  /*
+    Speed ramps up smoothly across the whole sequence, so the
+    warp-speed trails grow naturally out of the gentle star
+    brightening at the start.
+  */
+  const speedFactor =
+    0.12 +
+    progress * progress * 4.6;
 
-  let color;
+  const width =
+    window.innerWidth;
 
+  const height =
+    window.innerHeight;
 
-  if (
-    star.hue === 'gold'
-  ) {
+  const centerX =
+    width / 2;
 
-    color =
-      `rgba(255,217,102,${alpha})`;
-
-  } else if (
-    star.hue === 'teal'
-  ) {
-
-    color =
-      `rgba(79,227,193,${alpha})`;
-
-  } else {
-
-    color =
-      `rgba(255,255,255,${alpha})`;
-
-  }
-
-
-  introCtx.beginPath();
+  /*
+    Biased toward the spacecraft's launch point near the bottom
+    of the screen, so stars appear to stream past IT as it climbs.
+  */
+  const centerY =
+    height * 0.66;
 
   introCtx.fillStyle =
-    color;
+    'rgba(5, 6, 15, 0.22)';
 
-  introCtx.arc(
-    x,
-    y,
-    size,
+  introCtx.fillRect(
     0,
-    Math.PI * 2
+    0,
+    width,
+    height
   );
 
-  introCtx.fill();
+  introWarpStars.forEach(
+    (star, index) => {
 
-}
+      const delta =
+        speedFactor *
+        star.spd *
+        (
+          2 +
+          star.r * 0.045
+        );
 
+      star.r += delta;
 
-);
+      if (
+        star.r >
+        introMaxRadius
+      ) {
 
-if (progress < 1) {
+        introWarpStars[index] =
+          makeIntroWarpStar(true);
 
+        return;
 
-introRAF =
-  requestAnimationFrame(
-    introWarpFrame
+      }
+
+      const ratio =
+        star.r /
+        introMaxRadius;
+
+      const x =
+        centerX +
+        Math.cos(
+          star.angle
+        ) *
+        star.r;
+
+      const y =
+        centerY +
+        Math.sin(
+          star.angle
+        ) *
+        star.r;
+
+      const size =
+        0.6 +
+        ratio * 3.2;
+
+      const alpha =
+        Math.min(
+          1,
+          0.12 +
+          ratio * 1.1
+        );
+
+      let color;
+
+      if (
+        star.hue === 'gold'
+      ) {
+
+        color =
+          `rgba(255,217,102,${alpha})`;
+
+      } else if (
+        star.hue === 'teal'
+      ) {
+
+        color =
+          `rgba(79,227,193,${alpha})`;
+
+      } else {
+
+        color =
+          `rgba(255,255,255,${alpha})`;
+
+      }
+
+      introCtx.beginPath();
+
+      introCtx.fillStyle =
+        color;
+
+      introCtx.arc(
+        x,
+        y,
+        size,
+        0,
+        Math.PI * 2
+      );
+
+      introCtx.fill();
+
+    }
   );
 
+  if (progress < 1) {
 
-}
+    introRAF =
+      requestAnimationFrame(
+        introWarpFrame
+      );
+
+  }
 
 }
 
 function stopIntroWarpAnimation() {
 
-if (introRAF !== null) {
+  if (introRAF !== null) {
 
+    cancelAnimationFrame(
+      introRAF
+    );
 
-cancelAnimationFrame(
-  introRAF
-);
+  }
 
+  introRAF = null;
 
-}
+  if (
+    introCtx &&
+    introStarCanvas
+  ) {
 
-introRAF = null;
+    introCtx.clearRect(
+      0,
+      0,
+      introStarCanvas.width,
+      introStarCanvas.height
+    );
 
-if (
-introCtx &&
-introStarCanvas
-) {
-
-
-introCtx.clearRect(
-  0,
-  0,
-  introStarCanvas.width,
-  introStarCanvas.height
-);
-
-
-}
+  }
 
 }
 
 function playLaunchIntro() {
 
-/*
-  Nothing to animate, or nothing to reveal into (reduced motion,
-  or the daily-homepage logic is about to redirect away): skip
-  straight to the existing flow with no delay, exactly as if the
-  intro were never added.
-*/
-if (
-!launchIntroEl ||
-!shouldPlayLaunchIntro()
-) {
-
-
-if (launchIntroEl) {
-
-  launchIntroEl.style.display =
-    'none';
-
-}
-
-if (appShell) {
-
-  appShell.classList.remove(
-    'transition-hide'
-  );
-
-}
-
-showDailyHomepage();
-
-return;
-
-
-}
-
-setupIntroCanvas();
-
-initIntroWarpStars(
-LAUNCH_INTRO_STAR_COUNT
-);
-
-introAnimStart =
-performance.now();
-
-introRAF =
-requestAnimationFrame(
-introWarpFrame
-);
-
-/* Scene 1: stars brighten, spacecraft fades in near the bottom. */
-launchIntroEl.classList.add(
-'phase-anticipation'
-);
-
-setTimeout(
-() => {
-
-
-  /* Scenes 2 + 3: launch, accelerate, climb, fade into the
-     distance — see the introRocketLaunch / introTrailGrow
-     keyframes in style.css. */
-  launchIntroEl.classList.add(
-    'phase-launch'
-  );
-
-},
-LAUNCH_INTRO_ANTICIPATION_MS
-
-
-);
-
-setTimeout(
-() => {
-
-
   /*
-    Scene 4 — "arrival": reuse the SAME galaxy-flash bloom the
-    existing galaxy-entrance transition uses, put the correct
-    screen in place underneath (nickname entry — whatever
-    showDailyHomepage() decides), then crossfade the launch
-    intro out as the existing .transition-hide fade-in brings
-    the app shell back.
+    Nothing to animate, or nothing to reveal into: skip straight
+    to the existing flow with no delay.
   */
+  if (
+    !launchIntroEl ||
+    !shouldPlayLaunchIntro()
+  ) {
 
-  if (galaxyFlash) {
+    if (launchIntroEl) {
 
-    galaxyFlash.classList.remove(
-      'flash'
-    );
+      launchIntroEl.style.display =
+        'none';
 
-    void galaxyFlash.offsetWidth;
+    }
 
-    galaxyFlash.classList.add(
-      'flash'
-    );
+    if (appShell) {
+
+      appShell.classList.remove(
+        'transition-hide'
+      );
+
+    }
+
+    showDailyHomepage();
+
+    return;
 
   }
 
-  showDailyHomepage();
+  setupIntroCanvas();
 
-  if (appShell) {
-
-    appShell.classList.remove(
-      'transition-hide'
-    );
-
-  }
-
-  launchIntroEl.classList.add(
-    'intro-done'
+  initIntroWarpStars(
+    LAUNCH_INTRO_STAR_COUNT
   );
 
-},
-LAUNCH_INTRO_DURATION_MS -
-LAUNCH_INTRO_REVEAL_MS
+  introAnimStart =
+    performance.now();
 
+  introRAF =
+    requestAnimationFrame(
+      introWarpFrame
+    );
 
-);
+  /* Scene 1: stars brighten, rocket fades in near the bottom. */
+  launchIntroEl.classList.add(
+    'phase-anticipation'
+  );
 
-setTimeout(
-() => {
+  setTimeout(
+    () => {
 
+      /* Scenes 2 + 3: rocket rises, words ignite and hold, then
+         the stack accelerates away — see introStackLaunch in
+         style.css. */
+      launchIntroEl.classList.add(
+        'phase-launch'
+      );
 
-  stopIntroWarpAnimation();
+    },
+    LAUNCH_INTRO_ANTICIPATION_MS
+  );
 
-  launchIntroEl.style.display =
-    'none';
+  setTimeout(
+    () => {
 
-},
-LAUNCH_INTRO_DURATION_MS
+      /*
+        Scene 4 — "arrival": reuse the SAME galaxy-flash bloom,
+        put the correct screen in place underneath, then crossfade
+        the launch intro out as the app shell fades back in.
+      */
 
+      if (galaxyFlash) {
 
-);
+        galaxyFlash.classList.remove(
+          'flash'
+        );
+
+        void galaxyFlash.offsetWidth;
+
+        galaxyFlash.classList.add(
+          'flash'
+        );
+
+      }
+
+      showDailyHomepage();
+
+      if (appShell) {
+
+        appShell.classList.remove(
+          'transition-hide'
+        );
+
+      }
+
+      launchIntroEl.classList.add(
+        'intro-done'
+      );
+
+    },
+    LAUNCH_INTRO_DURATION_MS -
+    LAUNCH_INTRO_REVEAL_MS
+  );
+
+  setTimeout(
+    () => {
+
+      stopIntroWarpAnimation();
+
+      launchIntroEl.style.display =
+        'none';
+
+    },
+    LAUNCH_INTRO_DURATION_MS
+  );
 
 }
 
@@ -5047,45 +4436,35 @@ MIDNIGHT RESET
 ============================================================ */
 
 let lastKnownJstDate =
-getJstDateKey();
-
-setInterval(
-() => {
-
-
-const current =
   getJstDateKey();
 
+setInterval(
+  () => {
 
-if (
-  current ===
-  lastKnownJstDate
-) {
-  return;
-}
+    const current =
+      getJstDateKey();
 
+    if (
+      current ===
+      lastKnownJstDate
+    ) {
+      return;
+    }
 
-/*
-  JST date changed.
+    /*
+      JST date changed. loadNickname() will now treat the saved
+      nickname as invalid. We do NOT interrupt an active game;
+      when the player returns home, showDailyHomepage() will
+      display nickname entry.
+    */
 
-  Nickname is now invalid because
-  loadNickname() checks the date.
+    lastKnownJstDate =
+      current;
 
-  We do NOT interrupt an active game.
-  When the player returns home,
-  showDailyHomepage() will display
-  nickname entry.
-*/
+    stopChampionCountdown();
 
-lastKnownJstDate =
-  current;
-
-
-stopChampionCountdown();
-
-
-},
-30000
+  },
+  30000
 );
 
 /* ============================================================
@@ -5097,21 +4476,10 @@ buildStarField();
 setupWarpCanvas();
 
 /*
-THIS IS THE IMPORTANT STARTING POINT.
-
-Every page load checks localStorage.
-
-No nickname today:
-→ nickname screen
-
-Nickname already saved today:
-→ returning check-in screen
-
-NEW: showDailyHomepage() itself is unchanged — it's now called
-FROM playLaunchIntro() (see the "LAUNCH INTRO" section above),
-once the cinematic opening sequence has finished (or immediately,
-with no delay, whenever the intro doesn't apply — reduced motion,
-or a returning player about to be redirected to home.html).
+Every page load goes through playLaunchIntro(), which either
+plays the cinematic intro and then calls showDailyHomepage(),
+or (reduced motion / returning player / arriving from the Hub)
+skips straight to showDailyHomepage() with no delay.
 */
 
 playLaunchIntro();
@@ -5121,14 +4489,14 @@ Ambient effects.
 */
 
 const reducedMotion =
-window.matchMedia(
-'(prefers-reduced-motion: reduce)'
-).matches;
+  window.matchMedia(
+    '(prefers-reduced-motion: reduce)'
+  ).matches;
 
 if (!reducedMotion) {
 
-scheduleShootingStars();
+  scheduleShootingStars();
 
-scheduleFloatingSatellites();
+  scheduleFloatingSatellites();
 
 }
