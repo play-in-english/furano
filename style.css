@@ -12,6 +12,7 @@
    8. Nickname / Difficulty screens (NEW)
    9. Leaderboard (NEW)
    10. Medium-mode answer reveal (NEW)
+   11. Cinematic launch intro (NEW)
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap');
@@ -1164,4 +1165,143 @@ h1, h2, h3 {
   /* No nowrap here — long translations are free to wrap onto a
      second line within the prompt's width instead of overflowing
      off-screen, since this now sits in normal centered flow. */
+}
+
+/* ============================================================
+   11. CINEMATIC LAUNCH INTRO (NEW)
+   ------------------------------------------------------------
+   Plays once, on top of the EXISTING .sky / .nebula / .stars
+   background (nothing here duplicates those layers — they stay
+   visible underneath the whole time, exactly as they already
+   look on every other screen).
+
+   Fully non-interactive for its entire lifetime (pointer-events:
+   none), so however the timing plays out it can never block a
+   tap on the Check-In form underneath. The existing
+   .app.transition-hide class (already used by the between-
+   screen galaxy-entrance transition — see beginGalaxyEntrance()
+   in app.js) hides/reveals the app shell underneath it; this
+   section only styles the intro's own canvas + spacecraft.
+   See playLaunchIntro() in app.js for the full sequence.
+   ============================================================ */
+
+.launch-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 700ms ease;
+}
+
+/* Added right as the app shell is revealed underneath — fades the
+   whole intro (canvas + spacecraft) out together. */
+.launch-intro.intro-done {
+  opacity: 0;
+}
+
+.intro-star-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 800ms ease;
+}
+
+.launch-intro.phase-anticipation .intro-star-canvas,
+.launch-intro.phase-launch .intro-star-canvas {
+  opacity: 1;
+}
+
+.intro-spacecraft {
+  position: absolute;
+  left: 50%;
+  bottom: 9%;
+  transform: translate(-50%, 0);
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+
+/* Scene 1: the spacecraft fades into view near the bottom of the
+   screen as the stars brighten. */
+.launch-intro.phase-anticipation .intro-spacecraft {
+  opacity: 1;
+}
+
+/* Scene 2 + 3: the spacecraft launches upward, accelerating, and
+   gradually shrinks/fades as if disappearing into the distance. */
+.launch-intro.phase-launch .intro-spacecraft {
+  animation: introRocketLaunch 3000ms cubic-bezier(0.55, 0, 0.85, 0.35) forwards;
+}
+
+.intro-rocket {
+  position: relative;
+  z-index: 2;
+  font-size: 44px;
+  filter: drop-shadow(0 0 14px rgba(255, 217, 102, 0.8));
+  /* A small idle wobble while it sits on the pad, before launch —
+     purely cosmetic, stops mattering once introRocketLaunch takes
+     over the whole element's transform. */
+  animation: introRocketWobble 900ms ease-in-out infinite alternate;
+}
+
+@keyframes introRocketWobble {
+  from { transform: rotate(-3deg); }
+  to   { transform: rotate(3deg); }
+}
+
+/* Glowing engine effect right beneath the spacecraft. */
+.intro-engine-glow {
+  position: absolute;
+  left: 50%;
+  top: 74%;
+  z-index: 1;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, 0);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 217, 102, 0.95), rgba(255, 111, 80, 0.5) 55%, transparent 75%);
+  filter: blur(2px);
+  animation: introEnginePulse 240ms ease-in-out infinite alternate;
+}
+
+@keyframes introEnginePulse {
+  from { transform: translate(-50%, 0) scale(0.8); opacity: 0.7; }
+  to   { transform: translate(-50%, 0) scale(1.3); opacity: 1; }
+}
+
+/* A trail of light behind the spacecraft as it climbs. */
+.intro-trail {
+  position: absolute;
+  left: 50%;
+  top: 88%;
+  z-index: 0;
+  width: 7px;
+  height: 0;
+  transform: translate(-50%, 0);
+  background: linear-gradient(180deg, rgba(255, 217, 102, 0.85), rgba(79, 227, 193, 0.35) 55%, transparent);
+  border-radius: 999px;
+  filter: blur(1.5px);
+}
+
+.launch-intro.phase-launch .intro-trail {
+  animation: introTrailGrow 3000ms cubic-bezier(0.3, 0, 0.6, 1) forwards;
+}
+
+@keyframes introTrailGrow {
+  0%   { height: 0; opacity: 0.9; }
+  55%  { height: 42vh; opacity: 0.7; }
+  100% { height: 58vh; opacity: 0; }
+}
+
+@keyframes introRocketLaunch {
+  0%   { transform: translate(-50%, 0) scale(1); opacity: 1; }
+  55%  { transform: translate(-50%, -58vh) scale(0.78); opacity: 1; }
+  100% { transform: translate(-50%, -112vh) scale(0.22); opacity: 0; }
+}
+
+@media (max-width: 480px) {
+  .intro-rocket { font-size: 36px; }
+  .intro-engine-glow { width: 20px; height: 20px; }
 }
