@@ -9,7 +9,7 @@ FIRST VISIT OF THE DAY
   → START MISSION PAGE → DIFFICULTY → GAME → RESULTS
 
 RETURNING VISIT SAME JST DAY
-  index.html redirects straight to home.html
+  Launch intro → GALAXY HUB (home.html)
 
 NEW JST DAY
   Nickname is automatically cleared.
@@ -656,6 +656,11 @@ function showDailyHomepage() {
 
     showScreen('nickname');
 
+    /* Welcome audio on GALAXY CHECK-IN (guarded: plays once per visit) */
+    if (window.WelcomeAudio) {
+      window.WelcomeAudio.play();
+    }
+
     setTimeout(
       () => {
         nicknameInput.focus();
@@ -741,6 +746,11 @@ function submitNickname(event) {
   saveNickname(
     nickname
   );
+
+  /* Leaving GALAXY CHECK-IN: the hub must not replay the welcome. */
+  if (window.WelcomeAudio) {
+    window.WelcomeAudio.markDone();
+  }
 
   try {
     sessionStorage.setItem(
@@ -3921,10 +3931,11 @@ function scheduleFloatingSatellites() {
 /* ============================================================
 LAUNCH INTRO — CINEMATIC OPENING SEQUENCE
 ============================================================
-Plays once, automatically, on a genuinely fresh visit to
-index.html — NOT when arriving via the Galaxy Hub's START button
-(launchMission1 flag), and NOT when a returning player is about
-to be redirected straight to home.html.
+Plays once, automatically, whenever the game is opened at
+index.html — for first-play-of-the-day players (→ GALAXY CHECK-IN)
+AND returning players (→ GALAXY HUB, home.html). It does NOT play
+when arriving via the Galaxy Hub's START button (launchMission1
+flag), which is navigation between game screens.
 
 A rocket launches upward with the words "えいごであそぼう" trailing
 behind it like sparks, over stars streaking past on a dedicated
@@ -3985,17 +3996,6 @@ function shouldPlayLaunchIntro() {
     BETWEEN game screens — never replay the intro for this.
   */
   if (launchMission === 'true') {
-    return false;
-  }
-
-  const nickname =
-    loadNickname();
-
-  /*
-    A returning player is about to be redirected straight to
-    home.html, so there's nothing to play the intro in front of.
-  */
-  if (nickname) {
     return false;
   }
 
@@ -4342,6 +4342,15 @@ function playLaunchIntro() {
 
   }
 
+  /*
+    Returning player (valid nickname today): the intro plays HERE on
+    index.html, then we continue to the GALAXY HUB (home.html), where
+    the welcome audio plays. First-play-of-the-day players instead
+    land on GALAXY CHECK-IN under the intro.
+  */
+  const isReturningPlayer =
+    !!loadNickname();
+
   setupIntroCanvas();
 
   initIntroWarpStars(
@@ -4398,13 +4407,17 @@ function playLaunchIntro() {
 
       }
 
-      showDailyHomepage();
+      if (!isReturningPlayer) {
 
-      if (appShell) {
+        showDailyHomepage();
 
-        appShell.classList.remove(
-          'transition-hide'
-        );
+        if (appShell) {
+
+          appShell.classList.remove(
+            'transition-hide'
+          );
+
+        }
 
       }
 
@@ -4424,6 +4437,13 @@ function playLaunchIntro() {
 
       launchIntroEl.style.display =
         'none';
+
+      /* Returning player: intro finished → go to the GALAXY HUB. */
+      if (isReturningPlayer) {
+
+        showDailyHomepage();
+
+      }
 
     },
     LAUNCH_INTRO_DURATION_MS
@@ -4478,8 +4498,8 @@ setupWarpCanvas();
 /*
 Every page load goes through playLaunchIntro(), which either
 plays the cinematic intro and then calls showDailyHomepage(),
-or (reduced motion / returning player / arriving from the Hub)
-skips straight to showDailyHomepage() with no delay.
+or (reduced motion / arriving from the Hub via START) skips
+straight to showDailyHomepage() with no delay.
 */
 
 playLaunchIntro();
