@@ -4415,7 +4415,7 @@ function showLaunchTapGate(onTap) {
   gate.setAttribute('aria-label', 'Tap to launch');
 
   gate.innerHTML = `
-    <span class="launch-gate-brand">TAP to enter the ENGLISH GALAXY</span>
+    <span class="launch-gate-brand">TAP to LAUNCH!</span>
     <span class="launch-gate-rocket" aria-hidden="true">🚀</span>
     <span class="launch-gate-title">タップして、はっしん！</span>
      `;
