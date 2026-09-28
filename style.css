@@ -1276,13 +1276,6 @@ h1, h2, h3 {
   }
 }
 
-/* Glowing line at the end of the word trail */
-.intro-bar {
-  width: calc(var(--u) * 0.14);
-  height: calc(var(--u) * 1.1);
-  margin-top: calc(var(--u) * 0.05);
-  border-radius: 999px;
-
   /* Match the bright gold color of the Japanese characters */
   background: linear-gradient(
     180deg,
