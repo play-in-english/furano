@@ -61,7 +61,7 @@ Public API (window.WelcomeAudio):
   const KIND_KEY = 'galaxyAlphabetQuiz.hubGreetingKind.v2';
 
   // The launch sound is only ever slowed down, and never below this.
-  const MIN_PLAYBACK_RATE = 0.5;
+  const MIN_PLAYBACK_RATE = 0.8;
 
   // Volume fade-out at the very end of the launch sound.
   const LAUNCH_FADE_MS = 400;
