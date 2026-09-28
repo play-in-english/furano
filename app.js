@@ -4349,6 +4349,138 @@ function playLaunchIntro() {
   const isReturningPlayer =
     !!loadNickname();
 
+  startLaunchIntroWithSound(
+    isReturningPlayer
+  );
+
+}
+
+/*
+  HOMEPAGE → LAUNCH
+  The game always opens on a "TAP TO LAUNCH" homepage. The tap is what
+  lets the browser play sound, so the launch sound and the cinematic
+  intro start together, perfectly in sync:
+
+    TAP TO LAUNCH → cinematic launch intro (+ spaceship-launch.mp3)
+      → GALAXY HUB (returning player, + welcome-back sound)
+      → GALAXY CHECK-IN → GALAXY HUB (first visit, + welcome sound)
+*/
+function startLaunchIntroWithSound(
+  isReturningPlayer
+) {
+
+  /* Load the sound while the homepage is showing, so it starts the
+     instant the player taps. */
+  if (window.WelcomeAudio) {
+
+    window.WelcomeAudio.preloadLaunch(
+      LAUNCH_INTRO_DURATION_MS
+    );
+
+  }
+
+  showLaunchTapGate(
+    () => {
+
+      /* Inside the tap, so the browser allows the sound. */
+      if (window.WelcomeAudio) {
+
+        window.WelcomeAudio.playLaunch(
+          LAUNCH_INTRO_DURATION_MS
+        );
+
+      }
+
+      runLaunchIntroSequence(
+        isReturningPlayer
+      );
+
+    }
+  );
+
+}
+
+function showLaunchTapGate(onTap) {
+
+  /* A div (not a <button>) so the generic button click sound
+     doesn't play over the launch sound. */
+  const gate =
+    document.createElement('div');
+
+  gate.className =
+    'launch-gate';
+
+  gate.setAttribute('role', 'button');
+  gate.setAttribute('tabindex', '0');
+  gate.setAttribute('aria-label', 'Tap to launch');
+
+  gate.innerHTML = `
+    <span class="launch-gate-brand">S.P.A.C.E. ALPHABETS</span>
+    <span class="launch-gate-rocket" aria-hidden="true">🚀</span>
+    <span class="launch-gate-title">TAP TO LAUNCH</span>
+    <span class="launch-gate-sub">タップして、はっしん！</span>
+  `;
+
+  let used = false;
+
+  const go = () => {
+
+    if (used) {
+      return;
+    }
+
+    used = true;
+
+    gate.classList.add(
+      'launch-gate-out'
+    );
+
+    setTimeout(
+      () => {
+        gate.remove();
+      },
+      400
+    );
+
+    onTap();
+
+  };
+
+  gate.addEventListener(
+    'click',
+    go
+  );
+
+  gate.addEventListener(
+    'keydown',
+    event => {
+
+      if (
+        event.key === 'Enter' ||
+        event.key === ' '
+      ) {
+
+        event.preventDefault();
+
+        go();
+
+      }
+
+    }
+  );
+
+  document.body.appendChild(
+    gate
+  );
+
+  gate.focus();
+
+}
+
+function runLaunchIntroSequence(
+  isReturningPlayer
+) {
+
   setupIntroCanvas();
 
   initIntroWarpStars(
@@ -4362,15 +4494,6 @@ function playLaunchIntro() {
     requestAnimationFrame(
       introWarpFrame
     );
-
-  /* Launch sound (spaceship-launch.mp3): starts together with the
-     intro, slowed to last LAUNCH_INTRO_DURATION_MS. Plays for
-     first-time AND returning players. */
-  if (window.WelcomeAudio) {
-    window.WelcomeAudio.playLaunch(
-      LAUNCH_INTRO_DURATION_MS
-    );
-  }
 
   /* Scene 1: stars brighten, rocket fades in near the bottom. */
   launchIntroEl.classList.add(
