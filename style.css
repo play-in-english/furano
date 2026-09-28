@@ -9,10 +9,10 @@
    5. Components (buttons, progress trail, feedback)
    6. Responsive
    7. Motion / accessibility
-   8. Nickname / Difficulty screens (NEW)
-   9. Leaderboard (NEW)
-   10. Medium-mode answer reveal (NEW)
-   11. Cinematic launch intro (NEW)
+   8. Nickname / Difficulty screens
+   9. Leaderboard
+   10. Medium-mode answer reveal
+   11. Cinematic launch intro (rocket + word trail)
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&display=swap');
@@ -48,10 +48,6 @@ html, body {
 
 body {
   margin: 0;
-  /* Fallbacks first, then modern dynamic-viewport units so the layout
-     fits the ACTUAL visible area on phones/tablets — accounting for
-     browser chrome (address bars, home indicator) and updating live
-     when a window is resized, rotated, or toggled to fullscreen. */
   min-height: 100vh;
   min-height: 100svh;
   min-height: 100dvh;
@@ -62,8 +58,6 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Keep content clear of iPhone notches / home indicator / Android
-     gesture bars in any orientation, while never going below 16px. */
   padding: max(16px, env(safe-area-inset-top))
            max(16px, env(safe-area-inset-right))
            max(16px, env(safe-area-inset-bottom))
@@ -82,7 +76,6 @@ body {
     linear-gradient(180deg, var(--sky-deep) 0%, var(--sky-navy) 55%, #0a0d2a 100%);
 }
 
-/* soft drifting nebula clouds, purely decorative */
 .nebula {
   position: fixed;
   inset: -10%;
@@ -97,8 +90,6 @@ body {
   transition: opacity .8s ease, filter .8s ease, transform .8s ease;
 }
 
-/* Nebula blooms brighter and more saturated during the galaxy-entry
-   transition, then settles back down once the quiz appears. */
 body.warping .nebula {
   opacity: 1;
   filter: blur(14px) saturate(1.6);
@@ -110,7 +101,6 @@ body.warping .nebula {
   100% { transform: translate(-2%, 2%) scale(1.05); }
 }
 
-/* star field: layered dots via box-shadow, generated in JS onto this canvas-free layer */
 .stars {
   position: fixed;
   inset: 0;
@@ -119,8 +109,6 @@ body.warping .nebula {
   transition: opacity .5s ease;
 }
 
-/* While the hyperspace transition plays, fade the calm twinkling
-   field out — the warp canvas takes over the star show. */
 body.warping .stars {
   opacity: 0;
 }
@@ -142,12 +130,7 @@ body.warping .stars {
   50%      { opacity: var(--max-o, 0.95); transform: scale(1.25); }
 }
 
-/* ---------- 2a. Ambient floating satellites & shooting stars ----------
-   Continuous background flourishes — separate from the hyperspace
-   warp system entirely. Elements are spawned/removed by app.js on a
-   loose random schedule and play throughout the whole site: every
-   screen alike. Sits with the other purely-decorative background
-   layers (behind the quiz UI), same as .stars. */
+/* ---------- 2a. Ambient floating satellites & shooting stars ---------- */
 .ambient-layer {
   position: fixed;
   inset: 0;
@@ -158,15 +141,6 @@ body.warping .stars {
   overflow: hidden;
 }
 
-/* A shooting star: a short fading streak (the "extending line" of
-   its path) that shoots across the screen at a random angle/spot
-   and disappears. The rotate+translateX combo below (with a FIXED
-   rotation angle set via --angle) is what makes it travel in a
-   straight line at that angle — see spawnShootingStar() in app.js.
-   Sizes/opacity vary per star via inline --peak-opacity and
-   height/width, so some read as small & distant, others as bigger
-   and unmistakably obvious — see the two "far"/"near" tiers in
-   spawnShootingStar(). */
 .shooting-star {
   position: absolute;
   height: 2px;
@@ -188,13 +162,6 @@ body.warping .stars {
   100% { transform: rotate(var(--angle)) translateX(var(--distance)); opacity: 0; }
 }
 
-/* A slow-drifting satellite (🛰️) — an ISS-style flourish that cruises
-   calmly across part of the screen and gently tumbles as it goes.
-   Its drift path (--dx/--dy) and its spin (--spin) are independent:
-   writing translate() BEFORE rotate() in the transform means the
-   translate happens in screen space regardless of rotation, so the
-   satellite moves in a straight line while separately spinning in
-   place. */
 .floating-satellite {
   position: absolute;
   opacity: 0;
@@ -230,9 +197,6 @@ body.warping .stars {
   }
 }
 
-/* Pause (rather than hide) ambient flourishes during a hyperspace
-   burst so they don't visually compete with the more intense warp
-   canvas — they simply resume once the transition finishes. */
 body.warping .shooting-star,
 body.warping .floating-satellite {
   animation-play-state: paused;
@@ -245,10 +209,6 @@ body.warping .floating-satellite {
 }
 
 /* ---------- 2b. Galaxy entrance transition ---------- */
-
-/* Full-screen canvas the JS draws the hyperspace star streak
-   animation onto. Sits above the calm background layers but below
-   the quiz card, and is fully transparent/inert until "active". */
 .warp-canvas {
   position: fixed;
   inset: 0;
@@ -262,8 +222,6 @@ body.warping .floating-satellite {
   opacity: 1;
 }
 
-/* Soft bright bloom that pulses once as the student "arrives" in
-   the galaxy, right after the hyperspace burst. */
 .galaxy-flash {
   position: fixed;
   inset: 0;
@@ -288,15 +246,10 @@ body.warping .floating-satellite {
   100% { opacity: 0; }
 }
 
-/* The quiz shell fades/shrinks away as hyperspace begins, then
-   fades/grows back in once the galaxy-entry flash has passed. */
 .app {
   position: relative;
   z-index: 2;
   transition: opacity .6s ease, transform .6s ease;
-  /* No card background anymore, so text needs its own contrast
-     against the starfield/nebula. text-shadow is inherited, so this
-     one declaration covers every heading, label, and button below. */
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.8);
 }
 
@@ -306,10 +259,6 @@ body.warping .floating-satellite {
   pointer-events: none;
 }
 
-/* While a hyperspace burst plays (big entrance or a between-question
-   hop), the whole app subtly scales up in step with the stars
-   rushing outward — so the UI feels like it's traveling with the
-   galaxy rather than sitting still on top of it. */
 body.warping .app:not(.transition-hide) {
   transform: scale(1.035);
 }
@@ -318,8 +267,6 @@ body.warping .app:not(.transition-hide) {
 .app {
   width: 100%;
   max-width: 640px;
-  /* Never let the app shell exceed the visible viewport height,
-     whatever device or window size it's viewed at. */
   max-height: 100%;
   display: flex;
   flex-direction: column;
@@ -328,15 +275,8 @@ body.warping .app:not(.transition-hide) {
 .card {
   position: relative;
   width: 100%;
-  /* No panel/box here on purpose — content floats directly over the
-     galaxy background so it feels like part of the scene rather than
-     a UI card sitting on top of it. Text/buttons keep their own
-     shadows and solid backgrounds for readability instead. */
   padding: clamp(20px, 4vw, 36px) clamp(18px, 4vw, 32px) clamp(18px, 4vw, 32px);
   animation: floatY 7s ease-in-out infinite;
-  /* If content is ever taller than the available space (very short
-     landscape windows), scroll instead of clipping off-screen. This
-     is a functional safety net only — there's no visible boundary. */
   max-height: min(860px, 96svh, 96dvh);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -398,7 +338,6 @@ h1, h2, h3 {
 .start-illustration span:nth-child(2) { animation-delay: .6s; }
 .start-illustration span:nth-child(3) { animation-delay: 1.2s; }
 
-/* Secondary action under the main Start Mission button (e.g. Share) */
 .start-secondary-btn {
   margin-top: 14px;
 }
@@ -416,8 +355,6 @@ h1, h2, h3 {
   background: linear-gradient(135deg, var(--star-gold), #ffb84f);
   box-shadow: 0 0 0 rgba(255, 217, 102, 0), 0 10px 24px rgba(255, 184, 79, 0.28);
   transition: transform .15s ease, box-shadow .25s ease, filter .15s ease;
-  /* Removes the ~300ms tap delay and stops accidental double-tap
-     zoom on iOS/Android when kids tap quickly. */
   touch-action: manipulation;
 }
 
@@ -452,7 +389,6 @@ h1, h2, h3 {
   padding: 18px 36px;
 }
 
-/* Replay audio button */
 .audio-btn {
   display: flex;
   align-items: center;
@@ -507,7 +443,7 @@ h1, h2, h3 {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0; /* lets pill text truncate/wrap instead of overflowing */
+  min-width: 0;
   flex-wrap: wrap;
 }
 
@@ -523,12 +459,6 @@ h1, h2, h3 {
 .pill.timer-pill { color: var(--comet-teal); }
 #modePill { color: var(--nebula-pink); }
 
-/* Black hole "return home" button — beside the question counter,
-   with a small Japanese caption underneath explaining what it does.
-   A dark event horizon with a slowly-spinning swirl of galaxy colors
-   for its accretion disk. Clicking it during the game sends the
-   student back to the start screen (see blackholeBtn's click
-   handler in app.js). */
 .blackhole-wrap {
   display: flex;
   flex-direction: column;
@@ -581,9 +511,6 @@ h1, h2, h3 {
   to { transform: rotate(360deg); }
 }
 
-/* Constellation progress trail — the signature element:
-   each answered question lights up a star on the trail the
-   rocket travels along toward the finish. */
 .constellation {
   position: relative;
   height: 54px;
@@ -637,9 +564,6 @@ h1, h2, h3 {
   text-align: center;
   font-family: var(--font-display);
   font-weight: 700;
-  /* Scales smoothly with viewport width instead of jumping at fixed
-     breakpoints — stays clearly readable from small phones (22px)
-     up to large screens (34px), rather than sitting at one fixed size. */
   font-size: clamp(22px, 6vw, 34px);
   line-height: 1.3;
   color: var(--ink-soft);
@@ -647,28 +571,14 @@ h1, h2, h3 {
   white-space: pre-line;
 }
 
-/* ---------- Question-to-question galaxy zoom transition ----------
-   Wraps the prompt/audio button/options/feedback for one question.
-   app.js toggles q-exit / q-enter on this element so each question
-   moves the SAME way the hyperspace stars do: the outgoing question
-   rushes bigger/brighter and blurs past the viewer (like something
-   flying past at warp speed), and the next one starts tiny and far
-   away, then zooms up to size as it "arrives" — so the content and
-   the starfield feel like one continuous flight rather than a card
-   fading in place while the background does its own thing.
-   NOTE: the 360ms duration here is referenced by QUESTION_TRANSITION_MS
-   in app.js — keep them in sync if you change either one. */
+/* ---------- Question-to-question galaxy zoom transition ---------- */
 .question-content {
-  /* Ease-out: fast at first, settling gently — used when arriving
-     (q-enter is removed and it eases back to full size). */
   transition: opacity 360ms cubic-bezier(0.16, 1, 0.3, 1),
               transform 360ms cubic-bezier(0.16, 1, 0.3, 1),
               filter 360ms ease-out;
 }
 
 .question-content.q-exit {
-  /* Ease-in: starts slow, accelerates away — matches stars
-     speeding up as they rush toward the edges of the screen. */
   transition: opacity 320ms cubic-bezier(0.7, 0, 0.84, 0),
               transform 320ms cubic-bezier(0.7, 0, 0.84, 0),
               filter 320ms ease-in;
@@ -677,10 +587,6 @@ h1, h2, h3 {
   filter: blur(5px);
 }
 
-/* Used instead of q-exit specifically when leaving via the black
-   hole button: content shrinks and spins down to a point and blurs
-   away, like it's being pulled in and spaghettified — the opposite
-   feel of q-exit's "flying past the camera" look. */
 .question-content.q-suck {
   transition: opacity 320ms cubic-bezier(0.55, 0, 1, 0.45),
               transform 320ms cubic-bezier(0.55, 0, 1, 0.45),
@@ -691,10 +597,6 @@ h1, h2, h3 {
 }
 
 .question-content.q-enter {
-  /* Snapped to instantly (no transition) right after the content is
-     swapped, so it starts small/far/blurred with nothing to animate
-     FROM — then this class is removed a frame later, letting the
-     base .question-content transition above ease it up to full size. */
   transition: none;
   opacity: 0;
   transform: scale(0.35) translateY(10px);
@@ -717,7 +619,7 @@ h1, h2, h3 {
   border: 2px solid rgba(255, 255, 255, 0.14);
   border-radius: var(--radius-md);
   padding: clamp(14px, 3vh, 22px) 10px;
-  min-height: 44px; /* comfortable tap target on all touch devices */
+  min-height: 44px;
   cursor: pointer;
   transition: transform .15s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
   touch-action: manipulation;
@@ -830,8 +732,6 @@ h1, h2, h3 {
 }
 
 /* ---------- 6. Responsive ---------- */
-
-/* Phones (portrait) — iPhone SE through Pro Max, small Android phones */
 @media (max-width: 480px) {
   .options-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
   .audio-btn { padding: 14px 24px; font-size: 17px; }
@@ -839,16 +739,12 @@ h1, h2, h3 {
   .start-illustration { font-size: 32px; margin: 16px 0; }
 }
 
-/* Tablets — iPad portrait/landscape and similarly sized Android tablets */
 @media (min-width: 600px) and (max-width: 1024px) {
   .app { max-width: 560px; }
 }
 
-/* Short viewports — phones in landscape, minimized/split-screen desktop
-   windows, or fullscreen on a small display. Trims vertical space so
-   everything fits without the card overflowing the screen. */
 @media (max-height: 560px) {
-  .card { animation: none; } /* stop the float bob so it doesn't fight with scrolling */
+  .card { animation: none; }
   .brand-emoji { font-size: 36px; }
   .title { font-size: clamp(22px, 5vw, 30px); }
   .subtitle { font-size: 14px; margin-top: 4px; }
@@ -857,12 +753,9 @@ h1, h2, h3 {
   .option-btn { font-size: clamp(24px, 6vw, 34px); }
   .constellation { height: 40px; margin-bottom: 14px; }
   .results-emoji { font-size: 40px; }
-  /* Prompt stays readable even when vertical space is tight, just
-     pulled in slightly from the full-height sizing above. */
   .prompt { font-size: clamp(18px, 5vw, 26px); }
 }
 
-/* Very short viewports — e.g. a small phone in landscape */
 @media (max-height: 400px) {
   .card { padding-top: 14px; padding-bottom: 14px; }
   .brand { gap: 4px; }
@@ -889,10 +782,7 @@ h1, h2, h3 {
 }
 
 /* ============================================================
-   8. NICKNAME / DIFFICULTY SCREENS (NEW)
-   Reuses the same look and feel as the existing start screen —
-   same brand block, subtitle, and button styles — so nothing
-   about the established visual language changes.
+   8. NICKNAME / DIFFICULTY SCREENS
    ============================================================ */
 
 .welcome-back {
@@ -965,8 +855,7 @@ h1, h2, h3 {
 }
 
 /* ============================================================
-   9. LEADERBOARD (NEW)
-   Sits on the results screen, above the Play Again button.
+   9. LEADERBOARD
    ============================================================ */
 
 .leaderboard {
@@ -1076,31 +965,7 @@ h1, h2, h3 {
 }
 
 /* ============================================================
-   10. MEDIUM-MODE ANSWER REVEAL (NEW)
-   ------------------------------------------------------------
-   Two pieces, both triggered together by revealMediumAnswer()
-   in app.js right after the student answers a Medium-mode
-   question:
-
-     a) .blank-slot — the underscores inside the prompt (e.g. the
-        "__" in "SIST__"). Its text is swapped for the real
-        letters, then .blank-revealed is added to pop/fade them
-        in, turning "SIST__" into "SISTER".
-
-     b) .word-meaning-wrap — the word's Japanese translation,
-        appearing on its own centered line right below the word:
-
-          What sound is missing?
-          SISTER
-          意味：姉/妹
-
-        Hidden (display: none) by default — .show switches it to
-        display: block, which is what pushes it onto a new line
-        below the word and lets .prompt's text-align: center
-        center it as its own row, no absolute positioning needed
-        (unlike the previous "beside the word" layout, showing or
-        hiding this doesn't affect the word's own line at all,
-        since it's a separate line entirely).
+   10. MEDIUM-MODE ANSWER REVEAL
    ============================================================ */
 
 .blank-slot {
@@ -1150,39 +1015,20 @@ h1, h2, h3 {
 }
 
 .word-meaning-text {
-  /* inline-block (not block) so it only takes up as much width as
-     its own text, letting .prompt's text-align: center center it
-     as a compact unit on its line rather than stretching edge to
-     edge. */
   display: inline-block;
   font-family: var(--font-display);
   font-weight: 700;
-  /* A bit smaller than the revealed word itself, reading as a
-     caption/translation underneath rather than competing with it. */
   font-size: clamp(18px, 5vw, 26px);
   color: var(--comet-teal);
   text-shadow: 0 0 12px rgba(79, 227, 193, 0.5);
-  /* No nowrap here — long translations are free to wrap onto a
-     second line within the prompt's width instead of overflowing
-     off-screen, since this now sits in normal centered flow. */
 }
 
 /* ============================================================
-   11. CINEMATIC LAUNCH INTRO (NEW)
+   11. CINEMATIC LAUNCH INTRO (rocket + word trail)
    ------------------------------------------------------------
-   Plays once, on top of the EXISTING .sky / .nebula / .stars
-   background (nothing here duplicates those layers — they stay
-   visible underneath the whole time, exactly as they already
-   look on every other screen).
-
-   Fully non-interactive for its entire lifetime (pointer-events:
-   none), so however the timing plays out it can never block a
-   tap on the Check-In form underneath. The existing
-   .app.transition-hide class (already used by the between-
-   screen galaxy-entrance transition — see beginGalaxyEntrance()
-   in app.js) hides/reveals the app shell underneath it; this
-   section only styles the intro's own canvas + spacecraft.
-   See playLaunchIntro() in app.js for the full sequence.
+   Plays once on top of the EXISTING .sky / .nebula / .stars.
+   Fully non-interactive (pointer-events: none). See
+   playLaunchIntro() in app.js for the sequence.
    ============================================================ */
 
 .launch-intro {
@@ -1194,8 +1040,6 @@ h1, h2, h3 {
   transition: opacity 700ms ease;
 }
 
-/* Added right as the app shell is revealed underneath — fades the
-   whole intro (canvas + spacecraft) out together. */
 .launch-intro.intro-done {
   opacity: 0;
 }
@@ -1214,94 +1058,158 @@ h1, h2, h3 {
   opacity: 1;
 }
 
+/* ---------- Spacecraft + word trail ---------- */
+
 .intro-spacecraft {
+  /* ONE size unit drives everything, so the whole stack scales together.
+     Limited by width AND height: fills a phone screen but never
+     overflows a short or landscape one. */
+  --u: min(12.5vw, 7.4svh, 110px);
+
   position: absolute;
-  left: 50%;
-  bottom: 9%;
-  transform: translate(-50%, 0);
+  left: 0;
+  width: 100%;
+  bottom: max(2svh, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   opacity: 0;
+  /* Rests low, so only the rocket peeks in during the "anticipation" scene */
+  transform: translateY(86%);
   transition: opacity 400ms ease;
 }
 
-/* Scene 1: the spacecraft fades into view near the bottom of the
-   screen as the stars brighten. */
-.launch-intro.phase-anticipation .intro-spacecraft {
-  opacity: 1;
+.launch-intro.phase-anticipation .intro-spacecraft { opacity: 1; }
+
+/* Rises in, HOLDS so the words can be read, then accelerates away */
+.launch-intro.phase-launch .intro-spacecraft {
+  animation: introStackLaunch 5000ms linear forwards;
 }
 
-/* Scene 2 + 3: the spacecraft launches upward, accelerating, and
-   gradually shrinks/fades as if disappearing into the distance. */
-.launch-intro.phase-launch .intro-spacecraft {
-  animation: introRocketLaunch 3000ms cubic-bezier(0.55, 0, 0.85, 0.35) forwards;
+@keyframes introStackLaunch {
+  0%   { transform: translateY(86%);  opacity: 1; animation-timing-function: cubic-bezier(0.2, 0.7, 0.3, 1); }
+  28%  { transform: translateY(-2svh); animation-timing-function: linear; }
+  70%  { transform: translateY(-8svh); opacity: 1; animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5); }
+  100% { transform: translateY(-125svh); opacity: 0; }
+}
+
+/* Rocket */
+.intro-rocket-wrap {
+  position: relative;
+  width: calc(var(--u) * 1.7);
+  height: calc(var(--u) * 1.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .intro-rocket {
   position: relative;
   z-index: 2;
-  font-size: 44px;
-  filter: drop-shadow(0 0 14px rgba(255, 217, 102, 0.8));
-  /* A small idle wobble while it sits on the pad, before launch —
-     purely cosmetic, stops mattering once introRocketLaunch takes
-     over the whole element's transform. */
-  animation: introRocketWobble 900ms ease-in-out infinite alternate;
+  font-size: calc(var(--u) * 1.35);
+  line-height: 1;
+  filter: drop-shadow(0 0 14px rgba(255, 217, 102, 0.85));
+  /* The 🚀 emoji is drawn tilted 45°, so we turn it upright to fly
+     straight up. Remove the -45deg values to restore the original tilt. */
+  transform: rotate(-45deg);
+  animation: introRocketWobble 140ms ease-in-out infinite alternate;
 }
 
 @keyframes introRocketWobble {
-  from { transform: rotate(-3deg); }
-  to   { transform: rotate(3deg); }
+  from { transform: rotate(-47deg) translateX(-1px); }
+  to   { transform: rotate(-43deg) translateX(1px); }
 }
 
-/* Glowing engine effect right beneath the spacecraft. */
 .intro-engine-glow {
   position: absolute;
   left: 50%;
-  top: 74%;
+  bottom: -8%;
   z-index: 1;
-  width: 24px;
-  height: 24px;
-  transform: translate(-50%, 0);
+  width: calc(var(--u) * 0.9);
+  height: calc(var(--u) * 0.9);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 217, 102, 0.95), rgba(255, 111, 80, 0.5) 55%, transparent 75%);
-  filter: blur(2px);
-  animation: introEnginePulse 240ms ease-in-out infinite alternate;
+  background: radial-gradient(circle, #fff 0%, rgba(255, 217, 102, 0.95) 30%, rgba(255, 111, 80, 0.55) 60%, transparent 75%);
+  filter: blur(3px);
+  animation: introEnginePulse 160ms ease-in-out infinite alternate;
 }
 
 @keyframes introEnginePulse {
-  from { transform: translate(-50%, 0) scale(0.8); opacity: 0.7; }
-  to   { transform: translate(-50%, 0) scale(1.3); opacity: 1; }
+  from { transform: translate(-50%, 0) scale(0.85); opacity: 0.8; }
+  to   { transform: translate(-50%, 0) scale(1.35); opacity: 1; }
 }
 
-/* A trail of light behind the spacecraft as it climbs. */
-.intro-trail {
+/* Word trail */
+.intro-words {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.intro-char {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--u);
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", Meiryo, var(--font-display), sans-serif;
+  font-weight: 900;
+  font-size: calc(var(--u) * 0.86);
+  line-height: 1;
+  /* Fire gradient down the column: gold at the top → orange-red at the bottom */
+  color: hsl(calc(50 - var(--i) * 4), 100%, 62%);
+  opacity: 0;
+}
+
+.launch-intro.phase-launch .intro-char {
+  animation:
+    introCharIgnite 700ms cubic-bezier(0.2, 1.4, 0.4, 1) calc(500ms + var(--i) * 230ms) both,
+    introCharFlicker 260ms ease-in-out calc(1200ms + var(--i) * 230ms) infinite alternate;
+}
+
+/* Each letter "sparks" into being: white-hot, oversized, then settles */
+@keyframes introCharIgnite {
+  0%   { opacity: 0; transform: scale(2.4) translateY(-30%); filter: blur(6px) brightness(3); }
+  45%  { opacity: 1; transform: scale(1.3);                  filter: blur(0)   brightness(2); }
+  100% { opacity: 1; transform: scale(1);                    filter: blur(0)   brightness(1); }
+}
+
+/* Constant glow: white core, gold halo, orange bloom, faint flicker */
+@keyframes introCharFlicker {
+  from { text-shadow: 0 0 6px #fff, 0 0 16px #ffd966, 0 0 30px #ff7a3c, 0 2px 4px rgba(0,0,0,.6); }
+  to   { text-shadow: 0 0 10px #fff, 0 0 26px #ffd966, 0 0 50px #ff5a2c, 0 2px 4px rgba(0,0,0,.6); }
+}
+
+/* Spark burst behind each letter as it ignites */
+.intro-char::after {
+  content: "";
   position: absolute;
-  left: 50%;
-  top: 88%;
-  z-index: 0;
-  width: 7px;
-  height: 0;
-  transform: translate(-50%, 0);
-  background: linear-gradient(180deg, rgba(255, 217, 102, 0.85), rgba(79, 227, 193, 0.35) 55%, transparent);
+  inset: -35%;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(255, 190, 80, 0.6) 35%, transparent 65%);
+  opacity: 0;
+}
+
+.launch-intro.phase-launch .intro-char::after {
+  animation: introSpark 600ms ease-out calc(500ms + var(--i) * 230ms) both;
+}
+
+@keyframes introSpark {
+  0%   { opacity: 1; transform: scale(0.3); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+
+/* The glowing "❘" line at the end of the trail */
+.intro-bar {
+  width: calc(var(--u) * 0.14);
+  height: calc(var(--u) * 1.1);
+  margin-top: calc(var(--u) * 0.05);
   border-radius: 999px;
-  filter: blur(1.5px);
+  background: linear-gradient(180deg, #ff7a3c, rgba(255, 111, 80, 0.4) 60%, transparent);
+  box-shadow: 0 0 12px rgba(255, 122, 60, 0.9);
+  opacity: 0;
 }
 
-.launch-intro.phase-launch .intro-trail {
-  animation: introTrailGrow 3000ms cubic-bezier(0.3, 0, 0.6, 1) forwards;
-}
-
-@keyframes introTrailGrow {
-  0%   { height: 0; opacity: 0.9; }
-  55%  { height: 42vh; opacity: 0.7; }
-  100% { height: 58vh; opacity: 0; }
-}
-
-@keyframes introRocketLaunch {
-  0%   { transform: translate(-50%, 0) scale(1); opacity: 1; }
-  55%  { transform: translate(-50%, -58vh) scale(0.78); opacity: 1; }
-  100% { transform: translate(-50%, -112vh) scale(0.22); opacity: 0; }
-}
-
-@media (max-width: 480px) {
-  .intro-rocket { font-size: 36px; }
-  .intro-engine-glow { width: 20px; height: 20px; }
+.launch-intro.phase-launch .intro-bar {
+  animation: introCharIgnite 700ms ease-out calc(500ms + var(--i) * 230ms) both;
 }
