@@ -656,10 +656,7 @@ function showDailyHomepage() {
 
     showScreen('nickname');
 
-    /* Welcome audio on GALAXY CHECK-IN (guarded: plays once per visit) */
-    if (window.WelcomeAudio) {
-      window.WelcomeAudio.play();
-    }
+    /* No audio here: the welcome plays at the GALAXY HUB (home.html). */
 
     setTimeout(
       () => {
@@ -747,9 +744,10 @@ function submitNickname(event) {
     nickname
   );
 
-  /* Leaving GALAXY CHECK-IN: the hub must not replay the welcome. */
+  /* First check-in of the day: the GALAXY HUB will play the full
+     welcome (spaceship-welcome.mp3) instead of the welcome-back. */
   if (window.WelcomeAudio) {
-    window.WelcomeAudio.markDone();
+    window.WelcomeAudio.markFirstCheckin();
   }
 
   try {
@@ -4364,6 +4362,15 @@ function playLaunchIntro() {
     requestAnimationFrame(
       introWarpFrame
     );
+
+  /* Launch sound (spaceship-launch.mp3): starts together with the
+     intro, slowed to last LAUNCH_INTRO_DURATION_MS. Plays for
+     first-time AND returning players. */
+  if (window.WelcomeAudio) {
+    window.WelcomeAudio.playLaunch(
+      LAUNCH_INTRO_DURATION_MS
+    );
+  }
 
   /* Scene 1: stars brighten, rocket fades in near the bottom. */
   launchIntroEl.classList.add(
