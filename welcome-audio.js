@@ -27,14 +27,17 @@ Rules implemented here:
   - Every time the launch intro plays (a fresh visit) the hub-greeting
     flag is reset, so returning players hear "welcome back" again
     after each launch.
-  - If the browser blocks autoplay, we wait for the FIRST user tap /
-    key press and try exactly once more. No retry loops. (The launch
-    sound only does this while the intro is still running.)
+  - The game opens on a "TAP TO LAUNCH" homepage (app.js). The tap is
+    what lets the browser play sound, so the launch sound and the
+    cinematic intro start together, perfectly in sync.
+  - If the hub greeting is blocked, we wait for the FIRST user tap /
+    key press and try exactly once more. No retry loops.
   - If a file is missing or its path is '', that sound is safely
     skipped.
 
 Public API (window.WelcomeAudio):
-  playLaunch(durationMs)  — call when the launch intro starts
+  preloadLaunch(ms)       — call while the TAP TO LAUNCH homepage shows
+  playLaunch(durationMs)  — call on the tap; returns a Promise
   markFirstCheckin()      — call when the nickname is submitted
   playHubGreeting()       — call when the Galaxy Hub loads
 ============================================================ */
@@ -184,6 +187,27 @@ Public API (window.WelcomeAudio):
     }
   }
 
+  // Creates and loads the launch sound ahead of time (while the
+  // TAP TO LAUNCH homepage is showing) so it can start instantly.
+  function preloadLaunch(durationMs) {
+
+    if (!LAUNCH_AUDIO_SRC || launchAudio) {
+      return;
+    }
+
+    const totalMs = Math.max(1000, Number(durationMs) || 5600);
+
+    launchAudio = makeAudio(LAUNCH_AUDIO_SRC);
+
+    fitRateToDuration(launchAudio, totalMs / 1000);
+
+    try { launchAudio.load(); } catch (e) { /* ignore */ }
+  }
+
+  // Returns a Promise that resolves to:
+  //   'playing' — the sound has started
+  //   'blocked' — the browser blocked autoplay (a tap is needed first)
+  //   'failed'  — the file is missing or cannot be played
   function playLaunch(durationMs) {
 
     // A launch intro means a fresh visit: the hub greeting may play
@@ -191,37 +215,59 @@ Public API (window.WelcomeAudio):
     sRemove(DONE_KEY);
 
     if (!LAUNCH_AUDIO_SRC) {
-      return;
+      return Promise.resolve('failed');
     }
-
-    stopLaunch();
 
     const totalMs = Math.max(1000, Number(durationMs) || 5600);
 
-    launchActive = true;
+    // Reuse the same Audio object if this is a retry after a tap.
+    if (!launchAudio) {
+      launchAudio = makeAudio(LAUNCH_AUDIO_SRC);
+      fitRateToDuration(launchAudio, totalMs / 1000);
+    }
 
-    launchAudio = makeAudio(LAUNCH_AUDIO_SRC);
+    if (launchFadeTimer) {
+      clearInterval(launchFadeTimer);
+      launchFadeTimer = null;
+    }
+
+    if (launchEndTimer) {
+      clearTimeout(launchEndTimer);
+      launchEndTimer = null;
+    }
+
     launchAudio.volume = 1;
+
+    try { launchAudio.currentTime = 0; } catch (e) { /* ignore */ }
 
     console.log('welcome-audio.js: starting launch sound', launchAudio.src);
 
-    fitRateToDuration(launchAudio, totalMs / 1000);
+    return Promise.resolve(launchAudio.play()).then(
+      function () {
 
-    // Fade out at the end and make sure it never runs past the intro.
-    launchEndTimer = setTimeout(function () {
-      fadeOutLaunch();
+        launchActive = true;
 
-      launchEndTimer = setTimeout(stopLaunch, LAUNCH_FADE_MS + 50);
-    }, Math.max(0, totalMs - LAUNCH_FADE_MS));
+        // Fade out at the end and never run past the intro.
+        launchEndTimer = setTimeout(function () {
+          fadeOutLaunch();
 
-    tryPlay(launchAudio, function () {
-      // Autoplay blocked: try once on the first tap — but only if the
-      // intro is still running, so it never plays out of sync.
-      onFirstGesture(function () {
-        if (!launchActive || !launchAudio) return;
-        tryPlay(launchAudio, null);
-      });
-    });
+          launchEndTimer = setTimeout(stopLaunch, LAUNCH_FADE_MS + 50);
+        }, Math.max(0, totalMs - LAUNCH_FADE_MS));
+
+        return 'playing';
+      },
+      function (error) {
+
+        console.warn(
+          'welcome-audio.js: launch sound did not start —',
+          error && error.name ? error.name : error
+        );
+
+        return (error && error.name === 'NotAllowedError')
+          ? 'blocked'
+          : 'failed';
+      }
+    );
   }
 
   /* ============================================================
@@ -279,6 +325,7 @@ Public API (window.WelcomeAudio):
   }
 
   window.WelcomeAudio = {
+    preloadLaunch: preloadLaunch,
     playLaunch: playLaunch,
     markFirstCheckin: markFirstCheckin,
     playHubGreeting: playHubGreeting
