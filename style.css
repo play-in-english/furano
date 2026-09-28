@@ -1277,14 +1277,21 @@ h1, h2, h3 {
   margin-top: calc(var(--u) * 0.05);
   border-radius: 999px;
 
+  /* Match the bright gold color of the Japanese characters */
   background: linear-gradient(
     180deg,
-    #ff7a3c,
-    rgba(255, 111, 80, 0.4) 60%,
-    transparent
+    #ffffff 0%,
+    #fff4bd 35%,
+    #ffe36b 75%,
+    #ff9d24 100%
   );
 
-  box-shadow: 0 0 12px rgba(255, 122, 60, 0.9);
+  /* Matching white core and golden glow */
+  box-shadow:
+    0 0 5px #ffffff,
+    0 0 12px #ffe36b,
+    0 0 24px #ff9d24;
+
   opacity: 0;
 }
 
