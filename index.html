@@ -33,7 +33,48 @@ aria-hidden="true"
     aria-hidden="true"
   ></div>
 
-  <main class="app" id="appShell">
+  <!-- ======================================================
+       NEW: CINEMATIC LAUNCH INTRO
+       ======================================================
+       Plays once, automatically, on a genuine first-open of the
+       game (see shouldPlayLaunchIntro() in app.js). It draws its
+       own warp-speed star streaks onto #introStarCanvas (a
+       dedicated canvas, separate from #warpCanvas used by the
+       in-game hyperspace transitions) and animates a small
+       spacecraft launching upward, over your EXISTING sky /
+       nebula / star background (nothing here duplicates them —
+       those layers stay visible underneath the whole time).
+
+       It is fully non-interactive (pointer-events: none for its
+       entire lifetime) so it can never block a tap, and it always
+       finishes and removes itself — see playLaunchIntro() in
+       app.js for the full sequence and its reduced-motion /
+       "skip if nothing to reveal into" fallbacks.
+       ====================================================== -->
+  <div id="launchIntro" class="launch-intro" aria-hidden="true">
+
+    <canvas
+      id="introStarCanvas"
+      class="intro-star-canvas"
+    ></canvas>
+
+    <div class="intro-spacecraft" id="introSpacecraft">
+      <div class="intro-trail" aria-hidden="true"></div>
+      <div class="intro-engine-glow" aria-hidden="true"></div>
+      <div class="intro-rocket" aria-hidden="true">🚀</div>
+    </div>
+
+  </div>
+
+  <!-- NEW: starts hidden (opacity 0 / scaled down) via the
+       EXISTING .transition-hide class already used by the
+       between-screen galaxy-entrance transition, so there is no
+       flash of the Check-In form before the launch intro has had
+       a chance to cover it. playLaunchIntro() in app.js removes
+       this class at the right moment (or immediately, if the
+       intro is skipped) to reveal whichever screen
+       showDailyHomepage() has put in place. -->
+  <main class="app transition-hide" id="appShell">
 
 <div class="card">
 
