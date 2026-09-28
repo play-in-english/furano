@@ -4488,6 +4488,174 @@ setInterval(
 );
 
 /* ============================================================
+FIT TO SCREEN — NO SCROLLBARS, EVER
+============================================================
+Measures the card at its natural size and, if it is taller or
+wider than the space available, shrinks the whole card (text,
+buttons, spacing) via CSS zoom until it fits. Re-runs whenever
+the screen changes, content changes, the window resizes, the
+device rotates, or web fonts finish loading.
+
+style.css reads the result through: zoom: var(--fit-scale, 1)
+on .card. The page itself is overflow: hidden.
+============================================================ */
+
+const fitCard =
+  document.querySelector('.card');
+
+let fitRafId =
+  null;
+
+function fitToScreen() {
+
+  if (!fitCard) {
+    return;
+  }
+
+  const body =
+    document.body;
+
+  const cs =
+    getComputedStyle(body);
+
+  // 16px is reserved for the card's floating animation.
+  const availH =
+    body.clientHeight -
+    parseFloat(cs.paddingTop) -
+    parseFloat(cs.paddingBottom) -
+    16;
+
+  if (availH <= 0) {
+    return;
+  }
+
+  let scale = 1;
+
+  fitCard.style.setProperty(
+    '--fit-scale',
+    '1'
+  );
+
+  for (let i = 0; i < 6; i++) {
+
+    // Ancestor transforms (e.g. the .app scale transition) also
+    // scale the bounding box, so divide them out.
+    const appW =
+      appShell
+        ? appShell.offsetWidth
+        : 0;
+
+    const k =
+      appW > 0
+        ? appShell.getBoundingClientRect().width / appW
+        : 1;
+
+    const h =
+      fitCard.getBoundingClientRect().height /
+      (k || 1);
+
+    if (h <= 0) {
+      return;
+    }
+
+    const overflowW =
+      fitCard.scrollWidth > fitCard.clientWidth + 1
+        ? fitCard.clientWidth / fitCard.scrollWidth
+        : 1;
+
+    const ratio =
+      Math.min(
+        availH / h,
+        overflowW
+      );
+
+    if (
+      ratio < 0.995 ||
+      (scale < 1 && ratio > 1.01)
+    ) {
+
+      scale =
+        Math.max(
+          0.25,
+          Math.min(
+            1,
+            scale * ratio * 0.995
+          )
+        );
+
+      fitCard.style.setProperty(
+        '--fit-scale',
+        scale.toFixed(4)
+      );
+
+    } else {
+
+      break;
+
+    }
+
+  }
+
+}
+
+function scheduleFit() {
+
+  if (fitRafId !== null) {
+    return;
+  }
+
+  fitRafId =
+    requestAnimationFrame(
+      () => {
+
+        fitRafId = null;
+
+        fitToScreen();
+
+      }
+    );
+
+}
+
+if (fitCard) {
+
+  // Catches every content change on its own: screen switches,
+  // the Medium-mode word meaning appearing, the leaderboard
+  // loading, feedback text, etc.
+  if (window.ResizeObserver) {
+
+    new ResizeObserver(
+      scheduleFit
+    ).observe(fitCard);
+
+  }
+
+  window.addEventListener(
+    'resize',
+    scheduleFit
+  );
+
+  window.addEventListener(
+    'orientationchange',
+    scheduleFit
+  );
+
+  if (
+    document.fonts &&
+    document.fonts.ready
+  ) {
+
+    document.fonts.ready.then(
+      scheduleFit
+    );
+
+  }
+
+  scheduleFit();
+
+}
+
+/* ============================================================
 INITIALIZATION
 ============================================================ */
 
