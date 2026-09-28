@@ -4415,10 +4415,10 @@ function showLaunchTapGate(onTap) {
   gate.setAttribute('aria-label', 'Tap to launch');
 
   gate.innerHTML = `
-    <span class="launch-gate-brand">S.P.A.C.E. ALPHABETS</span>
+    <span class="launch-gate-brand">LAUNCH into the ENGLISH GALAXY</span>
     <span class="launch-gate-rocket" aria-hidden="true">🚀</span>
-    <span class="launch-gate-title">TAP TO LAUNCH</span>
-    <span class="launch-gate-sub">タップして、はっしん！</span>
+    <span class="launch-gate-title">タップして、はっしん！</span>
+    <span class="launch-gate-sub">えいごであそぼう！</span>
   `;
 
   let used = false;
