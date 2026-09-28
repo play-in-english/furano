@@ -312,6 +312,11 @@
 
 </div>
 
+<!-- Welcome audio (shared with index.html). Plays at most once per
+     visit: skipped automatically if it already played on GALAXY
+     CHECK-IN or earlier in this session. -->
+<script src="welcome-audio.js"></script>
+
 <script>
 
     // Get the nickname saved during login
@@ -323,6 +328,12 @@
     } else {
         document.getElementById("welcome").textContent =
             "Choose your mission, " + nickname + "!";
+
+        // Returning player arriving at the GALAXY HUB: play the welcome
+        // audio once. (No-op if it was already played/consumed this visit.)
+        if (window.WelcomeAudio) {
+            window.WelcomeAudio.play();
+        }
     }
 
     // Mission 1
