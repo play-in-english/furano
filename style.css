@@ -1512,3 +1512,63 @@ h1, h2, h3 {
   min-height: 2.6em;
   font-size: clamp(20px, 5.5vw, 26px);
 }
+
+
+/* ======================================================
+   GALAXY HUB — BACKGROUND MUSIC BUTTON
+   ====================================================== */
+
+.space-music-btn {
+  position: fixed;
+
+  left: max(18px, env(safe-area-inset-left));
+  bottom: max(18px, env(safe-area-inset-bottom));
+
+  width: 52px;
+  height: 52px;
+
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 50%;
+
+  background: rgba(18, 22, 55, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  color: white;
+  font-size: 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  z-index: 9999;
+
+  box-shadow:
+    0 0 14px rgba(110, 190, 255, 0.18),
+    0 4px 16px rgba(0, 0, 0, 0.28);
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.space-music-btn:hover {
+  transform: scale(1.08);
+  background: rgba(30, 38, 80, 0.85);
+
+  box-shadow:
+    0 0 20px rgba(110, 190, 255, 0.28),
+    0 4px 18px rgba(0, 0, 0, 0.32);
+}
+
+.space-music-btn:active {
+  transform: scale(0.95);
+}
+
+.space-music-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: 3px;
+}
