@@ -818,8 +818,8 @@ const WELCOMEBACK_MESSAGE_SENTENCES = [
 ];
 
 // Silence between sentences in each audio file.
-const CHECKIN_PAUSE_SEC = 0.7;
-const WELCOMEBACK_PAUSE_SEC = 0.7;
+const CHECKIN_PAUSE_SEC = 0.4;
+const WELCOMEBACK_PAUSE_SEC = 0.4;
 
 // 0.85 = each sentence finishes typing at 85% of its spoken time.
 // Lower = faster typing, 1.0 = exactly as long as the voice.
