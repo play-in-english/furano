@@ -24,17 +24,36 @@
        without a single break. */
     #gameFrame {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
       width: 100%;
-      height: 100%;
+      /* Fallback only: the script below sets the exact pixel height. */
+      height: 100vh;
+      height: 100svh;
+      height: 100dvh;
       border: 0;
       display: block;
       background: #05060f;
+    }
+
+    /* Invisible probe: a fixed element stretched top-to-bottom is exactly
+       the VISIBLE screen area (it stops above phone browser toolbars).
+       The frame is sized to match it so nothing is ever cut off. */
+    #viewportProbe {
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 1px;
+      visibility: hidden;
+      pointer-events: none;
     }
   </style>
 </head>
 
 <body>
+
+  <div id="viewportProbe" aria-hidden="true"></div>
 
   <iframe
     id="gameFrame"
@@ -42,6 +61,42 @@
     title="S.P.A.C.E. Alphabets"
     allow="autoplay; web-share; clipboard-write"
   ></iframe>
+
+  <script>
+    /* Size the game frame to the VISIBLE screen area (not the "large"
+       viewport that phone browsers report while their toolbars are
+       showing), so the bottom of the game is never hidden. */
+    (function () {
+
+      const frame = document.getElementById('gameFrame');
+      const probe = document.getElementById('viewportProbe');
+
+      function sync() {
+
+        const h = probe.offsetHeight;
+
+        if (h > 0) {
+          frame.style.height = h + 'px';
+        }
+      }
+
+      window.addEventListener('resize', sync);
+      window.addEventListener('orientationchange', sync);
+      window.addEventListener('scroll', sync);
+      window.addEventListener('load', sync);
+
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', sync);
+        window.visualViewport.addEventListener('scroll', sync);
+      }
+
+      // Phone toolbars slide in and out without always firing events.
+      setInterval(sync, 500);
+
+      sync();
+
+    })();
+  </script>
 
   <script src="bgm.js"></script>
 
