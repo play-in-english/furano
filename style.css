@@ -1984,9 +1984,6 @@ h3 {
 
   opacity: 0;
 
-  /* Rests low, so only the rocket peeks in during
-     the "anticipation" scene */
-
   transform: translateY(86%);
 
   transition:
@@ -1997,9 +1994,6 @@ h3 {
 .intro-spacecraft {
   opacity: 1;
 }
-
-/* Rises in, HOLDS so the words can be read,
-   then accelerates away */
 
 .launch-intro.phase-launch
 .intro-spacecraft {
@@ -2073,10 +2067,6 @@ h3 {
     drop-shadow(
       0 0 14px rgba(255, 217, 102, 0.85)
     );
-
-  /* The 🚀 emoji is drawn tilted 45°, so we turn it upright
-     to fly straight up. Remove the -45deg values to restore
-     the original tilt. */
 
   transform: rotate(-45deg);
 
@@ -2856,11 +2846,11 @@ h3 {
 
 /*
    NOTE:
-   This CSS works on any page that loads style.css.
+   This CSS is available to any page that loads style.css.
 
    Your current home.html has its own <style> block and does NOT
-   load this file, so the Galaxy Hub music button still needs the
-   same .space-music-btn rules inside home.html.
+   load style.css, so the Galaxy Hub button itself still needs
+   these rules inside home.html.
 */
 
 .space-music-btn {
