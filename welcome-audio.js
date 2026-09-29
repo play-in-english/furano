@@ -22,8 +22,13 @@ Three sounds, all inside the audio/ folder:
     Hub plays it instead.
 
   spaceship-welcomeback.mp3
-    Plays at the GALAXY HUB for RETURNING players (nickname already
-    saved for today).
+    Plays for RETURNING players (nickname already saved for today)
+    in the same "Mission Control" pop-up, right after the launch
+    intro and BEFORE the GALAXY HUB — see playWelcomeBackMessage()
+    below and showWelcomeBackMessage() in app.js. The player taps
+    CHOOSE MISSION to continue to the Hub, which then stays silent
+    (markHubGreetingDone()). playHubGreeting() still plays this
+    file as a fallback if the pop-up was somehow bypassed.
 
 Rules implemented here:
   - The hub greeting plays at most once per visit. A sessionStorage
@@ -41,12 +46,17 @@ Rules implemented here:
     skipped.
 
 Public API (window.WelcomeAudio):
-  preloadLaunch(ms)            — call while the TAP TO LAUNCH homepage shows
-  playLaunch(durationMs)       — call on the tap; returns a Promise
-  markFirstCheckin()           — fallback flag; call when the nickname is submitted
-  playCheckinMessage(onReady)  — call to show the Mission Control message;
-                                  onReady(seconds|null) reports the audio's length
-  playHubGreeting()            — call when the Galaxy Hub loads
+  preloadLaunch(ms)               — call while the TAP TO LAUNCH homepage shows
+  playLaunch(durationMs)          — call on the tap; returns a Promise
+  markFirstCheckin()              — fallback flag; call when the nickname is submitted
+  playCheckinMessage(onReady)     — first check-in pop-up audio; returns the
+                                     Audio element (or null) so app.js can sync
+                                     its typewriter to audio.currentTime.
+                                     onReady(seconds|null) is optional.
+  playWelcomeBackMessage(onReady) — same, for the returning-player pop-up
+  markHubGreetingDone()           — call when the pop-up is dismissed so the
+                                     Hub stays silent
+  playHubGreeting()               — call when the Galaxy Hub loads
 ============================================================ */
 (function () {
 
@@ -278,33 +288,35 @@ Public API (window.WelcomeAudio):
   }
 
   /* ============================================================
-     CHECK-IN MESSAGE (index.html — first check-in of the day)
+     MISSION CONTROL MESSAGE AUDIO (index.html)
      ============================================================
-     Plays spaceship-welcome.mp3 the moment the "Welcome to the
-     English Galaxy..." control-station message appears on
-     GALAXY CHECK-IN, right after a brand-new nickname is
-     submitted. `onDurationKnown(seconds)` is called as soon as
-     the file's real length is known (or with null if it can't be
-     read in time / the file is missing), so the caller can size
-     its typewriter animation to match.
+     Used by BOTH pop-ups:
+       - first check-in of the day  → spaceship-welcome.mp3
+       - returning player           → spaceship-welcomeback.mp3
 
-     Once this really starts playing, it marks the SAME "done"
-     flag playHubGreeting() checks — so when the player later
-     reaches the Galaxy Hub, playHubGreeting() sees the greeting
-     as already delivered and stays silent instead of playing it
-     a second time. Returning players never call this function at
-     all, so playHubGreeting() still plays spaceship-welcomeback.mp3
-     for them on the Hub exactly as before.
+     playMessageAudio() starts the file and RETURNS the Audio
+     element, so app.js can drive its typewriter from the audio's
+     own playback position (audio.currentTime) — that is what keeps
+     the letters in sync with the voice.
+
+     `onDurationKnown(seconds)` is optional: it is called as soon as
+     the file's real length is known (or with null if it can't be
+     read in time / the file is missing).
+
+     Once the audio really starts playing, it marks the "done" flag
+     playHubGreeting() checks — so when the player later reaches the
+     Galaxy Hub, playHubGreeting() sees the greeting as already
+     delivered and stays silent instead of playing it a second time.
      ============================================================ */
 
-  function playCheckinMessage(onDurationKnown) {
+  function playMessageAudio(src, onDurationKnown) {
 
-    if (!WELCOME_AUDIO_SRC) {
+    if (!src) {
       if (onDurationKnown) onDurationKnown(null);
       return null;
     }
 
-    const audio = makeAudio(WELCOME_AUDIO_SRC);
+    const audio = makeAudio(src);
     let reported = false;
 
     function report() {
@@ -321,7 +333,7 @@ Public API (window.WelcomeAudio):
       report();
     } else {
       audio.addEventListener('loadedmetadata', report, { once: true });
-      // Safety net: never leave the typewriter waiting forever if
+      // Safety net: never leave a caller waiting forever if
       // metadata never arrives (e.g. the file is missing / slow).
       setTimeout(report, 1200);
     }
@@ -338,7 +350,24 @@ Public API (window.WelcomeAudio):
       });
     });
 
+    // The caller can read audio.currentTime to sync its typewriter.
     return audio;
+  }
+
+  // First check-in of the day: spaceship-welcome.mp3
+  function playCheckinMessage(onDurationKnown) {
+    return playMessageAudio(WELCOME_AUDIO_SRC, onDurationKnown);
+  }
+
+  // Returning player, before the Galaxy Hub: spaceship-welcomeback.mp3
+  function playWelcomeBackMessage(onDurationKnown) {
+    return playMessageAudio(WELCOMEBACK_AUDIO_SRC, onDurationKnown);
+  }
+
+  // The greeting was already delivered in the pop-up, so the Hub stays silent.
+  function markHubGreetingDone() {
+    sSet(DONE_KEY, 'true');
+    sRemove(KIND_KEY);
   }
 
   /* ============================================================
@@ -400,6 +429,8 @@ Public API (window.WelcomeAudio):
     playLaunch: playLaunch,
     markFirstCheckin: markFirstCheckin,
     playCheckinMessage: playCheckinMessage,
+    playWelcomeBackMessage: playWelcomeBackMessage,
+    markHubGreetingDone: markHubGreetingDone,
     playHubGreeting: playHubGreeting
   };
 
