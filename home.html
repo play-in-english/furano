@@ -455,19 +455,19 @@
         osc.stop(now + 0.18);
     }
 
-    document.addEventListener(
-        "click",
-        event => {
+   document.addEventListener(
+    "click",
+    event => {
 
-            const button = event.target.closest("button");
+        const button = event.target.closest("button");
 
-            if (button && !button.disabled) {
-                playClickSound();
-            }
+        if (button && !button.disabled) {
+            playClickSound();
+        }
 
-        },
-        true
-    );
+    },
+    true
+);
 
     // Fit to screen — no scrollbars on any device. Scales .home-base
     // (CSS zoom via --fit-scale) so it always fits the available space.
@@ -564,6 +564,141 @@
 >
   🔊
 </button>
+    <script>
+    /* ======================================================
+       GALAXY HUB — BACKGROUND MUSIC
+       ====================================================== */
+
+    const spaceBgMusic =
+        document.getElementById("spaceBgMusic");
+
+    const spaceMusicBtn =
+        document.getElementById("spaceMusicBtn");
+
+
+    /* Soft background volume */
+    spaceBgMusic.volume = 0.15;
+
+
+    /* ------------------------------------------------------
+       UPDATE BUTTON
+       ------------------------------------------------------ */
+
+    function updateSpaceMusicButton() {
+
+        if (spaceBgMusic.paused) {
+
+            spaceMusicBtn.textContent = "🔊";
+
+            spaceMusicBtn.setAttribute(
+                "aria-label",
+                "Play background music"
+            );
+
+            spaceMusicBtn.setAttribute(
+                "title",
+                "Play background music"
+            );
+
+        } else {
+
+            spaceMusicBtn.textContent = "🔇";
+
+            spaceMusicBtn.setAttribute(
+                "aria-label",
+                "Pause background music"
+            );
+
+            spaceMusicBtn.setAttribute(
+                "title",
+                "Pause background music"
+            );
+
+        }
+
+    }
+
+
+    /* ------------------------------------------------------
+       PLAY MUSIC
+       ------------------------------------------------------ */
+
+    function playSpaceBackgroundMusic() {
+
+        const playPromise =
+            spaceBgMusic.play();
+
+        if (playPromise !== undefined) {
+
+            playPromise
+                .then(() => {
+
+                    updateSpaceMusicButton();
+
+                })
+                .catch(() => {
+
+                    /*
+                     Autoplay was blocked by the browser.
+                     The player can press the button manually.
+                    */
+
+                    updateSpaceMusicButton();
+
+                });
+
+        }
+
+    }
+
+
+    /* ------------------------------------------------------
+       MUSIC BUTTON
+       ------------------------------------------------------ */
+
+    spaceMusicBtn.addEventListener(
+        "click",
+        () => {
+
+            if (spaceBgMusic.paused) {
+
+                playSpaceBackgroundMusic();
+
+            } else {
+
+                spaceBgMusic.pause();
+
+                updateSpaceMusicButton();
+
+            }
+
+        }
+    );
+
+
+    /* ------------------------------------------------------
+       START MUSIC WHEN GALAXY HUB LOADS
+       ------------------------------------------------------ */
+
+    window.addEventListener(
+        "load",
+        () => {
+
+            setTimeout(
+                () => {
+                    playSpaceBackgroundMusic();
+                },
+                150
+            );
+
+        }
+    );
+
+
+    /* Initial state */
+    updateSpaceMusicButton();
+
+</script>
     
 </body>
 </html>
