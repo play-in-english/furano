@@ -676,6 +676,12 @@
 
   <script src="welcome-audio.js"></script>
 
+  <!-- Background music for the missions (continues from the Galaxy
+       Hub). MUST load BEFORE app.js: app.js clears the
+       "launchMission1" flag the moment it runs, and bgm.js needs to
+       read that flag first. -->
+  <script src="bgm.js" data-when="mission"></script>
+
   <script src="app.js"></script>
 
 </body>
