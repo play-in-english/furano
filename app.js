@@ -5,11 +5,13 @@ S.P.A.C.E. ALPHABETS — CLEAN GAME LOGIC
 DAILY FLOW
 
 FIRST VISIT OF THE DAY
-  GALAXY CHECK-IN → Enter nickname → HOME BASE (home.html)
+  GALAXY CHECK-IN → Enter nickname → MISSION CONTROL pop-up
+  → CHOOSE MISSION → HOME BASE (home.html)
   → START MISSION PAGE → DIFFICULTY → GAME → RESULTS
 
 RETURNING VISIT SAME JST DAY
-  Launch intro → GALAXY HUB (home.html)
+  Launch intro → "Welcome back. Captain." pop-up
+  → CHOOSE MISSION → GALAXY HUB (home.html)
 
 NEW JST DAY
   Nickname is automatically cleared.
@@ -444,10 +446,9 @@ const homeFromResultsBtn =
 const promptEl =
   document.querySelector('#gameScreen .prompt');
 
-// NEW: "Mission Control" welcome-message overlay, shown once right
-// after a BRAND-NEW nickname is submitted — see showCheckinMessage()
-// below. Returning players never see this; they never call
-// submitNickname() at all.
+// "Mission Control" message overlay. Used for BOTH the first
+// check-in welcome and the returning-player "Welcome back" message
+// — see the MISSION CONTROL MESSAGES section below.
 const checkinMessageOverlay =
   document.getElementById('checkinMessageOverlay');
 
@@ -779,234 +780,396 @@ function submitNickname(event) {
   }
 
   /* NICKNAME → MISSION CONTROL MESSAGE → HOME BASE
-     showCheckinMessage() (see the "CHECK-IN MESSAGE" section
-     below) sends the player on to home.html once they tap
+     showCheckinMessage() (see the "MISSION CONTROL MESSAGES"
+     section below) sends the player on to home.html once they tap
      CHOOSE MISSION. */
   showCheckinMessage();
 
 }
 
 /* ============================================================
-CHECK-IN MESSAGE — "MISSION CONTROL" WELCOME (NEW)
+MISSION CONTROL MESSAGES — FIRST CHECK-IN + WELCOME BACK
 ============================================================
-Shown once, right after a BRAND-NEW nickname is submitted (see
-submitNickname() above). Returning players never see this at
-all — they never reach submitNickname(), so nothing here changes
-for them.
+One pop-up ("Incoming Transmission — Mission Control"), two messages:
 
-The message types itself out letter by letter, in sync with
-spaceship-welcome.mp3 (see playCheckinMessage() in
-welcome-audio.js): once the audio's real length is known, the
-typewriter is sized to finish CHECKIN_MESSAGE_SYNC_OFFSET_MS
-(0.3s) before the audio does. If the audio's length can't be read
-in time (missing file, slow load), CHECKIN_MESSAGE_FALLBACK_MS is
-used instead so the message still reads at a natural pace.
+  'checkin'     — brand-new nickname → spaceship-welcome.mp3
+  'welcomeback' — returning player, right after the launch intro,
+                  before the GALAXY HUB → spaceship-welcomeback.mp3
 
-Tapping the panel while it's still typing skips straight to the
-full message. The CHOOSE MISSION button stays disabled/hidden
-until the message has finished (or been skipped), then sends the
-player on to the GALAXY HUB.
+The text types out letter by letter, driven by the audio's OWN
+playback position, one sentence at a time. Each sentence starts
+typing when its part of the audio starts, and finishes typing
+slightly BEFORE the voice does (TYPEWRITER_SPEED_FACTOR).
+
+The CHOOSE MISSION button unlocks once typing finishes (or the
+player taps the panel to skip) and then goes to the GALAXY HUB.
 ============================================================ */
 
-const CHECKIN_MESSAGE_TEXT =
-  "Welcome to the English Galaxy. Hop aboard the spaceship and " +
-  "get ready for your very own space adventure. We are about to " +
-  "launch. So, hold tight!";
+const CHECKIN_MESSAGE_SENTENCES = [
+  "Welcome to the English Galaxy.",
+  "Hop aboard the spaceship and get ready for your very own space adventure.",
+  "We are about to launch.",
+  "So, hold tight!"
+];
 
-const CHECKIN_MESSAGE_SYNC_OFFSET_MS = 300;
-const CHECKIN_MESSAGE_FALLBACK_MS = 7000;
-const CHECKIN_MESSAGE_MIN_MS = 1200;
+const WELCOMEBACK_MESSAGE_SENTENCES = [
+  "Welcome back.",
+  "Captain."
+];
 
-let checkinTypeTimeoutId = null;
+// Silence between sentences in each audio file.
+const CHECKIN_PAUSE_SEC = 0.8;
+const WELCOMEBACK_PAUSE_SEC = 0.8;
 
-function clearCheckinTypeTimer() {
+// 0.85 = each sentence finishes typing at 85% of its spoken time.
+// Lower = faster typing, 1.0 = exactly as long as the voice.
+const TYPEWRITER_SPEED_FACTOR = 0.85;
 
-  if (checkinTypeTimeoutId !== null) {
+// If the audio hasn't started this long after the pop-up opens,
+// type on a normal clock instead of waiting forever.
+const TYPEWRITER_AUDIO_WAIT_MS = 1500;
 
-    clearTimeout(
-      checkinTypeTimeoutId
-    );
+// Only used if the audio length can't be read at all.
+const CHECKIN_FALLBACK_TOTAL_SEC = 8;
+const WELCOMEBACK_FALLBACK_TOTAL_SEC = 2.5;
 
-    checkinTypeTimeoutId = null;
+let activeTypewriter = null;
+let currentMessageKind = null; // 'checkin' | 'welcomeback'
 
-  }
+function buildTypewriterSchedule(sentences, totalSec, pauseSec) {
 
-}
+  const totalChars =
+    sentences.reduce((n, s) => n + s.length, 0);
 
-function finishCheckinTypewriter() {
-
-  clearCheckinTypeTimer();
-
-  if (!transmissionTextEl) {
-    return;
-  }
-
-  transmissionTextEl.textContent =
-    CHECKIN_MESSAGE_TEXT;
-
-  transmissionTextEl.classList.remove(
-    'typing'
-  );
-
-  if (chooseMissionBtn) {
-
-    chooseMissionBtn.disabled =
-      false;
-
-    chooseMissionBtn.classList.add(
-      'show'
-    );
-
-  }
-
-}
-
-function startCheckinTypewriter(totalMs) {
-
-  clearCheckinTypeTimer();
-
-  if (!transmissionTextEl) {
-    return;
-  }
-
-  const text =
-    CHECKIN_MESSAGE_TEXT;
-
-  const total =
+  // Time the voice is actually speaking = total minus the gaps.
+  const speechSec =
     Math.max(
-      CHECKIN_MESSAGE_MIN_MS,
-      Number(totalMs) ||
-        CHECKIN_MESSAGE_FALLBACK_MS
+      0.5,
+      totalSec - pauseSec * (sentences.length - 1)
     );
 
-  const perCharMs =
-    total / text.length;
+  let cursor = 0;
 
-  let i = 0;
+  return sentences.map(sentence => {
 
-  transmissionTextEl.textContent =
-    '';
+    const speechForSentence =
+      speechSec * sentence.length / totalChars;
 
-  transmissionTextEl.classList.add(
-    'typing'
-  );
+    const item = {
+      text: sentence,
+      start: cursor,
+      typeSec: speechForSentence * TYPEWRITER_SPEED_FACTOR
+    };
 
-  function typeNext() {
+    cursor += speechForSentence + pauseSec;
 
-    i++;
+    return item;
 
-    transmissionTextEl.textContent =
-      text.slice(0, i);
+  });
 
-    if (i >= text.length) {
+}
 
-      finishCheckinTypewriter();
+function typewriterTextAt(schedule, t) {
 
+  let out = '';
+
+  for (const item of schedule) {
+
+    if (t < item.start) {
+      break;
+    }
+
+    const frac =
+      Math.min(1, (t - item.start) / item.typeSec);
+
+    out +=
+      (out ? ' ' : '') +
+      item.text.slice(
+        0,
+        Math.floor(frac * item.text.length)
+      );
+
+    if (frac < 1) {
+      break;
+    }
+
+  }
+
+  return out;
+
+}
+
+function stopSyncedTypewriter() {
+
+  if (activeTypewriter) {
+    activeTypewriter.cleanup();
+  }
+
+}
+
+function startSyncedTypewriter(
+  sentences,
+  pauseSec,
+  fallbackTotalSec,
+  audio
+) {
+
+  stopSyncedTypewriter();
+
+  if (!transmissionTextEl) {
+    return;
+  }
+
+  const fullText = sentences.join(' ');
+
+  let schedule =
+    buildTypewriterSchedule(
+      sentences,
+      fallbackTotalSec,
+      pauseSec
+    );
+
+  let builtFromAudio = false;
+  let clock = null;          // 'audio' | 'wall'
+  let wallStart = 0;
+  let rafId = null;
+  let waitId = null;
+  let lastLen = -1;
+
+  transmissionTextEl.textContent = '';
+  transmissionTextEl.classList.add('typing');
+
+  function useAudioClock() {
+    if (!clock) {
+      clock = 'audio';
+    }
+  }
+
+  function useWallClock() {
+    if (!clock) {
+      clock = 'wall';
+      wallStart = performance.now();
+    }
+  }
+
+  function cleanup() {
+
+    cancelAnimationFrame(rafId);
+    clearTimeout(waitId);
+
+    if (audio) {
+      audio.removeEventListener('playing', useAudioClock);
+      audio.removeEventListener('error', useWallClock);
+      audio.removeEventListener('ended', finish);
+    }
+
+    activeTypewriter = null;
+
+  }
+
+  function finish() {
+
+    cleanup();
+
+    transmissionTextEl.textContent = fullText;
+
+    transmissionTextEl.classList.remove('typing');
+
+    if (chooseMissionBtn) {
+      chooseMissionBtn.disabled = false;
+      chooseMissionBtn.classList.add('show');
+    }
+
+  }
+
+  function frame() {
+
+    rafId = requestAnimationFrame(frame);
+
+    if (!clock) {
       return;
+    }
+
+    // As soon as the audio's real length is known, use it.
+    if (
+      !builtFromAudio &&
+      audio &&
+      isFinite(audio.duration) &&
+      audio.duration > 0
+    ) {
+
+      schedule =
+        buildTypewriterSchedule(
+          sentences,
+          audio.duration,
+          pauseSec
+        );
+
+      builtFromAudio = true;
 
     }
 
-    checkinTypeTimeoutId =
-      setTimeout(
-        typeNext,
-        perCharMs
-      );
+    const t =
+      clock === 'audio'
+        ? audio.currentTime
+        : (performance.now() - wallStart) / 1000;
+
+    const last =
+      schedule[schedule.length - 1];
+
+    if (t >= last.start + last.typeSec) {
+      finish();
+      return;
+    }
+
+    const text =
+      typewriterTextAt(schedule, t);
+
+    if (text.length !== lastLen) {
+      lastLen = text.length;
+      transmissionTextEl.textContent = text;
+    }
 
   }
 
-  checkinTypeTimeoutId =
-    setTimeout(
-      typeNext,
-      perCharMs
-    );
+  if (audio) {
+
+    if (!audio.paused && audio.currentTime > 0) {
+
+      useAudioClock();
+
+    } else {
+
+      audio.addEventListener('playing', useAudioClock, { once: true });
+      audio.addEventListener('error', useWallClock, { once: true });
+
+      waitId =
+        setTimeout(
+          useWallClock,
+          TYPEWRITER_AUDIO_WAIT_MS
+        );
+
+    }
+
+    audio.addEventListener('ended', finish);
+
+  } else {
+
+    useWallClock();
+
+  }
+
+  activeTypewriter = { finish, cleanup };
+
+  rafId = requestAnimationFrame(frame);
 
 }
 
-function showCheckinMessage() {
+function openMessageOverlay(kind) {
 
-  /* No overlay in this build for some reason — fall back to the
-     original immediate redirect rather than stranding the player. */
-  if (!checkinMessageOverlay) {
-
-    window.location.href =
-      'home.html';
-
-    return;
-
-  }
+  currentMessageKind = kind;
 
   if (chooseMissionBtn) {
-
-    chooseMissionBtn.disabled =
-      true;
-
-    chooseMissionBtn.classList.remove(
-      'show'
-    );
-
+    chooseMissionBtn.disabled = true;
+    chooseMissionBtn.classList.remove('show');
   }
 
   if (transmissionTextEl) {
-
-    transmissionTextEl.textContent =
-      '';
-
-    transmissionTextEl.classList.remove(
-      'typing'
+    transmissionTextEl.textContent = '';
+    transmissionTextEl.classList.remove('typing');
+    transmissionTextEl.classList.toggle(
+      'transmission-text--short',
+      kind === 'welcomeback'
     );
-
   }
 
-  checkinMessageOverlay.classList.add(
-    'show'
-  );
+  checkinMessageOverlay.classList.add('show');
 
   checkinMessageOverlay.setAttribute(
     'aria-hidden',
     'false'
   );
 
-  if (
-    window.WelcomeAudio &&
-    window.WelcomeAudio.playCheckinMessage
-  ) {
+}
 
-    window.WelcomeAudio.playCheckinMessage(
-      function (durationSeconds) {
+/* FIRST CHECK-IN: brand-new nickname just submitted. */
+function showCheckinMessage() {
 
-        const totalMs =
-          durationSeconds
-            ?
-              durationSeconds * 1000 -
-              CHECKIN_MESSAGE_SYNC_OFFSET_MS
-            : CHECKIN_MESSAGE_FALLBACK_MS;
+  if (!checkinMessageOverlay) {
+    window.location.href = 'home.html';
+    return;
+  }
 
-        startCheckinTypewriter(
-          totalMs
-        );
+  openMessageOverlay('checkin');
 
-      }
-    );
+  const audio =
+    (window.WelcomeAudio && window.WelcomeAudio.playCheckinMessage)
+      ? window.WelcomeAudio.playCheckinMessage()
+      : null;
 
-  } else {
+  startSyncedTypewriter(
+    CHECKIN_MESSAGE_SENTENCES,
+    CHECKIN_PAUSE_SEC,
+    CHECKIN_FALLBACK_TOTAL_SEC,
+    audio
+  );
 
-    startCheckinTypewriter(
-      CHECKIN_MESSAGE_FALLBACK_MS
-    );
+}
+
+/* RETURNING PLAYER: launch intro just finished, GALAXY HUB next. */
+function showWelcomeBackMessage() {
+
+  const nickname =
+    loadNickname();
+
+  // Nickname expired (JST midnight passed during the intro), or no
+  // overlay in this build → fall back to the normal flow.
+  if (!nickname || !checkinMessageOverlay) {
+
+    if (appShell) {
+      appShell.classList.remove('transition-hide');
+    }
+
+    showDailyHomepage();
+
+    return;
 
   }
+
+  // home.html reads this to know who is playing.
+  state.nickname = nickname;
+
+  try {
+    sessionStorage.setItem('playerNickname', nickname);
+  } catch (error) {
+    /* Ignore sessionStorage failure */
+  }
+
+  openMessageOverlay('welcomeback');
+
+  const audio =
+    (window.WelcomeAudio && window.WelcomeAudio.playWelcomeBackMessage)
+      ? window.WelcomeAudio.playWelcomeBackMessage()
+      : null;
+
+  startSyncedTypewriter(
+    WELCOMEBACK_MESSAGE_SENTENCES,
+    WELCOMEBACK_PAUSE_SEC,
+    WELCOMEBACK_FALLBACK_TOTAL_SEC,
+    audio
+  );
 
 }
 
 function hideCheckinMessage() {
 
+  stopSyncedTypewriter();
+
   if (!checkinMessageOverlay) {
     return;
   }
 
-  checkinMessageOverlay.classList.remove(
-    'show'
-  );
+  checkinMessageOverlay.classList.remove('show');
 
   checkinMessageOverlay.setAttribute(
     'aria-hidden',
@@ -1025,20 +1188,27 @@ if (chooseMissionBtn) {
         return;
       }
 
+      // The welcome-back greeting has been delivered here, so the
+      // GALAXY HUB must not play it again.
+      if (
+        currentMessageKind === 'welcomeback' &&
+        window.WelcomeAudio &&
+        window.WelcomeAudio.markHubGreetingDone
+      ) {
+        window.WelcomeAudio.markHubGreetingDone();
+      }
+
       hideCheckinMessage();
 
-      /* MISSION CONTROL MESSAGE → HOME BASE */
-      window.location.href =
-        'home.html';
+      /* MISSION CONTROL MESSAGE → GALAXY HUB (missions) */
+      window.location.href = 'home.html';
 
     }
   );
 
 }
 
-/* Tapping anywhere on the panel while the message is still typing
-   skips straight to the full text — the button itself is handled
-   above, so a tap on it never double-fires this. */
+/* Tapping the panel while it's still typing skips to the full text. */
 if (transmissionPanelEl) {
 
   transmissionPanelEl.addEventListener(
@@ -1055,13 +1225,8 @@ if (transmissionPanelEl) {
         return;
       }
 
-      if (
-        transmissionTextEl &&
-        transmissionTextEl.classList.contains('typing')
-      ) {
-
-        finishCheckinTypewriter();
-
+      if (activeTypewriter) {
+        activeTypewriter.finish();
       }
 
     }
@@ -4235,9 +4400,10 @@ LAUNCH INTRO — CINEMATIC OPENING SEQUENCE
 ============================================================
 Plays once, automatically, whenever the game is opened at
 index.html — for first-play-of-the-day players (→ GALAXY CHECK-IN)
-AND returning players (→ GALAXY HUB, home.html). It does NOT play
-when arriving via the Galaxy Hub's START button (launchMission1
-flag), which is navigation between game screens.
+AND returning players (→ "Welcome back" pop-up → GALAXY HUB,
+home.html). It does NOT play when arriving via the Galaxy Hub's
+START button (launchMission1 flag), which is navigation between
+game screens.
 
 A rocket launches upward with the words "えいごであそぼう" trailing
 behind it like sparks, over stars streaking past on a dedicated
@@ -4646,9 +4812,10 @@ function playLaunchIntro() {
 
   /*
     Returning player (valid nickname today): the intro plays HERE on
-    index.html, then we continue to the GALAXY HUB (home.html), where
-    the welcome audio plays. First-play-of-the-day players instead
-    land on GALAXY CHECK-IN under the intro.
+    index.html, then the "Welcome back. Captain." pop-up appears, and
+    CHOOSE MISSION continues to the GALAXY HUB (home.html).
+    First-play-of-the-day players instead land on GALAXY CHECK-IN
+    under the intro.
   */
   const isReturningPlayer =
     !!loadNickname();
@@ -4666,8 +4833,10 @@ function playLaunchIntro() {
   intro start together, perfectly in sync:
 
     TAP TO LAUNCH → cinematic launch intro (+ spaceship-launch.mp3)
-      → GALAXY HUB (returning player, + welcome-back sound)
-      → GALAXY CHECK-IN → GALAXY HUB (first visit, + welcome sound)
+      → "WELCOME BACK" POP-UP (returning player, + welcomeback sound)
+      → GALAXY HUB
+      → GALAXY CHECK-IN → MISSION CONTROL POP-UP (first visit, + welcome sound)
+      → GALAXY HUB
 */
 function startLaunchIntroWithSound(
   isReturningPlayer
@@ -4871,10 +5040,11 @@ function runLaunchIntroSequence(
       launchIntroEl.style.display =
         'none';
 
-      /* Returning player: intro finished → go to the GALAXY HUB. */
+      /* Returning player: intro finished → "Welcome back. Captain."
+         pop-up → (CHOOSE MISSION) → GALAXY HUB. */
       if (isReturningPlayer) {
 
-        showDailyHomepage();
+        showWelcomeBackMessage();
 
       }
 
