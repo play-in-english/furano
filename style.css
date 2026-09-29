@@ -965,12 +965,10 @@ h1, h2, h3 {
    ------------------------------------------------------------ */
 
 .mission-salute {
-  width: 1.3em;
-  height: 1.3em;
-  object-fit: contain;
-  vertical-align: middle;
-  display: inline-block;
-  margin-right: 0.35em;
+  width: 120px;
+  height: auto;
+  display: block;
+  margin: 0 auto 12px;
 }
 
 /* ============================================================
