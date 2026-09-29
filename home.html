@@ -329,12 +329,18 @@
 
 <script>
 
+    // The Galaxy Hub lives INSIDE index.html (which owns the background
+    // music). If it is opened directly, send the player to index.html.
+    if (window.top === window) {
+        window.location.replace("index.html");
+    }
+
     // Get the nickname saved during login
     const nickname = sessionStorage.getItem("playerNickname");
 
     // If there is no nickname, send the player back to login
     if (!nickname) {
-        window.location.href = "index.html";
+        window.location.href = "game.html";
     } else {
         document.getElementById("welcome").textContent =
             "Choose your mission, " + nickname + "!";
@@ -350,7 +356,7 @@
     // Mission 1
     function startMission1() {
         sessionStorage.setItem("launchMission1", "true");
-        window.location.href = "index.html";
+        window.location.href = "game.html";
     }
 
     // Twinkling star field — same generation approach as the main
@@ -547,13 +553,6 @@
     })();
 
 </script>
-
-<!-- ======================================================
-     GALAXY HUB — BACKGROUND MUSIC
-     Shared with index.html (the missions) so the music keeps
-     playing across both pages. See bgm.js.
-     ====================================================== -->
-<script src="bgm.js" data-when="always"></script>
 
 </body>
 </html>
