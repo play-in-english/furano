@@ -14,7 +14,7 @@
    10. Medium-mode answer reveal
    11. Cinematic launch intro (rocket + word trail)
    12. Tap-to-launch homepage
-   13. Mission Control check-in message (NEW)
+   13. Mission Control message (first check-in + welcome back)
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,700&family=Space+Mono:wght@400;700&display=swap');
@@ -1371,15 +1371,16 @@ h1, h2, h3 {
 }
 
 /* ============================================================
-   13. MISSION CONTROL — CHECK-IN WELCOME MESSAGE (NEW)
+   13. MISSION CONTROL MESSAGE
    ------------------------------------------------------------
-   Shown once, right after a BRAND-NEW nickname is submitted (see
-   showCheckinMessage() in app.js). Styled like a transmission
-   from a control station rather than the game's usual playful
-   rounded UI: monospace type, a dark glass panel, a pulsing
-   "live" dot, and a blinking cursor while the message types
-   itself out in sync with spaceship-welcome.mp3. Returning
-   players never see this — they never call submitNickname().
+   Used for BOTH the first check-in welcome (after a brand-new
+   nickname is submitted) and the returning-player "Welcome back.
+   Captain." message (right after the launch intro). See
+   showCheckinMessage() / showWelcomeBackMessage() in app.js.
+   Styled like a transmission from a control station rather than
+   the game's usual playful rounded UI: monospace type, a dark
+   glass panel, a pulsing "live" dot, and a blinking cursor while
+   the message types itself out in sync with its audio.
    ============================================================ */
 
 .checkin-message-overlay {
@@ -1504,4 +1505,12 @@ h1, h2, h3 {
     font-size: 15px;
     min-height: 7.6em;
   }
+}
+
+/* Welcome-back variant ("Welcome back. Captain."): a short message,
+   so a compact panel with slightly larger type. Placed AFTER the
+   rules above (and uses two classes) so it wins, including on phones. */
+.transmission-text.transmission-text--short {
+  min-height: 2.6em;
+  font-size: clamp(20px, 5.5vw, 26px);
 }
