@@ -813,17 +813,17 @@ const CHECKIN_MESSAGE_SENTENCES = [
 ];
 
 const WELCOMEBACK_MESSAGE_SENTENCES = [
-  "Welcome back,",
-  "Space Captain."
+  "Welcome back, Space Captain.",
+ 
 ];
 
 // Silence between sentences in each audio file.
-const CHECKIN_PAUSE_SEC = 0.4;
+const CHECKIN_PAUSE_SEC = 0.2;
 const WELCOMEBACK_PAUSE_SEC = 0.4;
 
 // 0.85 = each sentence finishes typing at 85% of its spoken time.
 // Lower = faster typing, 1.0 = exactly as long as the voice.
-const TYPEWRITER_SPEED_FACTOR = 0.60;
+const TYPEWRITER_SPEED_FACTOR = 0.4;
 
 // If the audio hasn't started this long after the pop-up opens,
 // type on a normal clock instead of waiting forever.
