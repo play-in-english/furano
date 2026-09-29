@@ -1,79 +1,37 @@
 /* ============================================================
-GALAXY BACKGROUND MUSIC — shared by home.html and index.html
+GALAXY BACKGROUND MUSIC — the one and only music player
 ============================================================
-One script, two pages. The music (audio/space-bg.mp3) keeps playing
-while the player moves between the GALAXY HUB (home.html) and the
-missions (index.html), because each page saves the playback position
-and the next page resumes from it (only a tiny gap while the page loads).
+Loaded by index.html, which is a thin "shell" page that holds the
+whole game in an <iframe> (game.html → home.html → game.html ...).
+The shell page is never reloaded while the player moves around, so
+the music (audio/space-bg.mp3) plays NON-STOP and loops:
 
-It stops when the player:
-  - refreshes the browser (the music restarts fresh at the Hub), or
-  - leaves the game (closes the tab / browser).
+  GALAXY HUB → mission level → mission → results → GALAXY HUB ...
 
-How each page loads it:
-  home.html   <script src="bgm.js" data-when="always"></script>
-  index.html  <script src="bgm.js" data-when="mission"></script>
-              (mission = only when the player arrived from the Hub's
-               START button, so the launch sound and the Mission
-               Control voice messages never fight with the music.)
-   MUST load BEFORE app.js on index.html, because app.js clears the
-   launchMission1 flag as soon as it runs.
+Rules
+  - The music starts automatically the first time the player reaches
+    the GALAXY HUB (so it never talks over the launch sound or the
+    Mission Control voice messages).
+  - From then on it never stops. The player can only MUTE / UNMUTE it
+    (the audio keeps running silently while muted) and change volume.
+  - Refreshing the browser or leaving the game ends it.
+  - If the browser blocks autoplay, the music starts on the player's
+    next tap / key press anywhere in the game.
 
-Play button: GREEN = playing, RED = off. Click = toggle + show the
-volume bar. If the player turns the music off, it stays off until
-they turn it on again (or refresh).
+Button: GREEN speaker = sound on, RED crossed speaker = muted.
+Click = mute / unmute + show the volume bar.
 ============================================================ */
 (function () {
 
-  if (window.SpaceBGM) {
-    return;
-  }
-
-  const SCRIPT = document.currentScript;
-  const WHEN = (SCRIPT && SCRIPT.dataset.when) || 'always';
-
   const MUSIC_SRC = 'audio/space-bg.mp3';
-
-  const VOLUME_KEY = 'galaxyAlphabetQuiz.bgmVolume.v1'; // localStorage
-  const OFF_KEY = 'galaxyAlphabetQuiz.bgmOff.v1';       // sessionStorage
-  const TIME_KEY = 'galaxyAlphabetQuiz.bgmTime.v1';     // sessionStorage
-
+  const VOLUME_KEY = 'galaxyAlphabetQuiz.bgmVolume.v1';
   const DEFAULT_VOLUME = 0.8;
   const VOLUME_BAR_HIDE_MS = 4000;
-  const SAVE_EVERY_MS = 400;
 
-  /* ---------- safe storage ---------- */
+  const frame = document.getElementById('gameFrame');
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
-  function ssGet(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
-  function ssSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* ignore */ } }
-  function ssRemove(k) { try { sessionStorage.removeItem(k); } catch (e) { /* ignore */ } }
-
-  /* ---------- should the music run on this page? ---------- */
-
-  // Read NOW: app.js removes this flag a moment later.
-  const arrivedFromHubStart = ssGet('launchMission1') === 'true';
-
-  if (WHEN === 'mission' && !arrivedFromHubStart) {
-    return;
-  }
-
-  /* ---------- refresh = start over ---------- */
-
-  let isReload = false;
-
-  try {
-    const nav = performance.getEntriesByType('navigation')[0];
-    isReload = nav
-      ? nav.type === 'reload'
-      : (performance.navigation && performance.navigation.type === 1);
-  } catch (e) { /* ignore */ }
-
-  if (isReload) {
-    ssRemove(OFF_KEY);
-    ssRemove(TIME_KEY);
-  }
 
   /* ---------- styles ---------- */
 
@@ -85,14 +43,13 @@ they turn it on again (or refresh).
       left: max(14px, env(safe-area-inset-left));
       bottom: max(14px, env(safe-area-inset-bottom));
       z-index: 9999;
-      display: flex;
+      display: none;
       align-items: center;
       gap: 10px;
       max-width: calc(100vw - 28px);
-      margin: 0;
-      padding: 0;
-      text-shadow: none;
+      font-family: "Baloo 2", "Trebuchet MS", sans-serif;
     }
+    .space-music.available { display: flex; }
     .space-music-btn {
       flex: none;
       width: 62px;
@@ -110,7 +67,7 @@ they turn it on again (or refresh).
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
     }
-    .space-music-btn.is-playing {
+    .space-music-btn.is-on {
       background: #22c55e;
       box-shadow: 0 0 18px rgba(34, 197, 94, 0.7), 0 4px 14px rgba(0, 0, 0, 0.4);
     }
@@ -118,13 +75,22 @@ they turn it on again (or refresh).
     .space-music-btn:active { transform: scale(0.95); }
     .space-music-btn:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
     .space-music-btn svg {
-      width: 28px;
-      height: 28px;
+      width: 30px;
+      height: 30px;
       display: block;
-      margin-left: 3px;
       fill: #fff;
+      stroke: #fff;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
       filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.35));
     }
+    .space-music-btn .waves,
+    .space-music-btn .cross { fill: none; }
+    .space-music-btn .cross { display: none; }
+    .space-music-btn:not(.is-on) .waves { display: none; }
+    .space-music-btn:not(.is-on) .cross { display: inline; }
+
     .space-music-volume {
       display: flex;
       align-items: center;
@@ -189,7 +155,6 @@ they turn it on again (or refresh).
     .space-music-percent {
       min-width: 2.6em;
       text-align: right;
-      font-family: "Baloo 2", "Trebuchet MS", sans-serif;
       font-weight: 700;
       font-size: 14px;
       color: #fff;
@@ -209,10 +174,11 @@ they turn it on again (or refresh).
 
   wrap.innerHTML = `
     <button class="space-music-btn" type="button"
-            aria-label="Turn background music on"
-            title="Turn background music on">
+            aria-label="Mute background music" title="Mute background music">
       <svg viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M6 3.5v17a1 1 0 0 0 1.5.86l14-8.5a1 1 0 0 0 0-1.72l-14-8.5A1 1 0 0 0 6 3.5z"></path>
+        <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z"></path>
+        <path class="waves" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.8 7.8 0 0 1 0 11"></path>
+        <path class="cross" d="M16 9.5l5 5M21 9.5l-5 5"></path>
       </svg>
     </button>
     <div class="space-music-volume">
@@ -236,41 +202,7 @@ they turn it on again (or refresh).
   music.loop = true;
   music.preload = 'auto';
 
-  // Resume from where the previous page left off.
-  const savedTime = parseFloat(ssGet(TIME_KEY));
-
-  if (isFinite(savedTime) && savedTime > 0) {
-
-    const seek = function () {
-      if (isFinite(music.duration) && music.duration > 0) {
-        try { music.currentTime = savedTime % music.duration; }
-        catch (e) { /* ignore */ }
-      }
-    };
-
-    if (music.readyState >= 1) {
-      seek();
-    } else {
-      music.addEventListener('loadedmetadata', seek, { once: true });
-    }
-  }
-
-  function saveTime() {
-    if (isFinite(music.currentTime)) {
-      ssSet(TIME_KEY, String(music.currentTime));
-    }
-  }
-
-  setInterval(function () {
-    if (!music.paused) {
-      saveTime();
-    }
-  }, SAVE_EVERY_MS);
-
-  window.addEventListener('pagehide', saveTime);
-  window.addEventListener('beforeunload', saveTime);
-
-  /* ---------- volume ---------- */
+  let started = false;   // set once the Galaxy Hub has been reached
 
   function applyVolume(v01, save) {
 
@@ -291,12 +223,21 @@ they turn it on again (or refresh).
 
   applyVolume(isFinite(savedVolume) ? savedVolume : DEFAULT_VOLUME, false);
 
-  slider.addEventListener('input', function () {
-    applyVolume(slider.value / 100, true);
-    showVolumeBar();
-  });
+  function updateButton() {
 
-  /* ---------- volume bar show / hide ---------- */
+    const on = !music.paused && !music.muted;
+
+    btn.classList.toggle('is-on', on);
+
+    const label = on
+      ? 'Mute background music'
+      : 'Unmute background music';
+
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('title', label);
+  }
+
+  /* ---------- volume bar ---------- */
 
   let hideTimer = null;
 
@@ -314,6 +255,7 @@ they turn it on again (or refresh).
     wrap.classList.remove('show-volume');
   }
 
+  // A tap outside the control (in the game frame or on this page) closes it.
   document.addEventListener('pointerdown', function (event) {
     if (!wrap.contains(event.target)) {
       hideVolumeBar();
@@ -326,93 +268,111 @@ they turn it on again (or refresh).
     }
   });
 
-  /* ---------- button look ---------- */
+  slider.addEventListener('input', function () {
 
-  function updateButton() {
+    applyVolume(slider.value / 100, true);
 
-    const playing = !music.paused;
+    // Raising the volume while muted turns the sound back on.
+    if (music.muted && slider.value > 0) {
+      music.muted = false;
+    }
 
-    btn.classList.toggle('is-playing', playing);
+    updateButton();
+    showVolumeBar();
+  });
 
-    const label = playing
-      ? 'Turn background music off'
-      : 'Turn background music on';
+  /* ---------- keep it playing, always ---------- */
 
-    btn.setAttribute('aria-label', label);
-    btn.setAttribute('title', label);
+  function resumeIfNeeded() {
+    if (started && music.paused) {
+      const p = music.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(function () { /* wait for the next gesture */ });
+      }
+    }
   }
 
-  music.addEventListener('playing', updateButton);
+  // Nothing in the game may stop the music. If the browser pauses it
+  // (audio interruption etc.), start it again.
+  music.addEventListener('pause', function () {
+    updateButton();
+    setTimeout(resumeIfNeeded, 250);
+  });
+
   music.addEventListener('play', updateButton);
-  music.addEventListener('pause', updateButton);
+  music.addEventListener('playing', updateButton);
 
-  /* ---------- play / pause ---------- */
+  // Taps / key presses inside the game frame (a separate document)
+  // and on this page: if the music is waiting on autoplay, start it.
+  const watchedDocs = new WeakSet();
 
-  let gestureArmed = false;
+  function watchGestures(doc) {
 
-  function armFirstGestureStart() {
-
-    if (gestureArmed) {
+    if (!doc || watchedDocs.has(doc)) {
       return;
     }
 
-    gestureArmed = true;
+    watchedDocs.add(doc);
 
-    const handler = function (event) {
-
-      if (event.target && wrap.contains(event.target)) {
-        return;
-      }
-
-      document.removeEventListener('pointerdown', handler, true);
-      document.removeEventListener('keydown', handler, true);
-      gestureArmed = false;
-
-      if (music.paused && ssGet(OFF_KEY) !== 'true') {
-        startMusic();
-      }
-    };
-
-    document.addEventListener('pointerdown', handler, true);
-    document.addEventListener('keydown', handler, true);
+    ['pointerdown', 'keydown', 'touchstart'].forEach(function (type) {
+      doc.addEventListener(type, resumeIfNeeded, true);
+    });
   }
 
+  watchGestures(document);
+
+  /* ---------- start when the GALAXY HUB appears ---------- */
+
   function startMusic() {
+
+    if (started) {
+      return;
+    }
+
+    started = true;
+
+    wrap.classList.add('available');
 
     const p = music.play();
 
     if (p && typeof p.then === 'function') {
-      p.then(updateButton).catch(function () {
-        // Autoplay blocked: start on the first tap / key press.
-        updateButton();
-        armFirstGestureStart();
-      });
+      p.then(updateButton).catch(updateButton);
     }
+
+    updateButton();
   }
+
+  frame.addEventListener('load', function () {
+
+    let path = '';
+
+    try {
+      watchGestures(frame.contentDocument);
+      path = frame.contentWindow.location.pathname || '';
+    } catch (e) {
+      /* cross-origin (e.g. file://): fall back to the frame's src */
+      path = frame.getAttribute('src') || '';
+    }
+
+    if (/home\.html$/i.test(path)) {
+      startMusic();
+    }
+  });
+
+  /* ---------- the button: MUTE / UNMUTE only ---------- */
 
   btn.addEventListener('click', function () {
 
     if (music.paused) {
-      ssRemove(OFF_KEY);
-      startMusic();
+      // Autoplay had been blocked: this tap starts the music.
+      music.muted = false;
+      resumeIfNeeded();
     } else {
-      ssSet(OFF_KEY, 'true');
-      music.pause();
-      saveTime();
-      updateButton();
+      music.muted = !music.muted;
     }
 
+    updateButton();
     showVolumeBar();
   });
-
-  /* ---------- auto-start ---------- */
-
-  if (ssGet(OFF_KEY) === 'true') {
-    updateButton();
-  } else {
-    startMusic();
-  }
-
-  window.SpaceBGM = { audio: music };
 
 })();
